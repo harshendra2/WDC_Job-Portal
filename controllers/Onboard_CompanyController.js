@@ -15,11 +15,11 @@ const OnboardRegistration = Joi.object({
 
 const OnboardComapanyEdit=Joi.object({
   name: Joi.string().required(),
-  email: Joi.string().email().required(),
   mobile: Joi.string().min(10).required(),
   company_name: Joi.string().min(5).required(),
   location: Joi.string().min(4).required()
 })
+
 
 exports.createOnboardCompany = async (req, res) => {
   const { name, email, mobile, company_name, location, password, confirmPassword } = req.body;
@@ -83,10 +83,10 @@ exports.getAllOnboardCompany=async(req,res)=>{
 }
 
 exports.editOnboardCompany = async (req, res) => {
-  const { name, email, mobile, company_name, location } = req.body;
+  const { name,mobile, company_name, location } = req.body;
   const { id } = req.params;
 
-  const { error } = OnboardComapanyEdit.validate({ name, email, mobile, company_name, location });
+  const { error } = OnboardComapanyEdit.validate({ name,mobile, company_name, location });
   if (error) {
     return res.status(400).json({ error: error.details[0].message });
   }
@@ -94,7 +94,7 @@ exports.editOnboardCompany = async (req, res) => {
   try {
     const updatedCompany = await Company.findByIdAndUpdate(
       id,
-      { name, email, mobile, company_name, location },
+      { name,mobile, company_name, location },
       { new: true }
     );
 

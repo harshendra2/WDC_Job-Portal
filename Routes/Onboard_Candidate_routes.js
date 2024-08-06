@@ -18,8 +18,7 @@ router.put('/admin/edit_personaldetails/:id',controller.editPersonalDetails);
 router.get('/admin/get_workdetaild/:id',controller.getWorkdetails);
 router.put('/admin/edit_workdetails/:id',controller.editWorkDetails);
 
-router.get('/admin/get_educationdetaild/:id',controller.getEducationData)
-router.put('/admin/edit_educationdetails/:id',controller.editEducationDetails)
-
+router.get('/admin/get_educationdetaild/:id',controller.getEducationData);
+router.put('/admin/edit_educationdetails/:id',controller.editEducationDetails);
 
 module.exports = router;
