@@ -36,6 +36,14 @@ const OnboardCandidate = Joi.object({
     articles:Joi.string().min(5),
     certificate:Joi.string().min(5)
   })
+
+  const OnboardCandidateEducationDetails=Joi.object({
+    career_details:Joi.string().min(5).required(),
+    highest_education:Joi.string().min(5).required(),
+    board_represent:Joi.string().min(5).required(),
+    current_report:Joi.string().min(5).required(),
+    last_reporting: Joi.string().min(5).required()
+  })
   
   exports.createBasicDetaileCandidate = async (req, res) => {
     const { name, email, mobile, linkedIn, gender, designation, company_name, industry, current_ctc, current_location, preferred_location, position, recognation } = req.body;
@@ -145,7 +153,32 @@ const OnboardCandidate = Joi.object({
 
 
   exports.createEducationDetailsCandidate=async(req,res)=>{
+    const {career_details,highest_education,board_represent,current_report,last_reporting,id}=req.body;
+
+    const { error } = OnboardCandidateEducationDetails.validate({
+      career_details,highest_education,board_represent,current_report,last_reporting
+    });
+  
+    if (error) {
+      return res.status(400).json({ error: error.details[0].message });
+    }
     try{
+
+      const Candidatedata={career_details,highest_education,board_represent,current_report,last_reporting};
+      const newEducationDetails = new education_details(Candidatedata);
+      const savededucationDetails = await newEducationDetails.save();
+          
+      const updatedCandidate = await candidate.findByIdAndUpdate(
+        id, 
+        { education_details: savededucationDetails._id }, 
+        { new: true }
+      );
+  
+      if (updatedCandidate) {
+        return res.status(201).json({ message: "Candidate added successfully", candidate: updatedCandidate });
+      } else {
+        return res.status(404).json({ error: "Candidate not found" });
+      }
 
     }catch(error){
       return res.status(500).json({error:"Internal Server Error"});
