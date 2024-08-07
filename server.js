@@ -7,6 +7,7 @@ const router = require("./Routes/admin_routes");
 const companyRoute=require("./Routes/Onboard_Company_routes");
 const candidateRoute=require("./Routes/Onboard_Candidate_routes");
 const adminSubscriptionRoute=require("./Routes/Admin_SubscriptionPlane_route");
+const CompanyCredentialRoute=require("./Routes/Company_Panel/company_routes")
 const PORT = 4000;
 
 
@@ -18,6 +19,7 @@ app.use('/api',router);
 app.use('/api',companyRoute);
 app.use('/api',candidateRoute);
 app.use('/api',adminSubscriptionRoute);
+app.use('/api',CompanyCredentialRoute);
 
 app.listen(PORT, () => {
   console.log(`Server Start at port No: ${PORT}`);
