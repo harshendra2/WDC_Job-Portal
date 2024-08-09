@@ -1,9 +1,10 @@
 const { required, number } = require("joi");
 const mongoose = require("mongoose");
+const jwt = require("jsonwebtoken"); // Add this line to require jwt
 const Schema = mongoose.Schema;
-const SECRET_KEY = process.env.SECRET_KEY;
+const SECRET_KEY = process.env.COMPANYSECRET_KEY;
 
-const CompnaySchema = new Schema({
+const CompanySchema = new Schema({
   name: {
     type: String,
     required: true,
@@ -32,13 +33,12 @@ const CompnaySchema = new Schema({
   hired_candidate: {
     type: Number,
     required: true,
-    default:0
+    default: 0,
   },
 });
-module.exports = mongoose.model("company", CompnaySchema);
 
 // Method to generate auth token
-CompnaySchema.methods.generateAuthtoken = async function() {
+CompanySchema.methods.generateAuthtoken = async function() {
   try {
     const token = jwt.sign({ _id: this._id }, SECRET_KEY, { expiresIn: '1d' });
     return token;
@@ -46,3 +46,5 @@ CompnaySchema.methods.generateAuthtoken = async function() {
     throw new Error('Token generation failed');
   }
 };
+
+module.exports = mongoose.model("company", CompanySchema);
