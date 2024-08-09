@@ -16,45 +16,6 @@ const basic_details_candidate=new mongoose.Schema({
     linkedIn:{
         type:String,
         required:true
-    },
-    gender:{
-        type:String,
-        required:true
-    },
-    designation:{
-        type:String,
-        required:true
-    },
-    company_name:{
-        type:String,
-        required:true
-    },
-    industry:{
-        type:String,
-        required:true
-    },
-    current_ctc:{
-        type:Number,
-        required:true
-    },
-    current_location:{
-        type:String,
-        required:true
-    },
-    preferred_location:{
-        type:String,
-        required:true
-    },
-    position:{
-        type:String,
-        required:true
-    },
-    recognation:{
-        type:String,
-        required:true
-    },
-    resume:{
-        type:String
     }
 })
 

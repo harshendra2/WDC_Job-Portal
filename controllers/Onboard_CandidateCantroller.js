@@ -9,21 +9,16 @@ const education_details=require("../models/education_details_candidateSchema");
 const OnboardCandidate = Joi.object({
     name: Joi.string().required(),
     email: Joi.string().email().required(),
-    mobile: Joi.string().min(10).required(),
-    linkedIn: Joi.string().min(15).required(),
-    gender: Joi.string().valid('Male', 'Female', 'Other').required(), 
-    designation: Joi.string().min(3).required(),
-    company_name: Joi.string().min(5).required(),
-    industry: Joi.string().min(3).required(),
-    current_ctc: Joi.number().required(),
-    current_location: Joi.string().min(5).required(),
-    preferred_location: Joi.string().min(5).required(),
-    position: Joi.string().min(5).required(),
-    recognation: Joi.string().min(5).required()
+    mobile: Joi.number().min(10).required(),
+    linkedIn: Joi.string().min(10).required(), 
   });
 
   const OnboardCandidatePersonalDetails=Joi.object({
+    gender: Joi.string().valid('Male', 'Female', 'Other').required(),
+    age:Joi.number().required(),
     marriag_status:Joi.string().valid('Single','Married').required(),
+    preferred_location: Joi.string().min(5).required(),
+    current_location: Joi.string().min(5).required(),
     family_member:Joi.number().required(),
     father_name:Joi.string().min(3).required(),
     son_name:Joi.string().min(3).required(),
@@ -31,26 +26,31 @@ const OnboardCandidate = Joi.object({
   })
 
   const OnboardCandidateWorkDetails=Joi.object({
+    designation: Joi.string().min(3).required(),
+    company_name: Joi.string().min(5).required(),
+    industry: Joi.string().min(3).required(),
+    current_ctc: Joi.number().required(),
+    aspiring_position: Joi.string().required(),
     work_experience:Joi.string().min(1).required(),
-    age:Joi.number().required(),
+    current_report:Joi.string().min(5).required(),
+    last_reporting: Joi.string().min(5).required(),
+    career_highlight: Joi.string().min(5).required(),
+    recognation: Joi.string().min(5).required(),
     functions:Joi.string().min(5).required(),
-    articles:Joi.string().min(5),
-    certificate:Joi.string().min(5)
   })
 
   const OnboardCandidateEducationDetails=Joi.object({
-    career_details:Joi.string().min(5).required(),
     highest_education:Joi.string().min(5).required(),
     board_represent:Joi.string().min(5).required(),
-    current_report:Joi.string().min(5).required(),
-    last_reporting: Joi.string().min(5).required()
+    articles:Joi.string().min(5),
+    certificate:Joi.string().min(5)
   })
   
   exports.createBasicDetaileCandidate = async (req, res) => {
-    const { name, email, mobile, linkedIn, gender, designation, company_name, industry, current_ctc, current_location, preferred_location, position, recognation } = req.body;
+    const { name, email, mobile, linkedIn} = req.body;
   
     const { error } = OnboardCandidate.validate({
-      name, email, mobile, linkedIn, gender, designation, company_name, industry, current_ctc, current_location, preferred_location, position, recognation
+      name, email, mobile, linkedIn
     });
   
     if (error) {
@@ -58,13 +58,10 @@ const OnboardCandidate = Joi.object({
     }
   
     try {
-      if (!req.file) {
-        return res.status(400).json({ error: "Please upload a file" });
-      }
+     
   
       const candidateData = {
-        name, email, mobile, linkedIn, gender, designation, company_name, industry, current_ctc, current_location, preferred_location, position, recognation,
-        resume: req.file.path 
+        name, email, mobile, linkedIn
       };
   
       const newBasicDetails = new basic_details(candidateData);
@@ -73,7 +70,7 @@ const OnboardCandidate = Joi.object({
       const newCandidate = new candidate({ basic_details: savedBasicDetails._id });
       const savedCandidate = await newCandidate.save();
   
-      return res.status(201).json({ message: "Candidate details and file uploaded successfully", candidate: savedCandidate });
+      return res.status(201).json({ message: "Candidate details added successfully", candidate: savedCandidate });
   
     } catch (error) {
       console.error('Error during candidate creation:', error);
@@ -83,10 +80,10 @@ const OnboardCandidate = Joi.object({
 
 
   exports.createPersonalDetailsCandidate = async (req, res) => {
-    const { marriag_status, family_member, father_name, son_name, spouse_profession,id} = req.body;
+    const {gender,age,marriag_status,preferred_location,current_location, family_member, father_name, son_name, spouse_profession,id} = req.body;
   
     const { error } = OnboardCandidatePersonalDetails.validate({
-      marriag_status, family_member, father_name, son_name, spouse_profession
+      gender,age,marriag_status,preferred_location,current_location, family_member, father_name, son_name, spouse_profession
     });
   
     if (error) {
@@ -94,7 +91,7 @@ const OnboardCandidate = Joi.object({
     }
   
     try {
-      const CandidateData = { marriag_status, family_member, father_name, son_name, spouse_profession };
+      const CandidateData = {  gender,age,marriag_status,preferred_location,current_location, family_member, father_name, son_name, spouse_profession};
       
       const newPersonalDetails = new personal_details(CandidateData);
       const savedPersonalDetails = await newPersonalDetails.save();
@@ -118,10 +115,10 @@ const OnboardCandidate = Joi.object({
 
 
   exports.createWorkDetailsCandidate=async(req,res)=>{
-    const {work_experience,age,functions,articles,certificate,id}=req.body;
+    const {designation,company_name,industry,current_ctc,aspiring_position,work_experience,current_report,last_reporting,career_highlight,recognation,functions,id}=req.body;
 
     const { error } = OnboardCandidateWorkDetails.validate({
-      work_experience,age,functions,articles,certificate
+      designation,company_name,industry,current_ctc,aspiring_position,work_experience,current_report,last_reporting,career_highlight,recognation,functions
     });
   
     if (error) {
@@ -130,7 +127,7 @@ const OnboardCandidate = Joi.object({
   
     try{
 
-      const Candidatedata={work_experience,age,functions,articles,certificate};
+      const Candidatedata={designation,company_name,industry,current_ctc,aspiring_position,work_experience,current_report,last_reporting,career_highlight,recognation,functions};
       const newWorkDetails = new work_details(Candidatedata);
       const savedWorkDetails = await newWorkDetails.save();
           
@@ -154,10 +151,10 @@ const OnboardCandidate = Joi.object({
 
 
   exports.createEducationDetailsCandidate=async(req,res)=>{
-    const {career_details,highest_education,board_represent,current_report,last_reporting,id}=req.body;
+    const {highest_education,board_represent,articles,certificate,id}=req.body;
 
     const { error } = OnboardCandidateEducationDetails.validate({
-      career_details,highest_education,board_represent,current_report,last_reporting
+      highest_education,board_represent,articles,certificate
     });
   
     if (error) {
@@ -165,7 +162,11 @@ const OnboardCandidate = Joi.object({
     }
     try{
 
-      const Candidatedata={career_details,highest_education,board_represent,current_report,last_reporting};
+      if (!req.file) {
+        return res.status(400).json({ error: "Please upload a file" });
+      }
+
+      const Candidatedata={highest_education,board_represent,articles,certificate,resume:req.file};
       const newEducationDetails = new education_details(Candidatedata);
       const savededucationDetails = await newEducationDetails.save();
           

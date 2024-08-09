@@ -1,10 +1,7 @@
+const { required } = require("joi");
 const mongoose=require("mongoose");
 
 const education_details_candidate=new mongoose.Schema({
-    career_details:{
-        type:String,
-        required:true
-    },
     highest_education:{
         type:String,
         required:true
@@ -13,14 +10,17 @@ const education_details_candidate=new mongoose.Schema({
         type:Number,
         required:true
     },
-    current_report:{
-        type:String,
-        required:true
+    articles:{
+        type:String
     },
-    last_reporting:{
+    certificate:{
+        type:String
+    },
+    resume:{
         type:String,
         required:true
     }
+
 })
 
 module.exports = mongoose.model("candidate_education_details", education_details_candidate);

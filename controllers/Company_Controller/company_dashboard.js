@@ -1,5 +1,6 @@
 const mongoose = require('mongoose');
 const CompanySubscription=require("../../models/Company_SubscriptionSchema")
+const CompanyJob=require("../../models/JobSchema");
 
 
 exports.getsubscriptionStatus=async(req,res)=>{
@@ -24,4 +25,17 @@ exports.getsubscriptionStatus=async(req,res)=>{
     }catch(error){
         return res.status(500).json({error:"Internal Server Error"});
     }
+}
+
+exports.GetJobCreatedCount=async(req,res)=>{
+  const {id}=req.params;
+  try{
+    const objectId = new mongoose.Types.ObjectId(id); 
+    const data=await CompanyJob.find({company_id: objectId });
+
+    return res.status(200).json({jobcreated:data.length});
+
+  }catch(error){
+    return res.status(500).json({error:"Internal Server Error"});
+  }
 }

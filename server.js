@@ -10,6 +10,8 @@ const adminSubscriptionRoute=require("./Routes/Admin_SubscriptionPlane_route");
 const CompanyCredentialRoute=require("./Routes/Company_Panel/company_routes")
 const companysubscriptionRoute=require("./Routes/Company_Panel/subscription_plane_routes")
 const companyDashboardRoute=require("./Routes/Company_Panel/company_dashboard_route");
+const companyCreateJobRoute=require("./Routes/Company_Panel/Create_Job_routes");
+const companySupportRoute=require("./Routes/Company_Panel/Support_routes");
 const PORT = 4000;
 
 
@@ -24,6 +26,8 @@ app.use('/api',adminSubscriptionRoute);
 app.use('/api',CompanyCredentialRoute);
 app.use('/api',companysubscriptionRoute);
 app.use('/api',companyDashboardRoute);
+app.use('/api',companyCreateJobRoute);
+app.use('/api',companySupportRoute);
 
 app.listen(PORT, () => {
   console.log(`Server Start at port No: ${PORT}`);
