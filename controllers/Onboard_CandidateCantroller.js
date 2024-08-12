@@ -266,10 +266,10 @@ const OnboardCandidate = Joi.object({
 
   exports.editBasicDetails = async (req, res) => {
     const { id } = req.params;
-    const { name, email, mobile, linkedIn, gender, designation, company_name, industry, current_ctc, current_location, preferred_location, position, recognation } = req.body;
+    const {name, email, mobile, linkedIn} = req.body;
   
     const { error } = OnboardCandidate.validate({
-      name, email, mobile, linkedIn, gender, designation, company_name, industry, current_ctc, current_location, preferred_location, position, recognation
+      name, email, mobile, linkedIn
     });
   
     if (error) {
@@ -282,12 +282,8 @@ const OnboardCandidate = Joi.object({
       }
   
       const candidateData = {
-        name, email, mobile, linkedIn, gender, designation, company_name, industry, current_ctc, current_location, preferred_location, position, recognation
+        name, email, mobile, linkedIn
       };
-  
-      if (req.file) {
-        candidateData.resume = req.file.path;
-      }
   
       const updatedData = await basic_details.findByIdAndUpdate(id, candidateData, { new: true });
   
@@ -334,9 +330,9 @@ const OnboardCandidate = Joi.object({
 
   exports.editPersonalDetails=async(req,res)=>{
     const {id}=req.params;
-    const {marriag_status, family_member, father_name, son_name, spouse_profession}=req.body;
+    const {gender,age,marriag_status,preferred_location,current_location, family_member, father_name, son_name, spouse_profession}=req.body;
     const { error } = OnboardCandidatePersonalDetails.validate({
-      marriag_status, family_member, father_name, son_name, spouse_profession
+      gender,age,marriag_status,preferred_location,current_location, family_member, father_name, son_name, spouse_profession
     });
   
     if (error) {
@@ -349,7 +345,7 @@ const OnboardCandidate = Joi.object({
       }
   
       const candidateData = {
-        marriag_status, family_member, father_name, son_name, spouse_profession
+        gender,age,marriag_status,preferred_location,current_location, family_member, father_name, son_name, spouse_profession
       };
   
       const updatedData = await personal_details.findByIdAndUpdate(id, candidateData, { new: true });
@@ -396,9 +392,9 @@ const OnboardCandidate = Joi.object({
 
   exports.editWorkDetails=async(req,res)=>{
     const {id}=req.params;
-    const {work_experience,age,functions,articles,certificate}=req.body;
+    const {designation,company_name,industry,current_ctc,aspiring_position,work_experience,current_report,last_reporting,career_highlight,recognation,functions}=req.body;
     const { error } = OnboardCandidateWorkDetails.validate({
-      work_experience,age,functions,articles,certificate
+      designation,company_name,industry,current_ctc,aspiring_position,work_experience,current_report,last_reporting,career_highlight,recognation,functions
     });
   
     if (error) {
@@ -411,7 +407,7 @@ const OnboardCandidate = Joi.object({
       }
   
       const candidateData = {
-        work_experience,age,functions,articles,certificate
+        designation,company_name,industry,current_ctc,aspiring_position,work_experience,current_report,last_reporting,career_highlight,recognation,functions
       };
   
       const updatedData = await work_details.findByIdAndUpdate(id, candidateData, { new: true });
@@ -461,10 +457,10 @@ const OnboardCandidate = Joi.object({
 
   exports.editEducationDetails=async(req,res)=>{
     const {id}=req.params;
-    const {career_details,highest_education,board_represent,current_report,last_reporting}=req.body;
+    const {highest_education,board_represent,articles,certificate}=req.body;
 
     const { error } = OnboardCandidateEducationDetails.validate({
-      career_details,highest_education,board_represent,current_report,last_reporting
+      highest_education,board_represent,articles,certificate
     });
   
     if (error) {
@@ -476,8 +472,13 @@ const OnboardCandidate = Joi.object({
       }
   
       const candidateData = {
-        career_details,highest_education,board_represent,current_report,last_reporting
+        highest_education,board_represent,articles,certificate
       };
+      if (!req.file) {
+        return res.status(400).json({ error: "Please upload a file" });
+      }else{
+        candidateData.resume=req.file
+      }
   
       const updatedData = await education_details.findByIdAndUpdate(id, candidateData, { new: true });
   

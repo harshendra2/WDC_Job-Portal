@@ -5,10 +5,6 @@ const Schema = mongoose.Schema;
 const SECRET_KEY = process.env.COMPANYSECRET_KEY;
 
 const CompanySchema = new Schema({
-  name: {
-    type: String,
-    required: true,
-  },
   company_name: {
     type: String,
     required: true,

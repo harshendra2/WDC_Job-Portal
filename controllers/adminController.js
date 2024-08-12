@@ -123,7 +123,7 @@ exports.forgetpasswordotp = async (req, res) => {
     const verifyToken = jwt.verify(token, SECRET_KEY);
 
     if (valideadmin && verifyToken._id) {
-      return res.status(201).json({ status: 201, valideuser });
+      return res.status(201).json({ status: 201, valideadmin });
     } else {
       return res.status(401).json({ status: 401, message: "admin not exist" });
     }

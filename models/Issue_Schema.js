@@ -1,4 +1,3 @@
-const { required } = require('joi');
 const mongoose = require('mongoose');
 
 const IssueSchema = new mongoose.Schema({
@@ -15,12 +14,15 @@ const IssueSchema = new mongoose.Schema({
       required:true
   },
   file: {
-    type:String,
-    required:true
+    type:String
   },
   createdDate:{
     type:Date,
     default: Date.now,
+  },
+  status:{
+    type:String,
+    default:"pending"
   }
 });
 

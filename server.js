@@ -12,6 +12,9 @@ const companysubscriptionRoute=require("./Routes/Company_Panel/subscription_plan
 const companyDashboardRoute=require("./Routes/Company_Panel/company_dashboard_route");
 const companyCreateJobRoute=require("./Routes/Company_Panel/Create_Job_routes");
 const companySupportRoute=require("./Routes/Company_Panel/Support_routes");
+const CandidateCredentialRoute=require("./Routes/Candidate_Panel/candidate_routes");
+const CandidateJobRoute=require("./Routes/Candidate_Panel/Jobs_routes");
+const CandidateAppliedJobRoute=require("./Routes/Candidate_Panel/Job_applied");
 const PORT = 4000;
 
 
@@ -28,6 +31,9 @@ app.use('/api',companysubscriptionRoute);
 app.use('/api',companyDashboardRoute);
 app.use('/api',companyCreateJobRoute);
 app.use('/api',companySupportRoute);
+app.use('/api',CandidateCredentialRoute);
+app.use('/api',CandidateJobRoute);
+app.use('/api',CandidateAppliedJobRoute);
 
 app.listen(PORT, () => {
   console.log(`Server Start at port No: ${PORT}`);

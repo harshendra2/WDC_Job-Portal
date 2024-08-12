@@ -6,6 +6,18 @@ const CompanyJobSchema = new mongoose.Schema({
         type: mongoose.Schema.Types.ObjectId,
         ref:'company'
     },
+candidate_id:[{
+ type: mongoose.Schema.Types.ObjectId,
+        ref:'candidate'
+  }],
+  Save_id:[{
+ type: mongoose.Schema.Types.ObjectId,
+        ref:'candidate'
+  }],
+  apply_status:{
+    type:Boolean,
+    default:false
+  },
   job_title: {
     type: String,
     required: true

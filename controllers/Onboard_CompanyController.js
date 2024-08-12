@@ -3,7 +3,6 @@ const Joi = require("joi");
 const bcrypt = require("bcryptjs");
 
 const OnboardRegistration = Joi.object({
-  name: Joi.string().required(),
   email: Joi.string().email().required(),
   mobile: Joi.string().min(10).required(),
   company_name: Joi.string().min(5).required(),
@@ -14,7 +13,6 @@ const OnboardRegistration = Joi.object({
 });
 
 const OnboardComapanyEdit=Joi.object({
-  name: Joi.string().required(),
   mobile: Joi.string().min(10).required(),
   company_name: Joi.string().min(5).required(),
   location: Joi.string().min(4).required()
@@ -22,9 +20,9 @@ const OnboardComapanyEdit=Joi.object({
 
 
 exports.createOnboardCompany = async (req, res) => {
-  const { name, email, mobile, company_name, location, password, confirmPassword } = req.body;
+  const {email, mobile, company_name, location, password, confirmPassword } = req.body;
 
-  const { error } = OnboardRegistration.validate({ name, email, mobile, company_name, location, password, confirmPassword });
+  const { error } = OnboardRegistration.validate({ email, mobile, company_name, location, password, confirmPassword });
   if (error) {
     return res.status(400).json({ error: error.details[0].message });
   }
@@ -38,7 +36,6 @@ exports.createOnboardCompany = async (req, res) => {
     const hashedPassword = await bcrypt.hash(password, 12);
 
     const newCompany = new Company({
-      name,
       email,
       mobile,
       company_name,
@@ -83,10 +80,10 @@ exports.getAllOnboardCompany=async(req,res)=>{
 }
 
 exports.editOnboardCompany = async (req, res) => {
-  const { name,mobile, company_name, location } = req.body;
+  const {mobile, company_name, location } = req.body;
   const { id } = req.params;
 
-  const { error } = OnboardComapanyEdit.validate({ name,mobile, company_name, location });
+  const { error } = OnboardComapanyEdit.validate({mobile, company_name, location });
   if (error) {
     return res.status(400).json({ error: error.details[0].message });
   }
@@ -94,7 +91,7 @@ exports.editOnboardCompany = async (req, res) => {
   try {
     const updatedCompany = await Company.findByIdAndUpdate(
       id,
-      { name,mobile, company_name, location },
+      {mobile, company_name, location },
       { new: true }
     );
 

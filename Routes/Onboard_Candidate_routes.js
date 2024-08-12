@@ -10,7 +10,7 @@ router.post('/admin/create_educationdetails',upload.single("file"),controller.cr
 router.get('/admin/get_candidate',controller.getAllCandidate);
 
 router.get('/admin/get_basicdetails/:id',controller.getbasicDetails);
-router.put('/admin/edit_basicdetails/:id',upload.single("file"),controller.editBasicDetails);
+router.put('/admin/edit_basicdetails/:id',controller.editBasicDetails);
 
 router.get('/admin/get_personaldetaild/:id',controller.getPersonalDetails);
 router.put('/admin/edit_personaldetails/:id',controller.editPersonalDetails);
@@ -19,6 +19,6 @@ router.get('/admin/get_workdetaild/:id',controller.getWorkdetails);
 router.put('/admin/edit_workdetails/:id',controller.editWorkDetails);
 
 router.get('/admin/get_educationdetaild/:id',controller.getEducationData);
-router.put('/admin/edit_educationdetails/:id',controller.editEducationDetails);
+router.put('/admin/edit_educationdetails/:id',upload.single("file"),controller.editEducationDetails);
 
 module.exports = router;
