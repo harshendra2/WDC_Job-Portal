@@ -166,8 +166,15 @@ exports.ExtendVerifyPayment=async(req,res)=>{
                 });
 
                 if (existingSubscription) {
-                    // Extend the current subscription by 30 days
-                    existingSubscription.expiresAt = new Date(existingSubscription.expiresAt.getTime() + 30 * 24 * 60 * 60 * 1000);
+                    const currentDate = new Date();
+                    existingSubscription.expiresAt = new Date(currentDate.getTime() + 30 * 24 * 60 * 60 * 1000);
+                    existingSubscription.search_limit = subscriptionData.search_limit;
+                    existingSubscription.user_access = subscriptionData.user_access;
+                    existingSubscription.cv_view_limit = subscriptionData.cv_view_limit;
+                    existingSubscription.job_posting = subscriptionData.job_posting;
+                    existingSubscription.available_candidate=true;
+                    existingSubscription.download_email_limit=true;
+                    existingSubscription.download_cv_limit=true;
                     await existingSubscription.save();
 
                     return res.status(200).json({

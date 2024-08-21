@@ -1,6 +1,6 @@
 const express = require("express");
 const router = new express.Router();
-const controller = require("../controllers/Onboard_CompanyController");
+const controller = require("../../controllers/Admin_controller/Onboard_CompanyController");
 
 router.post('/admin/create_company', controller.createOnboardCompany);
 router.get('/admin/get_company',controller.getAllOnboardCompany);

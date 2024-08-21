@@ -1,7 +1,6 @@
 const Joi=require("joi");
 const mongoose=require("mongoose");
 const IssueSchema=require("../../models/Issue_Schema");
-const chatModel=require("../../models/chatModel");
 const messageModel=require("../../models/messageModel");
 
 const IssueValidation=Joi.object({
@@ -20,14 +19,15 @@ const IssueValidation=Joi.object({
 
     try {
         if (!req.file) {
-            return res.status(400).json({ error: "File is required" });
-        }
-
+            return res.status(400).json({ error: "Please upload a file" });
+          }
+          // Construct the file URL
+        const fileUrl = `${req.protocol}://${req.get("host")}/Images/${req.file.filename}`;
         const createdData =new IssueSchema({
             Issue_type,
             description,
             company_id:new mongoose.Types.ObjectId(id),
-            file: req.file.path 
+            file:fileUrl 
         });
 
         const data = await createdData.save();
@@ -54,77 +54,26 @@ exports.getAllIssuesClaim=async(req,res)=>{
     }
 }
 
+//Chat Session 
 
-
-//Chating session 
-
-exports.createChat=async(req,res)=>{
-    const { firstId, secondId } = req.body;
+exports.getAllMessages=async(Id)=>{
     try{
-        const chat = await chatModel.findOne({
-            members: { $all: [firstId, secondId] }
-          });
-          if (chat)
-            return res.status(200).json(chat);
-          const newChat = new chatModel({
-            members: [firstId, secondId]
-          });
-          const response = await newChat.save();
-          res.status(200).json(response);
+     const message=await messageModel.find({Issue_id:Id});
+        return message || [];
 
     }catch(error){
-return res.status(500).json({error:"Internal Server error"});
+        console.log(error);
+        throw error;
     }
 }
 
-exports.findUserChats=async(req,res)=>{
-    const userId = req.params.userId;
+exports.saveNewMessage=async(msg)=>{
     try{
-        const chats = await chatModel.find({
-            members: { $in: [userId] }
-          });
-          res.status(200).json(chats);
-
+        const newMessage = new messageModel(msg)
+        await newMessage.save()
+        return newMessage
     }catch(error){
-        return res.status(500).json({error:"Intrnal Server error"});
-    }
-}
-
-exports.findChat=async(req,res)=>{
-    const { firstId, secondId } = req.params;
-    try{
-        const chat = await chatModel.findOne({
-            members: { $all: [firstId, secondId] }
-          });
-          res.status(200).json(chat);
-    }catch(error){
-        return res.status(500).json({error:"Internal Server error"});
-    }
-}
-
-
-
-//Message Session 
-
-exports.createMessage=async(req,res)=>{
-    const { chatId, senderId, text } = req.body;
-    try{
-        const message = new messageModel({
-            chatId, senderId, text
-          });
-          const response = await message.save();
-          res.status(200).json(response);
-    }catch(error){
-        return res.status(500).json({error:"Intrernal Server Error"});
-    }
-}
-
-exports.getMessages=async(req,res)=>{
-    const { chatId } = req.params;
-    try{
-        const messages = await messageModel.find({ chatId });
-        res.status(200).json(messages);
-    }catch(error){
-        return res.status(500).json({error:"Internal Server error"});
+        console.log(error);
+        throw error;
     }
 }

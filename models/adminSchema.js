@@ -8,7 +8,6 @@ const SECRET_KEY = process.env.SECRET_KEY;
 const adminSchema = new mongoose.Schema({
   email: {
     type: String,
-    required: true,
     unique: true,
     validate(value) {
       if (!validator.isEmail(value)) {
@@ -18,21 +17,23 @@ const adminSchema = new mongoose.Schema({
   },
   password: {
     type: String,
-    required: true,
     minlength: 6,
   },
-  tokens: [
+  status:{
+   type:Boolean,
+   default:false
+  },
+  responsibility:{
+    type:mongoose.Schema.Types.ObjectId,
+    ref:'responsibilities'
+},
+tokens: [
     {
       token: {
-        type: String,
-        required: true,
+        type: String
       },
     },
-  ],
-  verifytoken:{
-    type:String,
-    require:true,
-}
+  ]
 });
 
 // Pre-save hook to hash the password

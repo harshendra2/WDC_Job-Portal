@@ -1,11 +1,25 @@
-const Company = require("../models/Onboard_Company_Schema");
+const Company = require("../../models/Onboard_Company_Schema");
 const Joi = require("joi");
 const bcrypt = require("bcryptjs");
+
+const PAN_REGEX = /^[A-Z]{5}[0-9]{4}[A-Z]{1}$/;
+const GST_REGEX = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[A-Z0-9]{3}$/;
 
 const OnboardRegistration = Joi.object({
   email: Joi.string().email().required(),
   mobile: Joi.string().min(10).required(),
   company_name: Joi.string().min(5).required(),
+  overView: Joi.string().min(5).required(),
+  address: Joi.string().min(4).required(),
+  industry: Joi.string().required(),
+  company_size: Joi.string().required(),
+  GST: Joi.string().pattern(GST_REGEX).required().messages({
+    'string.pattern.base': 'GST number is invalid'
+  }),
+  PAN: Joi.string().pattern(PAN_REGEX).required().messages({
+    'string.pattern.base': 'PAN number is invalid'
+  }),
+  website_url: Joi.string().min(7).required(),
   location: Joi.string().min(4).required(),
   password: Joi.string().min(6).required(),
   confirmPassword: Joi.string().min(6).required()
@@ -15,14 +29,18 @@ const OnboardRegistration = Joi.object({
 const OnboardComapanyEdit=Joi.object({
   mobile: Joi.string().min(10).required(),
   company_name: Joi.string().min(5).required(),
+  overView: Joi.string().min(5).required(),
+  address: Joi.string().min(4).required(),
+  industry: Joi.string().required(),
+  company_size: Joi.string().required(),
+  website_url: Joi.string().min(7).required(),
   location: Joi.string().min(4).required()
 })
 
-
 exports.createOnboardCompany = async (req, res) => {
-  const {email, mobile, company_name, location, password, confirmPassword } = req.body;
+  const {email, mobile, company_name,overView,address,industry,company_size,GST,PAN,website_url,location, password, confirmPassword } = req.body;
 
-  const { error } = OnboardRegistration.validate({ email, mobile, company_name, location, password, confirmPassword });
+  const { error } = OnboardRegistration.validate({ email, mobile, company_name,overView,address,industry,company_size,GST,PAN,website_url,location, password, confirmPassword });
   if (error) {
     return res.status(400).json({ error: error.details[0].message });
   }
@@ -36,10 +54,7 @@ exports.createOnboardCompany = async (req, res) => {
     const hashedPassword = await bcrypt.hash(password, 12);
 
     const newCompany = new Company({
-      email,
-      mobile,
-      company_name,
-      location,
+      email, mobile, company_name,overView,address,industry,company_size,GST,PAN,website_url,location,
       password: hashedPassword
     });
 
@@ -47,7 +62,6 @@ exports.createOnboardCompany = async (req, res) => {
 
     return res.status(201).json({ message: "Company Onboard Registration Successful", company: savedCompany });
   } catch (error) {
-    console.error('Error during company registration:', error);
     return res.status(500).json({ error: "Internal Server Error" });
   }
 };
@@ -80,10 +94,10 @@ exports.getAllOnboardCompany=async(req,res)=>{
 }
 
 exports.editOnboardCompany = async (req, res) => {
-  const {mobile, company_name, location } = req.body;
+  const {mobile, company_name,overView,address,industry,company_size,website_url,location} = req.body;
   const { id } = req.params;
 
-  const { error } = OnboardComapanyEdit.validate({mobile, company_name, location });
+  const { error } = OnboardComapanyEdit.validate({mobile, company_name,overView,address,industry,company_size,website_url,location });
   if (error) {
     return res.status(400).json({ error: error.details[0].message });
   }
@@ -91,7 +105,7 @@ exports.editOnboardCompany = async (req, res) => {
   try {
     const updatedCompany = await Company.findByIdAndUpdate(
       id,
-      {mobile, company_name, location },
+      {mobile, company_name,overView,address,industry,company_size,website_url,location },
       { new: true }
     );
 

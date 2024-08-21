@@ -5,6 +5,10 @@ const IssueSchema = new mongoose.Schema({
         type: mongoose.Schema.Types.ObjectId,
         ref:'company'
   },
+  candidate_id:{
+      type:mongoose.Schema.Types.ObjectId,
+      ref:'candidate'
+  },
   Issue_type: {
     type: String,
     required: true

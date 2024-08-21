@@ -15,6 +15,13 @@ const CandidateShema=new mongoose.Schema({
     education_details:{
         type:mongoose.Schema.Types.ObjectId,
         ref:'candidate_education_details'
+    },
+    status:{
+        type:String,
+        default:"processing"
+    },
+    message:{
+        type:String
     }
     
 })

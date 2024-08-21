@@ -1,5 +1,5 @@
 const Joi=require("joi");
-const subscription=require("../models/SubscriptionSchema");
+const subscription=require("../../models/SubscriptionSchema");
 
 const EditSubscriptionPlane = Joi.object({
     plane_name: Joi.string().required(),

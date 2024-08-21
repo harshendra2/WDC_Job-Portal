@@ -1,10 +1,13 @@
 const Joi=require("joi");
+const XLSX = require('xlsx');
 const mongoose = require('mongoose');
-const candidate=require("../models/Onboard_Candidate_Schema");
-const basic_details=require("../models/Basic_details_CandidateSchema");
-const personal_details=require("../models/Personal_details_candidateSchema");
-const work_details=require("../models/work_details_candidate");
-const education_details=require("../models/education_details_candidateSchema");
+const candidate=require("../../models/Onboard_Candidate_Schema");
+const basic_details=require("../../models/Basic_details_CandidateSchema");
+const personal_details=require("../../models/Personal_details_candidateSchema");
+const work_details=require("../../models/work_details_candidate");
+const education_details=require("../../models/education_details_candidateSchema");
+
+const PAN_REGEX = /^[A-Z]{5}[0-9]{4}[A-Z]{1}$/;
 
 const OnboardCandidate = Joi.object({
     name: Joi.string().required(),
@@ -19,6 +22,10 @@ const OnboardCandidate = Joi.object({
     marriag_status:Joi.string().valid('Single','Married').required(),
     preferred_location: Joi.string().min(5).required(),
     current_location: Joi.string().min(5).required(),
+    aadhar_number: Joi.number().required(),
+    PAN: Joi.string().pattern(PAN_REGEX).required().messages({
+      'string.pattern.base': 'PAN number is invalid'
+    }),
     family_member:Joi.number().required(),
     father_name:Joi.string().min(3).required(),
     son_name:Joi.string().min(3).required(),
@@ -80,10 +87,10 @@ const OnboardCandidate = Joi.object({
 
 
   exports.createPersonalDetailsCandidate = async (req, res) => {
-    const {gender,age,marriag_status,preferred_location,current_location, family_member, father_name, son_name, spouse_profession,id} = req.body;
+    const {gender,age,marriag_status,preferred_location,current_location,aadhar_number,PAN, family_member, father_name, son_name, spouse_profession,id} = req.body;
   
     const { error } = OnboardCandidatePersonalDetails.validate({
-      gender,age,marriag_status,preferred_location,current_location, family_member, father_name, son_name, spouse_profession
+      gender,age,marriag_status,preferred_location,current_location,aadhar_number,PAN,family_member, father_name, son_name, spouse_profession
     });
   
     if (error) {
@@ -91,7 +98,7 @@ const OnboardCandidate = Joi.object({
     }
   
     try {
-      const CandidateData = {  gender,age,marriag_status,preferred_location,current_location, family_member, father_name, son_name, spouse_profession};
+      const CandidateData = {  gender,age,marriag_status,preferred_location,current_location,aadhar_number,PAN,family_member, father_name, son_name, spouse_profession};
       
       const newPersonalDetails = new personal_details(CandidateData);
       const savedPersonalDetails = await newPersonalDetails.save();
@@ -165,8 +172,9 @@ const OnboardCandidate = Joi.object({
       if (!req.file) {
         return res.status(400).json({ error: "Please upload a file" });
       }
-
-      const Candidatedata={highest_education,board_represent,articles,certificate,resume:req.file};
+      // Construct the file URL
+    const fileUrl = `${req.protocol}://${req.get("host")}/Images/${req.file.filename}`;
+      const Candidatedata={highest_education,board_represent,articles,certificate,resume:fileUrl};
       const newEducationDetails = new education_details(Candidatedata);
       const savededucationDetails = await newEducationDetails.save();
           
@@ -491,5 +499,92 @@ const OnboardCandidate = Joi.object({
 
     }catch(error){
       return res.status(500).json({error:"Internal Server Error"});
+    }
+  }
+
+
+  // download and upload Excel Sheets
+
+  exports.DownloadExcelTemplete=async(req,res)=>{
+    try{
+      const data = [
+        {Name: '',Email: '',Mobile_No: '',linkedIn_Profile_Link:'',Gender:'',Age:'',Marriage_Status:'',Preffered_location:'',Current_location:'',Member_In_Family:'',Name_of_Father:'',Son_Name:'',Spouse_profession:'',Designation:'',Company_name:'',Industry:'',Current_CTC:'',Role:'',Total_experience:'',Functions:'',Current_reporting_structure:'',Last_reposrting_Structure:'',Career_Highlight:'',Recognation:'',Education:'',Board_Represent_Name:'',Articles:'',Certificate:''} // Example headers/fields
+    ];
+
+    const worksheet = XLSX.utils.json_to_sheet(data);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Sheet1');
+
+    const excelBuffer = XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx' });
+
+    res.setHeader('Content-Disposition', 'attachment; filename="template.xlsx"');
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.send(excelBuffer);
+
+    }catch(error){
+      return res.status(500).json({error:"Internal Server error"});
+    }
+  }
+
+
+  exports.uploadExcelFile=async(req,res)=>{
+    try{
+      const workbook = XLSX.readFile(req.file.path);
+      const sheetName = workbook.SheetNames[0];
+      const sheetData = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName]);
+    
+    for (const row of sheetData) {
+      const basicDetails = {
+        name: row.Name,
+        email: row.Email,
+        mobile: row.Mobile_No,
+        linkedIn: row.LinkedIn_Profile_Link
+      };
+
+      const personalDetails={
+        gender:row.Gender,
+        age:row.Age,
+        marriage_status:row.Marriage_Status,
+        preferred_location:row.Preffered_location,
+        current_location:row.Current_location,
+        femily_member:row.Member_In_Family,
+        father_name:row.Name_of_Father,
+        son_name:row.Son_Name,
+        spouse_profession:row.Spouse_profession
+
+      }
+
+      const workDetails = {
+        designation: row.Designation,
+        company_name: row.Company_Name,
+        industry: row.Industry,
+        current_ctc: row.Current_CTC,
+        aspiring_position: row.Role,
+        work_experience: row.Total_experience,
+        current_report: row.Current_reporting_structure,
+        last_reporting: row.Last_reposrting_Structure,
+        career_highlight: row.Career_Highlight,
+        recognation: row.Recognation,
+        functions: row.Functions,
+      };
+
+      const educationDetails={
+        highest_education:row.Education,
+        board_represent:row.Board_Represent_Name,
+        articles:row.Articles,
+        certificate:row.Certificate
+      }
+
+      const savedBasicDetails = await new basic_details(basicDetails).save();
+      const savedPersonalDetails=await new personal_details(personalDetails).save();
+      const savedWorkDetails=await new work_details(workDetails).save();
+      const savedEducationDetails=await new education_details(educationDetails).save();
+  
+      const newCandidate = new candidate({ basic_details: savedBasicDetails._id,personal_details:savedPersonalDetails._id,work_details:savedWorkDetails._id,education_details:savedEducationDetails._id});
+      const savedCandidate = await newCandidate.save();
+    }
+      res.status(200).json({ message: 'File processed and data stored successfully' });
+    }catch(error){
+      return res.status(500).json({error:"Internal server error"});
     }
   }

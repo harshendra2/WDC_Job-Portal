@@ -1,6 +1,6 @@
 const express=require('express');
 const router=new express.Router();
-const controller=require('../controllers/Admin_Subscription_Controller');
+const controller=require('../../controllers/Admin_controller/Admin_Subscription_Controller');
 
 router.get('/admin/get_subscription',controller.getallsubscription);
 router.get('/admin/get_subscription_name',controller.getAllSubscriptionName)

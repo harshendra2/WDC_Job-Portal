@@ -3,6 +3,31 @@ const moment = require('moment');
 const CompanyJob=require("../../models/JobSchema");
 const companySubscription=require("../../models/Company_SubscriptionSchema");
 
+exports.GetRemainingJobStatus=async(req,res)=>{
+    const {id}=req.params;
+    try{
+
+        const objectId = new mongoose.Types.ObjectId(id); 
+        data = await companySubscription.aggregate([
+            { $match: { company_id:objectId} },
+            {
+              $lookup: {
+                from: 'subscriptionplanes',
+                localField: 'subscription_id',
+                foreignField: '_id',
+                as: 'CompanySubscription'
+              }
+            }
+          ]);
+
+          if(data){
+            return res.status(200).send(data);
+          }
+
+    }catch(error){
+        return res.status(500).json({error:"Internal server error"});
+    }
+}
 
 exports.CreateNewJob = async (req, res) => {
     const { id } = req.params;

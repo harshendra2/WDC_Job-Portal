@@ -17,6 +17,32 @@ const CompanySchema = new Schema({
     type: Number,
     required: true,
   },
+  overView:{
+   type:String,
+   required:true
+  },
+  address:{
+  type:String,
+  required:true
+  },
+  industry:{
+  type:String,
+  required:true
+  },
+  company_size:{
+    type:String,
+    required:true
+  },
+  GST:{
+    type:String,
+  },
+  PAN:{
+    type:String,
+  },
+  website_url:{
+   type:String,
+   required:true
+  },
   location: {
     type: String,
     required: true,
@@ -31,6 +57,13 @@ const CompanySchema = new Schema({
     required: true,
     default: 0,
   },
+  status:{
+    type:String,
+    default:"Processing"
+  },
+  message:{
+    type:String
+  }
 });
 
 // Method to generate auth token

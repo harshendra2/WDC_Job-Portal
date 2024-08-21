@@ -1,5 +1,6 @@
 const mongoose = require('mongoose');
-const CompanySubscription=require("../../models/Company_SubscriptionSchema")
+const CompanySubscription=require("../../models/Company_SubscriptionSchema");
+const subscription=require("../../models/SubscriptionSchema");
 const CompanyJob=require("../../models/JobSchema");
 
 
@@ -34,6 +35,15 @@ exports.GetJobCreatedCount=async(req,res)=>{
     const data=await CompanyJob.find({company_id: objectId });
 
     return res.status(200).json({jobcreated:data.length});
+
+  }catch(error){
+    return res.status(500).json({error:"Internal Server Error"});
+  }
+}
+
+exports.UpgradeSubscriptionPlane=async(req,res)=>{
+  const { orderId, subscriptionId, companyId } = req.body;
+  try{
 
   }catch(error){
     return res.status(500).json({error:"Internal Server Error"});

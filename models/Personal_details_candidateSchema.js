@@ -22,6 +22,14 @@ const personal_details_candidate=new mongoose.Schema({
     type:String,
     required:true
     },
+    aadhar_number:{
+        type:Number,
+        required:true
+    },
+    PAN:{
+    type:String,
+    required:true
+    },
     family_member:{
         type:Number,
         required:true

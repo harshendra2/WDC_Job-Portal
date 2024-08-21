@@ -18,7 +18,6 @@ const education_details_candidate=new mongoose.Schema({
     },
     resume:{
         type:String,
-        required:true
     }
 
 })

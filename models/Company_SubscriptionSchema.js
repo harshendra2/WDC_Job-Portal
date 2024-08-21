@@ -53,7 +53,7 @@ const CompanySubscriptionPlaneSchema = new mongoose.Schema({
   expiresAt: {
     type: Date,
     default: Date.now,
-    index: { expires: '30d' }, 
+    // index: { expires: '30d' }, 
 }
 });
 
