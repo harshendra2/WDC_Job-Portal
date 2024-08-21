@@ -36,8 +36,14 @@ const CompanySchema = new Schema({
   GST:{
     type:String,
   },
+  GST_image:{
+    type:String
+  },
   PAN:{
     type:String,
+  },
+  PAN_image:{
+    type:String
   },
   website_url:{
    type:String,
@@ -56,6 +62,15 @@ const CompanySchema = new Schema({
     type: Number,
     required: true,
     default: 0,
+  },
+  contact_email:{
+  type:String
+  },
+  contact_No:{
+   type:Number
+  },
+  headQuater_add:{
+   type:String
   },
   status:{
     type:String,

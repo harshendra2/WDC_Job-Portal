@@ -230,7 +230,7 @@ const OnboardCandidate = Joi.object({
             as: 'education_details'
           }
         }
-      ]);
+      ]).sort({ createdAt: -1 });
       if(data){
       return res.status(200).send(data);
       }

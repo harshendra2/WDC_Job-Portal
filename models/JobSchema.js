@@ -67,6 +67,10 @@ candidate_id:[{
   createdDate:{
     type:Date,
     default: Date.now,
+  },
+  status:{
+    type:Boolean,
+    default:true
   }
 });
 

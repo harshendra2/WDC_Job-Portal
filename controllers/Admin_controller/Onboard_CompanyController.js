@@ -83,7 +83,7 @@ exports.getSingleCompany=async(req,res)=>{
 
 exports.getAllOnboardCompany=async(req,res)=>{
   try{
-    const data=await Company.find({});
+    const data=await Company.find({}).sort({ createdAt: -1 });
     if(data){
       return res.status(200).send(data);
     }
