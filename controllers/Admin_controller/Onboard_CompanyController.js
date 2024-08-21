@@ -8,22 +8,7 @@ const GST_REGEX = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[A-Z0-9]{3}$/;
 const OnboardRegistration = Joi.object({
   email: Joi.string().email().required(),
   mobile: Joi.string().min(10).required(),
-  company_name: Joi.string().min(5).required(),
-  overView: Joi.string().min(5).required(),
-  address: Joi.string().min(4).required(),
-  industry: Joi.string().required(),
-  company_size: Joi.string().required(),
-  GST: Joi.string().pattern(GST_REGEX).required().messages({
-    'string.pattern.base': 'GST number is invalid'
-  }),
-  PAN: Joi.string().pattern(PAN_REGEX).required().messages({
-    'string.pattern.base': 'PAN number is invalid'
-  }),
-  website_url: Joi.string().min(7).required(),
-  location: Joi.string().min(4).required(),
-  password: Joi.string().min(6).required(),
-  confirmPassword: Joi.string().min(6).required()
-    .valid(Joi.ref('password')).messages({ 'any.only': 'Password and confirm password do not match' })
+  company_name: Joi.string().min(5).required()
 });
 
 const OnboardComapanyEdit=Joi.object({
@@ -40,7 +25,7 @@ const OnboardComapanyEdit=Joi.object({
 exports.createOnboardCompany = async (req, res) => {
   const {email, mobile, company_name,overView,address,industry,company_size,GST,PAN,website_url,location, password, confirmPassword } = req.body;
 
-  const { error } = OnboardRegistration.validate({ email, mobile, company_name,overView,address,industry,company_size,GST,PAN,website_url,location, password, confirmPassword });
+  const { error } = OnboardRegistration.validate({ email, mobile, company_name});
   if (error) {
     return res.status(400).json({ error: error.details[0].message });
   }

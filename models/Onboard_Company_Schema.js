@@ -78,6 +78,10 @@ const CompanySchema = new Schema({
   },
   message:{
     type:String
+  },
+  createdAt:{
+    type: Date,
+    default: Date.now
   }
 });
 
