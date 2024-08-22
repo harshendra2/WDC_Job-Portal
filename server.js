@@ -2,6 +2,7 @@ require("dotenv").config();
 const express = require("express");
 const app = express();
 const cors = require("cors");
+const path=require('path')
 require("./db/connection");
 // Import cron job
 require('./SubscriptionExpire/subscriptionExpiry');
@@ -55,7 +56,7 @@ app.use('/api',CandidateCredentialRoute);
 app.use('/api',CandidateJobRoute);
 app.use('/api',CandidateAppliedJobRoute);
 
-
+app.use('/Images', express.static(path.join(__dirname, 'Images')));
 const server=app.listen(PORT, () => {
   console.log(`Server Start at port No: ${PORT}`);
 });
