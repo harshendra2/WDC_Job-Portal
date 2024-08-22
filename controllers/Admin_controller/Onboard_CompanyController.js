@@ -1,6 +1,7 @@
 const Company = require("../../models/Onboard_Company_Schema");
 const Joi = require("joi");
 const bcrypt = require("bcryptjs");
+const tesseract = require('tesseract.js');
 
 const PAN_REGEX = /^[A-Z]{5}[0-9]{4}[A-Z]{1}$/;
 const GST_REGEX = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[A-Z0-9]{3}$/;
@@ -23,9 +24,11 @@ const OnboardComapanyEdit=Joi.object({
 })
 
 exports.createOnboardCompany = async (req, res) => {
-  const {email, mobile, company_name,overView,address,industry,company_size,GST,PAN,website_url,location, password, confirmPassword } = req.body;
+  const {email, mobile, company_name,overView,industry,company_size,GST,PAN,website_url,location,contact_email,contact_No,headQuater_add} = req.body;
 
   const { error } = OnboardRegistration.validate({ email, mobile, company_name});
+  const panImage = req.files['panImage'] ? req.files['panImage'][0].path : null;
+  const gstImage = req.files['gstImage'] ? req.files['gstImage'][0].path : null;
   if (error) {
     return res.status(400).json({ error: error.details[0].message });
   }
@@ -36,17 +39,16 @@ exports.createOnboardCompany = async (req, res) => {
       return res.status(400).json({ error: "Email already created" });
     }
 
-    const hashedPassword = await bcrypt.hash(password, 12);
 
     const newCompany = new Company({
-      email, mobile, company_name,overView,address,industry,company_size,GST,PAN,website_url,location,
-      password: hashedPassword
+      email, mobile, company_name,overView,industry,company_size,GST,PAN,website_url,location,contact_email,contact_No,headQuater_add,GST_image:gstImage,PAN_image:panImage
     });
 
     const savedCompany = await newCompany.save();
 
-    return res.status(201).json({ message: "Company Onboard Registration Successful", company: savedCompany });
+    return res.status(201).json({ message: "Company created Successfully", company: savedCompany });
   } catch (error) {
+    console.log(error);
     return res.status(500).json({ error: "Internal Server Error" });
   }
 };

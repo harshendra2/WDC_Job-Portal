@@ -1,7 +1,5 @@
 const mongoose=require("mongoose");
 const tesseract = require('tesseract.js');
-const fs = require('fs');
-const path=require('path')
 const company=require("../../models/Onboard_Company_Schema");
 
 exports.GetCompanyProfile=async(req,res)=>{
@@ -55,9 +53,9 @@ exports.EditProfile = async (req, res) => {
         if (panNumber != PAN) {
             return res.status(400).json({ error: "PAN number and PAN image number do not match" });
         }
-        // if (gstNumber !=GST) {
-        //     return res.status(400).json({ error: "GST number and GST image number do not match" });
-        // }
+        if (gstNumber !=GST) {
+            return res.status(400).json({ error: "GST number and GST image number do not match" });
+        }
 
         const companyData = {
             company_name, email, mobile, overView, address, industry,
@@ -66,10 +64,10 @@ exports.EditProfile = async (req, res) => {
         };
 
         if (panImage) {
-            companyData.PAN_image = `${req.protocol}://${req.get("host")}/Images/${panImage}`;
+            companyData.PAN_image = panImage
         }
         if (gstImage) {
-            companyData.GST_image = `${req.protocol}://${req.get("host")}/Images/${gstImage}`;
+            companyData.GST_image = gstImage
         }
 
         const updatedData = await company.findByIdAndUpdate(id, companyData, { new: true });

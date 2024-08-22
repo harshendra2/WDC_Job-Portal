@@ -18,20 +18,16 @@ const CompanySchema = new Schema({
     required: true,
   },
   overView:{
-   type:String,
-   required:true
+   type:String
   },
   address:{
-  type:String,
-  required:true
+  type:String
   },
   industry:{
-  type:String,
-  required:true
+  type:String
   },
   company_size:{
-    type:String,
-    required:true
+    type:String
   },
   GST:{
     type:String,
@@ -46,21 +42,17 @@ const CompanySchema = new Schema({
     type:String
   },
   website_url:{
-   type:String,
-   required:true
+   type:String
   },
   location: {
-    type: String,
-    required: true,
+    type: String
   },
   password: {
     type: String,
-    required: true,
     minlength: 6,
   },
   hired_candidate: {
     type: Number,
-    required: true,
     default: 0,
   },
   contact_email:{
