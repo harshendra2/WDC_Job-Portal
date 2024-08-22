@@ -68,17 +68,28 @@ exports.getSingleCompany=async(req,res)=>{
 }
 
 
-exports.getAllOnboardCompany=async(req,res)=>{
-  try{
-    const data=await Company.find({}).sort({ createdAt: -1 });
-    if(data){
-      return res.status(200).send(data);
+exports.getAllOnboardCompany = async (req, res) => {
+  try {
+    const data = await Company.find({}).sort({ createdAt: -1 });
+    if (data) {
+      const baseUrl = `${req.protocol}://${req.get('host')}`;
+      
+      const updatedData = data.map(company => {
+        return {
+          ...company._doc, // Spread the existing company data
+          panImageUrl: company.PAN_image ? `${baseUrl}/${company.PAN_image.replace(/\\/g, '/')}` : null, // Replace backslashes with forward slashes
+          gstImageUrl: company.GST_image ? `${baseUrl}/${company.GST_image.replace(/\\/g, '/')}` : null, // Replace backslashes with forward slashes
+        };
+      });
+      
+      return res.status(200).send(updatedData);
     }
 
-  }catch(error){
-    return res.status(500).json({error:"Internal Server Error"});
+  } catch (error) {
+    return res.status(500).json({ error: "Internal Server Error" });
   }
-}
+};
+
 
 exports.editOnboardCompany = async (req, res) => {
   const {mobile, company_name,overView,address,industry,company_size,website_url,location} = req.body;
