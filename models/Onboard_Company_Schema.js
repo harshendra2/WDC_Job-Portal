@@ -7,15 +7,12 @@ const SECRET_KEY = process.env.COMPANYSECRET_KEY;
 const CompanySchema = new Schema({
   company_name: {
     type: String,
-    required: true,
   },
   email: {
     type: String,
-    required: true,
   },
   mobile: {
     type: Number,
-    required: true,
   },
   overView:{
    type:String

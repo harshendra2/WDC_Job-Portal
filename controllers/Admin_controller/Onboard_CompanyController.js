@@ -216,6 +216,7 @@ exports.uploadExcelFile = async (req, res) => {
 
     for (const row of sheetData) {
       const Details = {
+        company_name:row.Company_Name,
         email: row.Email,
         mobile: row.Mobile_No,
         overview: row.Overview,
