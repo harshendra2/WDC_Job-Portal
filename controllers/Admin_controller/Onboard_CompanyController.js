@@ -210,13 +210,17 @@ exports.DownloadExcelTemplete = async (req, res) => {
 
 exports.uploadExcelFile = async (req, res) => {
   try {
+    if (!req.file) {
+      return res.status(400).json({ error: "No file uploaded" });
+    }
+
     const workbook = XLSX.readFile(req.file.path);
     const sheetName = workbook.SheetNames[0];
     const sheetData = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName]);
 
     for (const row of sheetData) {
       const Details = {
-        company_name:row.Company_Name,
+        company_name: row.Company_Name,
         email: row.Email,
         mobile: row.Mobile_No,
         overview: row.Overview,
@@ -230,15 +234,18 @@ exports.uploadExcelFile = async (req, res) => {
         contact_number: row.Contact_Number,
         Headquarters_Address: row.Headquarters_Address,
         PAN_image: row.PAN_Image_URL,
-        GST_image: row.GST_Image_RUL
+        GST_image: row.GST_Image_RUL,
       };
 
       // Function to check if the Google Drive URL is publicly accessible
       const isPubliclyAccessible = async (url) => {
         try {
-          const response = await axios.head(url);
+          const response = await axios.get(url, { maxRedirects: 0 });
           return response.status === 200;
         } catch (error) {
+          if (error.response && error.response.status === 200) {
+            return true;
+          }
           return false;
         }
       };
