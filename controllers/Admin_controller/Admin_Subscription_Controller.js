@@ -1,6 +1,7 @@
 const Joi=require("joi");
 const subscription=require("../../models/SubscriptionSchema");
 const TopUpPlane=require('../../models/ToupPlane');
+const CandidateSub=require('../../models/Candidate_SubscriptionSchema');
 
 const EditSubscriptionPlane = Joi.object({
     plane_name: Joi.string().required(),
@@ -73,25 +74,13 @@ exports.editSubscriptionPlane=async(req,res)=>{
 
     try{
         const subscriptiondata={plane_name,price,search_limit,available_candidate,user_access,cv_view_limit,download_email_limit,download_cv_limit,job_posting}
-        if(id){
+       
         const data=await subscription.findByIdAndUpdate(id,subscriptiondata,{new:true});
         if(data){
             return res.status(200).json({message:"Subscription updated Successfully",subscription:data})
         }else{
             return res.status(404).json({error:"Subscription Plane is not updated"});
         }
-    }else{
-        data = await new Subscription(subscriptionData).save();
-
-      if (data) {
-        return res.status(201).json({
-          message: "Subscription added successfully",
-          subscription: data
-        });
-      } else {
-        return res.status(400).json({ error: "Failed to add subscription plan" });
-      }
-    }
 
 
     }catch(error){
@@ -140,6 +129,118 @@ exports.CreateNewTopUpPlane=async(req,res)=>{
           topupdata: data
         });
     }
+
+    }catch(error){
+        return res.status(500).json({error:"Internal server error"});
+    }
+}
+
+exports.EditTopUpPlane=async(req,res)=>{
+    const{Subscription_Name,plane_name,price,search_limit,cv_view_limit,job_posting}=req.body;
+    const {id}=req.params;
+    try{
+     const topupdata={Subscription_Name,plane_name,price,search_limit,cv_view_limit,job_posting}
+
+        const data=await TopUpPlane.findByIdAndUpdate(id,topupdata,{new:true});
+        if(data){
+            return res.status(200).json({message:"TopUp plane updated Successfully",subscription:data})
+        }else{
+            return res.status(404).json({error:"Topup Plane is not updated"});
+        }
+    }catch(error){
+        return res.status(500).json({error:"Internal server error"});
+    }
+}
+
+exports.GetAllTopUpplaneName=async(req,res)=>{
+    try{
+        const topupName= await TopUpPlane.aggregate([
+            {
+                $project: {
+                    _id: 1,
+                    plane_name: 1,
+                    Subscription_Name:1
+                }
+            }
+        ]);
+
+        if (topupName.length > 0) {
+            return res.status(200).json(topupName);
+        } else {
+            return res.status(404).json({ error: "No subscription data found" });
+        }
+    }catch(error){
+        return res.status(500).json({error:"Internal server error"});
+    }
+}
+
+
+exports.getSingleTopUpPlane=async(req,res)=>{
+    const{id}=req.params;
+    try{
+      const data=await TopUpPlane.findById({_id:id});
+      if(data){
+        return res.status(200).send(data);
+      }
+    }catch(error){
+        return res.status(500).json({error:"Internal server error"});
+    }
+}
+
+
+//Candidate Subscription plane
+exports.GetAllCandidateSubscriptionPlane=async(req,res)=>{
+    try{
+        const data=await CandidateSub.find({});
+        if(data){
+            return res.status(200).send(data);
+        }
+    }catch(error){
+        return res.status(500).json({error:"Internal server error"});
+    }
+}
+
+exports.CreateCandidateSubscription=async(req,res)=>{
+    const {plane_name,price,top,top_candidate}=req.body;
+    try{
+        const exists=await CandidateSub.findOne({plane_name});
+        if(exists){
+         return res.status(400).json({error:"This Subscription plane already exists"});
+        }else{
+       const Data=new CandidateSub({plane_name,price,top,top_candidate});
+       const savedData=await Data.save();
+       if(savedData){
+         return res.status(200).json({message:"New Subscription plane Created Successfully"});
+       }
+        }
+    }catch(error){
+        return res.status(500).json({error:"Internal server error"});
+    }
+}
+
+exports.GetCandidateSubscriptionName=async(req,res)=>{
+    try{
+        const data=await CandidateSub.aggregate({
+            $project:{
+                _id:1,
+                plane_name:1
+            }
+        })
+        if(data){
+            return res.status(200).send(data);
+        }
+    }catch(error){
+        return res.status(500).json({error:"Internal server error"});
+    }
+}
+
+exports.GetSingleCandidateSubscription=async(req,res)=>{
+    const {id}=req.params;
+    try{
+     const data=await CandidateSub.findById({_id:id});
+     if(data){
+        return res.status(200).send(data);
+     }
 
     }catch(error){
         return res.status(500).json({error:"Internal server error"});
