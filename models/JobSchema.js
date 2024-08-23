@@ -53,8 +53,7 @@ candidate_id:[{
     required:true
   },
   skills: {
-    type:String,
-    required:true
+    type:Array
   },
   education:{
     type:String,

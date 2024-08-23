@@ -64,12 +64,23 @@ const CompanySchema = new Schema({
   headQuater_add:{
    type:String
   },
+  profile:{
+   type:String
+  },
   status:{
     type:String,
     default:"Processing"
   },
   message:{
     type:String
+  },
+  GST_verify:{
+    type:Boolean,
+    default:false
+  },
+  PAN_verify:{
+    type:Boolean,
+    default:false
   },
   createdAt:{
     type: Date,

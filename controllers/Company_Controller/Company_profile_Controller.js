@@ -7,10 +7,16 @@ exports.GetCompanyProfile=async(req,res)=>{
     try{
         const objectId = new mongoose.Types.ObjectId(id); 
         const data=await company.findById({_id:objectId});
-        if(data){
-            return res.status(200).send(data)
-        }else{
-            return res.status(400).json({error:"Empty data base"});
+        if (data) {
+            const baseUrl = `${req.protocol}://${req.get('host')}`;
+            const updatedData = {
+                ...data._doc,
+                panImageUrl: data.PAN_image ? `${baseUrl}/${data.PAN_image.replace(/\\/g, '/')}` : null,
+                gstImageUrl: data.GST_image ? `${baseUrl}/${data.GST_image.replace(/\\/g, '/')}` : null,
+            };
+            return res.status(200).send(updatedData);
+        } else {
+            return res.status(404).json({ error: "Company not found" });
         }
 
     }catch(error){
@@ -24,11 +30,12 @@ exports.EditProfile = async (req, res) => {
     const {
         company_name, email, mobile, overView, address, industry,
         company_size, GST, PAN, website_url, location, contact_email,
-        contact_No, headQuater_add
+        contact_No, headQuater_add,GST_verify,PAN_verify
     } = req.body;
 
     const panImage = req.files['panImage'] ? req.files['panImage'][0].path : null;
     const gstImage = req.files['gstImage'] ? req.files['gstImage'][0].path : null;
+    const profile=req.files['profile'] ? req.files['profile'][0].path:null;
 
     try {
         let panText = '';
@@ -60,7 +67,7 @@ exports.EditProfile = async (req, res) => {
         const companyData = {
             company_name, email, mobile, overView, address, industry,
             company_size, GST, PAN, website_url, location, contact_email,
-            contact_No, headQuater_add
+            contact_No, headQuater_add,GST_verify,PAN_verify
         };
 
         if (panImage) {
@@ -68,6 +75,9 @@ exports.EditProfile = async (req, res) => {
         }
         if (gstImage) {
             companyData.GST_image = gstImage
+        }
+        if (profile){
+            companyData.profile=profile
         }
 
         const updatedData = await company.findByIdAndUpdate(id, companyData, { new: true });
@@ -79,7 +89,6 @@ exports.EditProfile = async (req, res) => {
         }
 
     } catch (error) {
-        console.error("Error in EditProfile:", error);
         return res.status(500).json({ error: "Internal server error" });
     }
 };

@@ -1,5 +1,6 @@
 const Joi=require("joi");
 const subscription=require("../../models/SubscriptionSchema");
+const TopUpPlane=require('../../models/ToupPlane');
 
 const EditSubscriptionPlane = Joi.object({
     plane_name: Joi.string().required(),
@@ -9,9 +10,10 @@ const EditSubscriptionPlane = Joi.object({
 
 exports.getallsubscription=async(req,res)=>{
     try{
-        const data=await subscription.find({});
-        if(data){
-            return res.status(200).send(data);
+        const topUpPlane=await TopUpPlane.find({});
+        const subscriptionplane=await subscription.find({});
+        if(subscriptionplane){
+            return res.status(200).send({subscriptionplane,topUpPlane});
         }else{
             return res.status(404).json({message:"Empty data base"});
         }
@@ -71,13 +73,25 @@ exports.editSubscriptionPlane=async(req,res)=>{
 
     try{
         const subscriptiondata={plane_name,price,search_limit,available_candidate,user_access,cv_view_limit,download_email_limit,download_cv_limit,job_posting}
-
+        if(id){
         const data=await subscription.findByIdAndUpdate(id,subscriptiondata,{new:true});
         if(data){
             return res.status(200).json({message:"Subscription updated Successfully",subscription:data})
         }else{
             return res.status(404).json({error:"Subscription Plane is not updated"});
         }
+    }else{
+        data = await new Subscription(subscriptionData).save();
+
+      if (data) {
+        return res.status(201).json({
+          message: "Subscription added successfully",
+          subscription: data
+        });
+      } else {
+        return res.status(400).json({ error: "Failed to add subscription plan" });
+      }
+    }
 
 
     }catch(error){
@@ -109,5 +123,25 @@ exports.createSubscriptionPlane=async(req,res)=>{
 
     }catch(error){
         return res.status(500).json({error:"Internal Server error"});
+    }
+}
+
+//TopUp Plane Code
+exports.CreateNewTopUpPlane=async(req,res)=>{
+    const {Subscription_Name,plane_name,price,search_limit,cv_view_limit,job_posting}=req.body;
+    try{
+        const topupdata={Subscription_Name,plane_name,price,search_limit,cv_view_limit,job_posting}
+      
+        data = await new TopUpPlane(topupdata).save();
+
+      if (data) {
+        return res.status(201).json({
+          message: "TopUp plane added successfully",
+          topupdata: data
+        });
+    }
+
+    }catch(error){
+        return res.status(500).json({error:"Internal server error"});
     }
 }

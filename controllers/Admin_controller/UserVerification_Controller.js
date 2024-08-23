@@ -3,7 +3,7 @@ const candidate=require('../../models/Onboard_Company_Schema');
 
 exports.GetAllOnboardCompany=async(req,res)=>{
     try{
-         const data=await company.find({});
+         const data=await company.find({}).sort({ createdAt: -1 });
          if(data){
             return res.status(200).send(data);
          }
@@ -21,7 +21,7 @@ exports.OnboardCompanyRejectAction=async(req,res)=>{
               return res.status(400).json({ error: "Company ID is required" });
             }
         
-            const data = await company.findByIdAndUpdate(id, { status: "reject",message:message}, { new: true });
+            const data = await company.findByIdAndUpdate(id, { status: "reject",message:message,PAN_verify:false,GST_verify:false}, { new: true });
         
             if (data) {
               return res.status(200).json({ message: "Status updated successfully", company: data });
@@ -41,7 +41,7 @@ exports.OnboardCompanyApproveAction=async(req,res)=>{
             return res.status(400).json({ error: "Company ID is required" });
           }
       
-          const data = await company.findByIdAndUpdate(id, { status: "approve" }, { new: true });
+          const data = await company.findByIdAndUpdate(id, { status: "approve",PAN_verify:false,GST_verify:false}, { new: true });
       
           if (data) {
             return res.status(200).json({ message: "Status updated successfully", company: data });
