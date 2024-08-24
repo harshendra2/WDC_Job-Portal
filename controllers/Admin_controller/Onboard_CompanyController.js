@@ -3,6 +3,16 @@ const Joi = require("joi");
 const XLSX = require('xlsx');
 const axios=require('axios');
 const tesseract = require('tesseract.js');
+const nodemailer=require('nodemailer');
+
+//email config
+const transporter = nodemailer.createTransport({
+  service: "gmail",
+  auth: {
+    user:"harsendraraj20@gmail.com",
+    pass:'ukiovyhquvazeomy',
+  },
+});
 
 const PAN_REGEX = /^[A-Z]{5}[0-9]{4}[A-Z]{1}$/;
 const GST_REGEX = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[A-Z0-9]{3}$/;
@@ -218,24 +228,37 @@ exports.uploadExcelFile = async (req, res) => {
     const sheetName = workbook.SheetNames[0];
     const sheetData = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName]);
 
+    const validatePAN = (pan) => /^[A-Z]{5}[0-9]{4}[A-Z]{1}$/.test(pan);
+    const validateGST = (gst) => /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/.test(gst);
+
     for (const row of sheetData) {
       const Details = {
         company_name: row.Company_Name,
         email: row.Email,
         mobile: row.Mobile_No,
-        overview: row.Overview,
+        overView: row.Overview,
         industry: row.Industry,
         company_size: row.Company_Size,
-        gst_number: row.GST_Number,
-        pan_number: row.PAN_Number,
-        Website_URL: row.Website_URL,
+        GST: row.GST_Number,
+        PAN: row.PAN_Number,
+        website_url: row.Website_URL,
         location: row.location,
         contact_email: row.Contact_Email,
-        contact_number: row.Contact_Number,
-        Headquarters_Address: row.Headquarters_Address,
+        contact_No: row.Contact_Number,
+        headQuarter_add: row.Headquarters_Address,
         PAN_image: row.PAN_Image_URL,
-        GST_image: row.GST_Image_RUL,
+        GST_image: row.GST_Image_URL,
       };
+
+      // Validate PAN number
+      if (Details.PAN && !validatePAN(Details.PAN)) {
+        return res.status(400).json({ error: `Invalid PAN number "${Details.PAN}" for company "${Details.company_name}".` });
+      }
+
+      // Validate GST number
+      if (Details.GST && !validateGST(Details.GST)) {
+        return res.status(400).json({ error: `Invalid GST number "${Details.GST}" for company "${Details.company_name}".` });
+      }
 
       // Function to check if the Google Drive URL is publicly accessible
       const isPubliclyAccessible = async (url) => {
@@ -266,13 +289,27 @@ exports.uploadExcelFile = async (req, res) => {
         }
       }
 
+      const existsEmail=await Company.findOne({email:Details.email});
+      if(existsEmail){
+        return res.status(400).json({error:`${Details.email} Email Id already exists in our data base`});
+      }
+
+      const existPanNumber=await Company.findOne({PAN:Details.PAN});
+      if(existPanNumber){
+        return res.status(400).json({ error: `The PAN number "${Details.PAN}" already exists for the company "${existPanNumber.company_name}".Please check "${Details.company_name} PAN number` });
+      }
+
+      const existGstNumber=await Company.findOne({GST:Details.GST});
+      if(existGstNumber){
+        return res.status(400).json({ error: `The GST number "${Details.GST}" already exists for the company "${existGstNumber.company_name}".Please check "${Details.company_name} GST number"` });
+      }
       // Save the details to the database
       const savedBasicDetails = await new Company(Details).save();
+
     }
 
-    res.status(200).json({ message: 'File processed and data stored successfully' });
+    res.status(200).json({ message: `${sheetData.length} Company Imported successfully`});
   } catch (error) {
-    console.error('Error processing the file:', error);
     return res.status(500).json({ error: 'Internal server error' });
   }
 };
