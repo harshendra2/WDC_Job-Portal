@@ -3,12 +3,10 @@ const mongoose=require("mongoose");
 
 const education_details_candidate=new mongoose.Schema({
     highest_education:{
-        type:String,
-        required:true
+        type:String
     },
     board_represent:{
-        type:Number,
-        required:true
+        type:String
     },
     articles:{
         type:String

@@ -598,9 +598,7 @@ const OnboardCandidate = Joi.object({
           Recognation: '',
           Highest_Education: '',
           Board_Represent_Name: '',
-          Articles: '',
-          Certificate: '',
-          Certificate_Link: ''
+          Articles: ''
         }
       ];
   
@@ -633,22 +631,24 @@ const OnboardCandidate = Joi.object({
       const workbook = XLSX.readFile(req.file.path);
       const sheetName = workbook.SheetNames[0];
       const sheetData = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName]);
-    
+       if(sheetData.length<1){
+        return res.status(400).json({error:"Empty Excel file"});
+       }
     for (const row of sheetData) {
       const basicDetails = {
         name: row.Name,
         email: row.Email,
         mobile: row.Mobile_No,
-        linkedIn: row.LinkedIn_Profile_Link
+        linkedIn: row.linkedIn_Profile_Link
       };
 
       const personalDetails={
         gender:row.Gender,
         age:row.Age,
-        marriage_status:row.Marriage_Status,
+        marriag_status:row.Marriage_Status,
         aadhar_number:row.Aadhar_Number,
         PAN:row.PAN_Number,
-        femily_member:row.Member_In_Family,
+        family_member:row.Member_In_Family,
         father_name:row.Name_of_Father,
         son_name:row.Son_Name,
         spouse_profession:row.Spouse_profession
@@ -657,7 +657,7 @@ const OnboardCandidate = Joi.object({
 
       const workDetails = {
         designation: row.Designation,
-        company_name: row.Company_Name,
+        company_name: row.Company_name,
         industry: row.Industry,
         current_ctc: row.Current_CTC,
         aspiring_position: row.Role,
@@ -666,32 +666,32 @@ const OnboardCandidate = Joi.object({
         last_reporting: row.Last_reposrting_Structure,
         career_highlight: row.Career_Highlight,
         recognation: row.Recognation,
-        functions: row.Functions,
+        functions: row.Functions_S,
         preferred_location:row.Preffered_location,
         current_location:row.Current_location,
         resume:row.Resume_Link
       };
 
       const educationDetails={
-        highest_education:row.Education,
+        highest_education:row.Highest_Education,
         board_represent:row.Board_Represent_Name,
-        articles:row.Articles,
-        certificate:row.Certificate
+        articles:row.Articles
       }
 
-      const existsEmail=await basic_details.findOne({email: row.Email});
-      if(existsEmail){
-        return res.status(400).json({ error: `The email "${row.Email}" already exists in our database.` });
+      const existinEmail=await basic_details.findOne({email:row.Email});
+
+      if (existinEmail) {
+        return res.status(400).json({ 
+          error: `The email "${row.Email}"already exists in our database.` 
+        });
       }
 
-      const existsMobile=await basic_details.findOne({mobile:row.Mobile_No});
-      if(existsMobile){
-        return res.status(400).json({ error: `The mobile number "${row.Mobile_No}" is already used by ${existsMobile.name}.` });
-      }
+      const existinMobile=await basic_details.findOne({mobile:row.Mobile_No,});
 
-      const existslinkedIn=await basic_details.findOne({linkedIn:row.LinkedIn_Profile_Link});
-      if(existslinkedIn){
-        return res.status(400).json({ error: `The LinkedIn profile link "${row.LinkedIn_Profile_Link}" is already used by ${existsLinkedIn.name}.` });
+      if (existinMobile) {
+        return res.status(400).json({ 
+          error: `The mobile number "${row.Mobile_No}"already exists in our database.` 
+        });
       }
 
       const savedBasicDetails = await new basic_details(basicDetails).save();
@@ -704,6 +704,7 @@ const OnboardCandidate = Joi.object({
     }
       res.status(200).json({ message: `${sheetData.length} Company Imported successfully` });
     }catch(error){
+      console.log(error);
       return res.status(500).json({error:"Internal server error"});
     }
   }
