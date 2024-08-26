@@ -603,8 +603,6 @@ const OnboardCandidate = Joi.object({
       ];
   
       const worksheet = XLSX.utils.json_to_sheet(data);
-      
-      // Calculate the width of each column based on the header text length
       const columnWidths = Object.keys(data[0]).map((key) => ({
         wch: Math.max(key.length, 20)  // Ensuring a minimum width of 20 characters
       }));
