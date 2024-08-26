@@ -13,12 +13,16 @@ const education_details_candidate=new mongoose.Schema({
     articles:{
         type:String
     },
-    certificate:{
-        type:String
-    },
-    resume:{
-        type:String,
-    }
+    certificates:[
+        {
+            Certificate:{
+                type:String
+            },
+            image:{
+                type:String
+            }
+        }
+    ]
 
 })
 

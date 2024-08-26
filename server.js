@@ -27,6 +27,7 @@ const companyCreateJobRoute=require("./Routes/Company_Panel/Create_Job_routes");
 const companySupportRoute=require("./Routes/Company_Panel/Support_routes");
 const companyProfile=require("./Routes/Company_Panel/company_profile_routes");
 const companyHireCandidate=require("./Routes/Company_Panel/Hire_candidate_routes");
+const SideBarRoute=require('./Routes/Company_Panel/SideBare_routes');
 
 const CandidateCredentialRoute=require("./Routes/Candidate_Panel/candidate_routes");
 const CandidateJobRoute=require("./Routes/Candidate_Panel/Jobs_routes");
@@ -54,6 +55,7 @@ app.use('/api',companyCreateJobRoute);
 app.use('/api',companySupportRoute);
 app.use('/api',companyProfile);
 app.use('/api',companyHireCandidate);
+app.use('/api',SideBarRoute);
 app.use('/api',CandidateCredentialRoute);
 app.use('/api',CandidateJobRoute);
 app.use('/api',CandidateAppliedJobRoute);

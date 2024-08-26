@@ -13,44 +13,43 @@ const OnboardCandidate = Joi.object({
     name: Joi.string().required(),
     email: Joi.string().email().required(),
     mobile: Joi.number().min(10).required(),
-    linkedIn: Joi.string().min(10).required(), 
+    linkedIn: Joi.string().min(10), 
   });
 
   const OnboardCandidatePersonalDetails=Joi.object({
-    gender: Joi.string().valid('Male', 'Female', 'Other').required(),
-    age:Joi.number().required(),
-    marriag_status:Joi.string().valid('Single','Married').required(),
-    preferred_location: Joi.string().min(5).required(),
-    current_location: Joi.string().min(5).required(),
-    aadhar_number: Joi.number().required(),
-    PAN: Joi.string().pattern(PAN_REGEX).required().messages({
+    gender: Joi.string().valid('Male', 'Female', 'Other'),
+    age:Joi.number(),
+    marriag_status:Joi.string().valid('Single','Married'),
+    aadhar_number: Joi.number(),
+    PAN: Joi.string().pattern(PAN_REGEX).messages({
       'string.pattern.base': 'PAN number is invalid'
     }),
-    family_member:Joi.number().required(),
-    father_name:Joi.string().min(3).required(),
-    son_name:Joi.string().min(3).required(),
-    spouse_profession:Joi.string().required()
+    family_member:Joi.number(),
+    father_name:Joi.string().min(3),
+    son_name:Joi.string().min(3),
+    spouse_profession:Joi.string()
   })
 
   const OnboardCandidateWorkDetails=Joi.object({
-    designation: Joi.string().min(3).required(),
-    company_name: Joi.string().min(5).required(),
-    industry: Joi.string().min(3).required(),
-    current_ctc: Joi.number().required(),
-    aspiring_position: Joi.string().required(),
-    work_experience:Joi.string().min(1).required(),
-    current_report:Joi.string().min(5).required(),
-    last_reporting: Joi.string().min(5).required(),
-    career_highlight: Joi.string().min(5).required(),
-    recognation: Joi.string().min(5).required(),
-    functions:Joi.string().min(5).required(),
+    designation: Joi.string().min(3),
+    company_name: Joi.string().min(5),
+    industry: Joi.string().min(3),
+    current_ctc: Joi.number(),
+    aspiring_position: Joi.string(),
+    work_experience:Joi.string().min(1),
+    current_report:Joi.string().min(5),
+    last_reporting: Joi.string().min(5),
+    career_highlight: Joi.string().min(5),
+    recognation: Joi.string().min(5),
+    functions:Joi.string().min(5),
+    preferred_location: Joi.string().min(3),
+    current_location: Joi.string().min(3)
   })
 
   const OnboardCandidateEducationDetails=Joi.object({
-    highest_education:Joi.string().min(5).required(),
-    board_represent:Joi.string().min(5).required(),
-    articles:Joi.string().min(5),
-    certificate:Joi.string().min(5)
+    highest_education:Joi.string().min(5),
+    board_represent:Joi.string().min(5),
+    articles:Joi.string().min(5)
   })
   
   exports.createBasicDetaileCandidate = async (req, res) => {
@@ -70,7 +69,15 @@ const OnboardCandidate = Joi.object({
       const candidateData = {
         name, email, mobile, linkedIn
       };
-  
+       const existEmail=await basic_details.findOne({email:email});
+       if(existEmail){
+        return res.status(400).json({error:"This email Id already exists in our data base"});
+       }
+
+       const existmobile=await basic_details.findOne({mobile:mobile});
+       if(existmobile){
+        return res.status(400).json({error:"This mobile number already exists in our data base"});
+       }
       const newBasicDetails = new basic_details(candidateData);
       const savedBasicDetails = await newBasicDetails.save();
   
@@ -87,10 +94,10 @@ const OnboardCandidate = Joi.object({
 
 
   exports.createPersonalDetailsCandidate = async (req, res) => {
-    const {gender,age,marriag_status,preferred_location,current_location,aadhar_number,PAN, family_member, father_name, son_name, spouse_profession,id} = req.body;
+    const {gender,age,marriag_status,aadhar_number,PAN, family_member, father_name, son_name, spouse_profession,id} = req.body;
   
     const { error } = OnboardCandidatePersonalDetails.validate({
-      gender,age,marriag_status,preferred_location,current_location,aadhar_number,PAN,family_member, father_name, son_name, spouse_profession
+      gender,age,marriag_status,aadhar_number,PAN,family_member, father_name, son_name, spouse_profession
     });
   
     if (error) {
@@ -98,7 +105,7 @@ const OnboardCandidate = Joi.object({
     }
   
     try {
-      const CandidateData = {  gender,age,marriag_status,preferred_location,current_location,aadhar_number,PAN,family_member, father_name, son_name, spouse_profession};
+      const CandidateData = {  gender,age,marriag_status,aadhar_number,PAN,family_member, father_name, son_name, spouse_profession};
       
       const newPersonalDetails = new personal_details(CandidateData);
       const savedPersonalDetails = await newPersonalDetails.save();
@@ -122,10 +129,10 @@ const OnboardCandidate = Joi.object({
 
 
   exports.createWorkDetailsCandidate=async(req,res)=>{
-    const {designation,company_name,industry,current_ctc,aspiring_position,work_experience,current_report,last_reporting,career_highlight,recognation,functions,id}=req.body;
+    const {designation,company_name,industry,current_ctc,aspiring_position,work_experience,current_report,last_reporting,career_highlight,recognation,functions,preferred_location,current_location,id}=req.body;
 
     const { error } = OnboardCandidateWorkDetails.validate({
-      designation,company_name,industry,current_ctc,aspiring_position,work_experience,current_report,last_reporting,career_highlight,recognation,functions
+      designation,company_name,industry,current_ctc,aspiring_position,work_experience,current_report,last_reporting,career_highlight,recognation,functions,preferred_location,current_location
     });
   
     if (error) {
@@ -134,7 +141,10 @@ const OnboardCandidate = Joi.object({
   
     try{
 
-      const Candidatedata={designation,company_name,industry,current_ctc,aspiring_position,work_experience,current_report,last_reporting,career_highlight,recognation,functions};
+      if (!req.file) {
+        return res.status(400).json({ error: "Please upload a file" });
+      }
+      const Candidatedata={designation,company_name,industry,current_ctc,aspiring_position,work_experience,current_report,last_reporting,career_highlight,recognation,functions,preferred_location,current_location,resume:req.file.filename};
       const newWorkDetails = new work_details(Candidatedata);
       const savedWorkDetails = await newWorkDetails.save();
           
@@ -158,10 +168,10 @@ const OnboardCandidate = Joi.object({
 
 
   exports.createEducationDetailsCandidate=async(req,res)=>{
-    const {highest_education,board_represent,articles,certificate,id}=req.body;
+    const {highest_education,board_represent,articles,certificates,id}=req.body;
 
     const { error } = OnboardCandidateEducationDetails.validate({
-      highest_education,board_represent,articles,certificate
+      highest_education,board_represent,articles
     });
   
     if (error) {
@@ -169,12 +179,14 @@ const OnboardCandidate = Joi.object({
     }
     try{
 
-      if (!req.file) {
-        return res.status(400).json({ error: "Please upload a file" });
-      }
-      // Construct the file URL
-    const fileUrl = `${req.protocol}://${req.get("host")}/Images/${req.file.filename}`;
-      const Candidatedata={highest_education,board_represent,articles,certificate,resume:fileUrl};
+      const certificatesArray = certificates.map((certificate, index) => {
+        return {
+          Certificate: certificate,
+          image: req.files?.find(file => file.fieldname === `certificates[${index}][image]`)?.filename || null,
+        };
+      });
+
+      const Candidatedata={highest_education,board_represent,articles,certificates:certificatesArray};
       const newEducationDetails = new education_details(Candidatedata);
       const savededucationDetails = await newEducationDetails.save();
           
@@ -338,9 +350,9 @@ const OnboardCandidate = Joi.object({
 
   exports.editPersonalDetails=async(req,res)=>{
     const {id}=req.params;
-    const {gender,age,marriag_status,preferred_location,current_location, family_member, father_name, son_name, spouse_profession}=req.body;
+    const {gender,age,marriag_status,aadhar_number,PAN, family_member, father_name, son_name, spouse_profession}=req.body;
     const { error } = OnboardCandidatePersonalDetails.validate({
-      gender,age,marriag_status,preferred_location,current_location, family_member, father_name, son_name, spouse_profession
+      gender,age,marriag_status,aadhar_number,PAN, family_member, father_name, son_name, spouse_profession
     });
   
     if (error) {
@@ -353,7 +365,7 @@ const OnboardCandidate = Joi.object({
       }
   
       const candidateData = {
-        gender,age,marriag_status,preferred_location,current_location, family_member, father_name, son_name, spouse_profession
+        gender,age,marriag_status,aadhar_number,PAN, family_member, father_name, son_name, spouse_profession
       };
   
       const updatedData = await personal_details.findByIdAndUpdate(id, candidateData, { new: true });
@@ -368,41 +380,63 @@ const OnboardCandidate = Joi.object({
     }
   }
 
-  exports.getWorkdetails=async(req,res)=>{
-    const {id}=req.params;
-    try{
+  exports.getWorkdetails = async (req, res) => {
+    const { id } = req.params;
+    
+    try {
       if (!mongoose.Types.ObjectId.isValid(id)) {
         return res.status(400).json({ error: 'Invalid candidate ID' });
       }
-
+  
       const objectId = new mongoose.Types.ObjectId(id); 
-      const data=await candidate.aggregate([
-        { $match: { _id:objectId} },
-        {$lookup: {
-          from: 'candidate_work_details',
+      const data = await candidate.aggregate([
+        { $match: { _id: objectId } },
+        {
+          $lookup: {
+            from: 'candidate_work_details',
             localField: 'work_details',
             foreignField: '_id',
             as: 'work_details'
           }
         }
-      ])
-
-      if (data && data.length > 0) {
-        return res.status(200).json(data[0]);
+      ]);
+  
+      if (data.length > 0) {  // Ensure that there is data returned from the aggregation
+        const candidateData = data[0];  // Access the first item in the array
+  
+        const baseUrl = `${req.protocol}://${req.get('host')}`;
+        
+        // Helper function to check if a URL is a Google Drive link
+        const isGoogleDriveLink = (url) => {
+          return url && (url.includes('drive.google.com') || url.includes('docs.google.com'));
+        };
+  
+        const updatedData = {
+          ...candidateData,  // Use the first item in the aggregation result
+          work_details: candidateData.work_details.map(workDetail => ({
+            ...workDetail,
+            ResumeImageUrl: workDetail.resume
+              ? (isGoogleDriveLink(workDetail.resume) ? workDetail.resume : `${baseUrl}/${workDetail.resume.replace(/\\/g, '/')}`)
+              : null,
+          }))
+        };
+  
+        return res.status(200).json(updatedData);
       } else {
-        return res.status(404).json({ error: 'This data is not available in our database' });
+        return res.status(404).json({ error: "Candidate not found" });
       }
-
-    }catch(error){
-      return res.status(500).json({error:"Internal Server error"});
+    } catch (error) {
+      console.log(error);
+      return res.status(500).json({ error: "Internal Server Error" });
     }
-  }
+  };
+  
 
   exports.editWorkDetails=async(req,res)=>{
     const {id}=req.params;
-    const {designation,company_name,industry,current_ctc,aspiring_position,work_experience,current_report,last_reporting,career_highlight,recognation,functions}=req.body;
+    const {designation,company_name,industry,current_ctc,aspiring_position,work_experience,current_report,last_reporting,career_highlight,recognation,functions,preferred_location,current_location}=req.body;
     const { error } = OnboardCandidateWorkDetails.validate({
-      designation,company_name,industry,current_ctc,aspiring_position,work_experience,current_report,last_reporting,career_highlight,recognation,functions
+      designation,company_name,industry,current_ctc,aspiring_position,work_experience,current_report,last_reporting,career_highlight,recognation,functions,preferred_location,current_location
     });
   
     if (error) {
@@ -413,9 +447,11 @@ const OnboardCandidate = Joi.object({
       if (!mongoose.Types.ObjectId.isValid(id)) {
         return res.status(400).json({ error: 'Invalid candidate ID' });
       }
-  
+      if (!req.file) {
+        return res.status(400).json({ error: "Please upload a file" });
+      }
       const candidateData = {
-        designation,company_name,industry,current_ctc,aspiring_position,work_experience,current_report,last_reporting,career_highlight,recognation,functions
+        designation,company_name,industry,current_ctc,aspiring_position,work_experience,current_report,last_reporting,career_highlight,recognation,functions,preferred_location,current_location,resume:req.file.filename
       };
   
       const updatedData = await work_details.findByIdAndUpdate(id, candidateData, { new: true });
@@ -432,43 +468,65 @@ const OnboardCandidate = Joi.object({
   }
 
 
-  exports.getEducationData=async(req,res)=>{
-    const {id}=req.params;
-    try{
-
+  exports.getEducationData = async (req, res) => {
+    const { id } = req.params;
+  
+    try {
       if (!mongoose.Types.ObjectId.isValid(id)) {
         return res.status(400).json({ error: 'Invalid candidate ID' });
       }
-
-      const objectId = new mongoose.Types.ObjectId(id); 
-      const data=await candidate.aggregate([
-        { $match: { _id:objectId} },
-        {$lookup: {
-          from: 'candidate_education_details',
-          localField: 'education_details',
-          foreignField: '_id',
-          as: 'education_details'
+  
+      const objectId = new mongoose.Types.ObjectId(id);
+      const data = await candidate.aggregate([
+        { $match: { _id: objectId } },
+        {
+          $lookup: {
+            from: 'candidate_education_details',
+            localField: 'education_details',
+            foreignField: '_id',
+            as: 'education_details'
           }
         }
-      ])
-
-      if (data && data.length > 0) {
-        return res.status(200).json(data[0]);
+      ]);
+  
+      if (data.length > 0) {
+        const candidateData = data[0];
+        const baseUrl = `${req.protocol}://${req.get('host')}`;
+  
+        const isGoogleDriveLink = (url) => {
+          return url && (url.includes('drive.google.com') || url.includes('docs.google.com'));
+        };
+  
+        const updatedData = {
+          ...candidateData,
+          education_details: candidateData.education_details.map(educationDetail => ({
+            ...educationDetail,
+            certificates: educationDetail.certificates.map(certificate => ({
+              Certificate: certificate.Certificate,
+              image: certificate.image
+                ? (isGoogleDriveLink(certificate.image) ? certificate.image : `${baseUrl}/${certificate.image.replace(/\\/g, '/')}`)
+                : null,
+            }))
+          }))
+        };
+  
+        return res.status(200).json(updatedData);
       } else {
-        return res.status(404).json({ error: 'This data is not available in our database' });
+        return res.status(404).json({ error: "Candidate not found" });
       }
-
-    }catch(error){
-      return res.status(500).json({error:"Internal Server error"});
+    } catch (error) {
+      console.log(error);
+      return res.status(500).json({ error: "Internal Server Error" });
     }
-  }
+  };
+  
 
   exports.editEducationDetails=async(req,res)=>{
     const {id}=req.params;
-    const {highest_education,board_represent,articles,certificate}=req.body;
+    const {highest_education,board_represent,articles,certificates}=req.body;
 
     const { error } = OnboardCandidateEducationDetails.validate({
-      highest_education,board_represent,articles,certificate
+      highest_education,board_represent,articles
     });
   
     if (error) {
@@ -478,15 +536,17 @@ const OnboardCandidate = Joi.object({
       if (!mongoose.Types.ObjectId.isValid(id)) {
         return res.status(400).json({ error: 'Invalid candidate ID' });
       }
+
+      const certificatesArray = certificates.map((certificate, index) => {
+        return {
+          Certificate: certificate,
+          image: req.files?.find(file => file.fieldname === `certificates[${index}][image]`)?.filename || null,
+        };
+      });
   
       const candidateData = {
-        highest_education,board_represent,articles,certificate
+        highest_education,board_represent,articles,certificates:certificatesArray
       };
-      if (!req.file) {
-        return res.status(400).json({ error: "Please upload a file" });
-      }else{
-        candidateData.resume=req.file
-      }
   
       const updatedData = await education_details.findByIdAndUpdate(id, candidateData, { new: true });
   
@@ -505,26 +565,67 @@ const OnboardCandidate = Joi.object({
 
   // download and upload Excel Sheets
 
-  exports.DownloadExcelTemplete=async(req,res)=>{
-    try{
+  exports.DownloadExcelTemplate = async (req, res) => {
+    try {
       const data = [
-        {Name: '',Email: '',Mobile_No: '',linkedIn_Profile_Link:'',Gender:'',Age:'',Marriage_Status:'',Preffered_location:'',Current_location:'',Member_In_Family:'',Name_of_Father:'',Son_Name:'',Spouse_profession:'',Designation:'',Company_name:'',Industry:'',Current_CTC:'',Role:'',Total_experience:'',Functions:'',Current_reporting_structure:'',Last_reposrting_Structure:'',Career_Highlight:'',Recognation:'',Education:'',Board_Represent_Name:'',Articles:'',Certificate:''} // Example headers/fields
-    ];
-
-    const worksheet = XLSX.utils.json_to_sheet(data);
-    const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, 'Sheet1');
-
-    const excelBuffer = XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx' });
-
-    res.setHeader('Content-Disposition', 'attachment; filename="template.xlsx"');
-    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-    res.send(excelBuffer);
-
-    }catch(error){
-      return res.status(500).json({error:"Internal Server error"});
+        {
+          Name: '',
+          Email: '',
+          Mobile_No: '',
+          linkedIn_Profile_Link: '',
+          Gender: '',
+          Age: '',
+          Marriage_Status: '',
+          Aadhar_Number: '',
+          PAN_Number: '',
+          Member_In_Family: '',
+          Name_of_Father: '',
+          Son_Name: '',
+          Spouse_profession: '',
+          Resume_Link: '',
+          Designation: '',
+          Company_name: '',
+          Industry: '',
+          Current_CTC: '',
+          Role: '',
+          Total_experience: '',
+          Functions_S: '',
+          Current_reporting_structure: '',
+          Last_reposrting_Structure: '',
+          Preffered_location: '',
+          Current_location: '',
+          Career_Highlight: '',
+          Recognation: '',
+          Highest_Education: '',
+          Board_Represent_Name: '',
+          Articles: '',
+          Certificate: '',
+          Certificate_Link: ''
+        }
+      ];
+  
+      const worksheet = XLSX.utils.json_to_sheet(data);
+      
+      // Calculate the width of each column based on the header text length
+      const columnWidths = Object.keys(data[0]).map((key) => ({
+        wch: Math.max(key.length, 20)  // Ensuring a minimum width of 20 characters
+      }));
+  
+      worksheet['!cols'] = columnWidths;
+  
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, 'Sheet1');
+  
+      const excelBuffer = XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx' });
+  
+      res.setHeader('Content-Disposition', 'attachment; filename="template.xlsx"');
+      res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+      res.send(excelBuffer);
+  
+    } catch (error) {
+      return res.status(500).json({ error: "Internal Server Error" });
     }
-  }
+  };
 
 
   exports.uploadExcelFile=async(req,res)=>{
@@ -545,8 +646,8 @@ const OnboardCandidate = Joi.object({
         gender:row.Gender,
         age:row.Age,
         marriage_status:row.Marriage_Status,
-        preferred_location:row.Preffered_location,
-        current_location:row.Current_location,
+        aadhar_number:row.Aadhar_Number,
+        PAN:row.PAN_Number,
         femily_member:row.Member_In_Family,
         father_name:row.Name_of_Father,
         son_name:row.Son_Name,
@@ -566,6 +667,9 @@ const OnboardCandidate = Joi.object({
         career_highlight: row.Career_Highlight,
         recognation: row.Recognation,
         functions: row.Functions,
+        preferred_location:row.Preffered_location,
+        current_location:row.Current_location,
+        resume:row.Resume_Link
       };
 
       const educationDetails={
@@ -573,6 +677,21 @@ const OnboardCandidate = Joi.object({
         board_represent:row.Board_Represent_Name,
         articles:row.Articles,
         certificate:row.Certificate
+      }
+
+      const existsEmail=await basic_details.findOne({email: row.Email});
+      if(existsEmail){
+        return res.status(400).json({ error: `The email "${row.Email}" already exists in our database.` });
+      }
+
+      const existsMobile=await basic_details.findOne({mobile:row.Mobile_No});
+      if(existsMobile){
+        return res.status(400).json({ error: `The mobile number "${row.Mobile_No}" is already used by ${existsMobile.name}.` });
+      }
+
+      const existslinkedIn=await basic_details.findOne({linkedIn:row.LinkedIn_Profile_Link});
+      if(existslinkedIn){
+        return res.status(400).json({ error: `The LinkedIn profile link "${row.LinkedIn_Profile_Link}" is already used by ${existsLinkedIn.name}.` });
       }
 
       const savedBasicDetails = await new basic_details(basicDetails).save();
@@ -583,7 +702,7 @@ const OnboardCandidate = Joi.object({
       const newCandidate = new candidate({ basic_details: savedBasicDetails._id,personal_details:savedPersonalDetails._id,work_details:savedWorkDetails._id,education_details:savedEducationDetails._id});
       const savedCandidate = await newCandidate.save();
     }
-      res.status(200).json({ message: 'File processed and data stored successfully' });
+      res.status(200).json({ message: `${sheetData.length} Company Imported successfully` });
     }catch(error){
       return res.status(500).json({error:"Internal server error"});
     }

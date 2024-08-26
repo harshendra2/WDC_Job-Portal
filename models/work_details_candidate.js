@@ -3,48 +3,46 @@ const mongoose=require("mongoose");
 
 const work_details_candidate=new mongoose.Schema({
     designation:{
-        type:String,
-        required:true
+        type:String
     },
     company_name:{
-            type:String,
-            required:true
+     type:String
     },
      industry:{
-        type:String,
-        required:true
+        type:String
     },
      current_ctc:{
-        type:Number,
-        required:true
+        type:Number
     },
     aspiring_position:{
-      type:String,
-      required:true
+      type:String
     },
     work_experience:{
-        type:Number,
-        required:true
+        type:Number
     },
     current_report:{
-        type:String,
-        required:true
+        type:String
     },
     last_reporting:{
-        type:String,
-        required:true
+        type:String
     },
     career_highlight:{
-     type:String,
-     required:true
+     type:String
     },
      recognation:{
-        type:String,
-        required:true
+        type:String
     },
     functions:{
-        type:String,
-        required:true
+        type:String
+    },
+    preferred_location:{
+        type:String
+    },
+    current_location:{
+      type:String
+    },
+    resume:{
+        type:String
     }
 })
 

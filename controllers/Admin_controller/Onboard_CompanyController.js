@@ -102,28 +102,43 @@ const extractGST = (text) => {
 };
 
 
-exports.getSingleCompany=async(req,res)=>{
-  const {id}=req.params;
-  try{
-    const data=await Company.findById({_id:id});
-    if(data){
+exports.getSingleCompany = async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    const data = await Company.findById(id); 
+
+    if (data) {
       const baseUrl = `${req.protocol}://${req.get('host')}`;
-      
-      const updatedData = data.map(company => {
-        return {
-          ...company._doc, // Spread the existing company data
-          panImageUrl: company.PAN_image ? `${baseUrl}/${company.PAN_image.replace(/\\/g, '/')}` : null, // Replace backslashes with forward slashes
-          gstImageUrl: company.GST_image ? `${baseUrl}/${company.GST_image.replace(/\\/g, '/')}` : null, // Replace backslashes with forward slashes
-        };
-      });
-      
-      return res.status(200).send(updatedData);
+
+    // Helper function to check if a URL is a Google Drive link
+    const isGoogleDriveLink = (url) => {
+      return url && (url.includes('drive.google.com') || url.includes('docs.google.com'));
+    };
+
+    const updatedData = {
+      ...data._doc,
+      profileUrl: data.profile 
+        ? (isGoogleDriveLink(data.profile) ? data.profile : `${baseUrl}/${data.profile.replace(/\\/g, '/')}`)
+        : null,
+      PANImageUrl: data.PAN_image 
+        ? (isGoogleDriveLink(data.PAN_image) ? data.PAN_image : `${baseUrl}/${data.PAN_image.replace(/\\/g, '/')}`)
+        : null,
+      GSTImageUrl: data.GST_image 
+        ? (isGoogleDriveLink(data.GST_image) ? data.GST_image : `${baseUrl}/${data.GST_image.replace(/\\/g, '/')}`)
+        : null,
+    };
+
+      return res.status(200).json(updatedData);
+    } else {
+      return res.status(404).json({ error: "Company not found" });
     }
 
-  }catch(error){
-    return res.status(500).json({error:"Internal Server Error"});
+  } catch (error) {
+    console.log(error)
+    return res.status(500).json({ error: "Internal Server Error" });
   }
-}
+};
 
 
 exports.getAllOnboardCompany = async (req, res) => {
@@ -154,6 +169,7 @@ exports.editOnboardCompany = async (req, res) => {
   const { id } = req.params;
   const panImage = req.files['panImage'] ? req.files['panImage'][0].path : null;
   const gstImage = req.files['gstImage'] ? req.files['gstImage'][0].path : null;
+  const profile = req.files['profile'] ? req.files['profile'][0].path : null;
   const { error } = OnboardComapanyEdit.validate({mobile,company_name,email});
   if (error) {
     return res.status(400).json({ error: error.details[0].message });
@@ -162,7 +178,7 @@ exports.editOnboardCompany = async (req, res) => {
   try {
     const updatedCompany = await Company.findByIdAndUpdate(
       id,
-      {email, mobile, company_name,overView,industry,company_size,GST,PAN,website_url,location,contact_email,contact_No,headQuater_add,GST_image:gstImage,PAN_image:panImage},
+      {email, mobile, company_name,overView,industry,company_size,GST,PAN,website_url,location,contact_email,contact_No,headQuater_add,GST_image:gstImage,PAN_image:panImage,profile},
       { new: true }
     );
 
@@ -230,7 +246,10 @@ exports.uploadExcelFile = async (req, res) => {
 
     const validatePAN = (pan) => /^[A-Z]{5}[0-9]{4}[A-Z]{1}$/.test(pan);
     const validateGST = (gst) => /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/.test(gst);
-
+       
+    if(sheetData.length === 0){
+      return res.status(400).json({error:"Empty Excel File"});
+    }
     for (const row of sheetData) {
       const Details = {
         company_name: row.Company_Name,
