@@ -16,13 +16,6 @@ const CreateNewRole = Joi.object({
   support: Joi.boolean().required()
 });
 
-const CreateSubAdmin=Joi.object({
-  email: Joi.string().email().required(),
-  password: Joi.string().min(6).required(),
-  confirmpassword: Joi.string().min(6).required()
-  .valid(Joi.ref('password')).messages({ 'any.only': 'Password and confirm password do not match' })
-})
-
 const EditExistingRole=Joi.object({
   onboard_company: Joi.boolean().required(),
   onboard_candidate: Joi.boolean().required(),
@@ -135,10 +128,6 @@ exports.EditRole = async (req, res) => {
 exports.CreateNewSubAdmin=async(req,res)=>{
   const {roleId}=req.params;
   const {email,password,confirmpassword}=req.body;
-  const { error } =CreateSubAdmin.validate({email,password,confirmpassword});
-  if (error) {
-    return res.status(400).json({ error: error.details[0].message });
-  }
   try{
     const hashedPassword = await bcrypt.hash(password, 12);
     const data = new admin({

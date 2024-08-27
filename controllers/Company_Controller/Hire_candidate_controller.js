@@ -170,109 +170,99 @@ exports.getCandidateDetails = async (req, res) => {
 
 
 // Key word Search Features
-
-const parseSearchQuery = (query) => {
-    const experiencePattern = /(\d+)\s*(?:year|years|yr|yrs)/i;
-    const skillPattern = /\b([a-zA-Z]+\.[a-zA-Z]+|[a-zA-Z]+)/g; // Matches "Node.js", "React", etc.
-
-    const experienceMatch = query.match(experiencePattern);
-    const skillsMatch = query.match(skillPattern);
-
-    const experience = experienceMatch ? parseInt(experienceMatch[1]) : null;
-    const skills = skillsMatch ? skillsMatch.map(skill => skill.toLowerCase()) : [];
-
-    return { experience, skills };
-};
-
-
 exports.KeywordSearchCandidate = async (req, res) => {
     const { id } = req.params;
-    const query = req.query.query || "";  
+    const query = req.query.query || "";
+
     if (!query) {
         return res.status(400).json({ error: "Query parameter is missing" });
     }
 
     try {
         const objectId = new mongoose.Types.ObjectId(id);
-        const { experience, skills } = parseSearchQuery(query);
+
+        // Construct match conditions for the company's job postings
         const matchConditions = { company_id: objectId };
 
-        if (experience) matchConditions['workDetails.work_experience'] = { $gte: experience };
-        if (skills.length > 0) matchConditions['workDetails.skills'] = { $all: skills.map(skill => new RegExp(skill, 'i')) };
-
+        // Perform the aggregation to retrieve and filter candidate data
         const data = await CompanyJob.aggregate([
-            { $match: { company_id: objectId } },
-          {
-              $lookup: {
-                  from: 'candidates',
-                  localField: 'candidate_id',
-                  foreignField: '_id',
-                  as: 'candidateDetails'
-              }
-          },
-          { $unwind: '$candidateDetails' },
-          {
-              $lookup: {
-                  from: 'candidate_basic_details',
-                  localField: 'candidateDetails.basic_details',
-                  foreignField: '_id',
-                  as: 'basicDetails'
-              }
-          },
-          { $unwind: '$basicDetails' },
-          {
-              $lookup: {
-                  from: 'candidate_personal_details',
-                  localField: 'candidateDetails.personal_details',
-                  foreignField: '_id',
-                  as: 'personalDetails'
-              }
-          },
-          { $unwind: '$personalDetails' },
-          {
-              $lookup: {
-                  from: 'candidate_work_details',
-                  localField: 'candidateDetails.work_details',
-                  foreignField: '_id',
-                  as: 'workDetails'
-              }
-          },
-          { $unwind: '$workDetails' },
-          {
-              $lookup: {
-                  from: 'candidate_education_details',
-                  localField: 'candidateDetails.education_details',
-                  foreignField: '_id',
-                  as: 'educationDetails'
-              }
-          },
-          { $unwind: '$educationDetails' },
+            { $match: matchConditions },
             {
-                $match: {
-                    ...(experience && { 'workDetails.work_experience': { $gte: experience } }),
-                    // ...(skills.length > 0 && { 'workDetails.skills': { $all: skills.map(skill => new RegExp(skill, 'i')) } })
+                $lookup: {
+                    from: 'candidates',
+                    localField: 'candidate_id',
+                    foreignField: '_id',
+                    as: 'candidateDetails'
                 }
-            }
+            },
+            { $unwind: '$candidateDetails' },
+            {
+                $lookup: {
+                    from: 'candidate_basic_details',
+                    localField: 'candidateDetails.basic_details',
+                    foreignField: '_id',
+                    as: 'basicDetails'
+                }
+            },
+            { $unwind: '$basicDetails' },
+            {
+                $lookup: {
+                    from: 'candidate_personal_details',
+                    localField: 'candidateDetails.personal_details',
+                    foreignField: '_id',
+                    as: 'personalDetails'
+                }
+            },
+            { $unwind: '$personalDetails' },
+            {
+                $lookup: {
+                    from: 'candidate_work_details',
+                    localField: 'candidateDetails.work_details',
+                    foreignField: '_id',
+                    as: 'workDetails'
+                }
+            },
+            { $unwind: '$workDetails' },
+            {
+                $lookup: {
+                    from: 'candidate_education_details',
+                    localField: 'candidateDetails.education_details',
+                    foreignField: '_id',
+                    as: 'educationDetails'
+                }
+            },
+            { $unwind: '$educationDetails' }
+            // {
+            //     // $match: {
+            //     //     'workDetails.designation': { $regex: query, $options: 'i' }
+            //     // }
+            // }
         ]);
 
-        if (data && data.length > 0) {
+        if (data.length > 0) {
             const baseUrl = `${req.protocol}://${req.get('host')}`;
             const isGoogleDriveLink = (url) => url && (url.includes('drive.google.com') || url.includes('docs.google.com'));
+            
             const updatedData = data.map(item => ({
                 ...item,
                 workDetails: {
                     ...item.workDetails,
-                    resume: item.workDetails.resume ? (isGoogleDriveLink(item.workDetails.resume) ? item.workDetails.resume : `${baseUrl}/${item.workDetails.resume.replace(/\\/g, '/')}`) : null
+                    resume: item.workDetails.resume 
+                        ? isGoogleDriveLink(item.workDetails.resume)
+                            ? item.workDetails.resume
+                            : `${baseUrl}/${item.workDetails.resume.replace(/\\/g, '/')}`
+                        : null
                 }
             }));
 
             return res.status(200).json(updatedData);
         } else {
-            return res.status(404).json({ error: "No candidates found for this company" });
+            return res.status(404).json({ error: "No candidates found matching the query for this company." });
         }
 
     } catch (error) {
-        console.error(error);
+        console.error("Error in KeywordSearchCandidate:", error);
         return res.status(500).json({ error: "Internal server error" });
     }
 };
+
