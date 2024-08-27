@@ -20,6 +20,12 @@ const CandidateShema=new mongoose.Schema({
         type:String,
         default:"processing"
     },
+    profile:{
+       type:String
+    },
+    summary:{
+        type:String
+    },
     message:{
         type:String
     },

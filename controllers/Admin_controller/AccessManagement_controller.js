@@ -173,3 +173,31 @@ exports.AdminBlockingAction = async (req, res) => {
     return res.status(500).json({ error: "Internal server error" });
   }
 };
+
+
+exports.AccessManagement=async(req,res)=>{
+  const {adminId}=req.params;
+  try{
+    if (!mongoose.Types.ObjectId.isValid(adminId)) {
+      return res.status(400).json({ error: 'Invalid admin ID' });
+  }
+  const objectId = new mongoose.Types.ObjectId(adminId);
+    const data = await admin.aggregate([
+      {$match:{_id:objectId}},
+      {
+        $lookup: {
+          from: 'responsibilities',
+          localField: 'responsibility',
+          foreignField: '_id',
+          as: 'responsibility'
+        }
+      },{$project:{tokens:0}}
+    ]);
+      if(data){
+          return res.status(200).send(data);
+      }
+
+  }catch(error){
+    return res.status(500).json({error:"Internal server error"});
+  }
+}

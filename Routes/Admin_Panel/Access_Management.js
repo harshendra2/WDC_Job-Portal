@@ -9,4 +9,7 @@ router.put('/admin/edit_role/:id',controller.EditRole);
 router.post('/admin/createuser/:roleId',controller.CreateNewSubAdmin);
 router.put('/admin/admin_action/:id',controller.AdminBlockingAction);
 
+//Access Management 
+router.get('/admin/login/:adminId',controller.AccessManagement);
+
 module.exports=router;

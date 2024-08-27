@@ -43,7 +43,32 @@ const work_details_candidate=new mongoose.Schema({
     },
     resume:{
         type:String
-    }
+    },
+    Experience:[
+        {
+          designation:{
+            type:String
+          },
+          company_name:{
+            type:String
+          },
+          work_type:{
+            type:String
+          },
+          joining_date:{
+            type:Date
+          },
+          last_date:{
+            type:Date
+          },
+          reporting:{
+            type:String
+          },
+          reliving_letter:{
+            type:String
+          }
+        }
+    ]
 })
 
 module.exports = mongoose.model("candidate_work_details", work_details_candidate);
