@@ -167,32 +167,38 @@ const OnboardCandidate = Joi.object({
   }
 
 
-  exports.createEducationDetailsCandidate=async(req,res)=>{
-    const {highest_education,board_represent,articles,certificates,id}=req.body;
-
+  exports.createEducationDetailsCandidate = async (req, res) => {
+    const { highest_education, board_represent, articles, certificates, id } = req.body;
+  
     const { error } = OnboardCandidateEducationDetails.validate({
-      highest_education,board_represent,articles
+      highest_education, board_represent, articles
     });
   
     if (error) {
       return res.status(400).json({ error: error.details[0].message });
     }
-    try{
-
+  
+    try {
       const certificatesArray = certificates.map((certificate, index) => {
         return {
           Certificate: certificate,
           image: req.files?.find(file => file.fieldname === `certificates[${index}][image]`)?.filename || null,
         };
       });
-
-      const Candidatedata={highest_education,board_represent,articles,certificates:certificatesArray};
+  
+      const Candidatedata = {
+        highest_education,
+        board_represent,
+        articles,
+        certificates: certificatesArray
+      };
+  
       const newEducationDetails = new education_details(Candidatedata);
       const savededucationDetails = await newEducationDetails.save();
-          
+  
       const updatedCandidate = await candidate.findByIdAndUpdate(
-        id, 
-        { education_details: savededucationDetails._id }, 
+        id,
+        { education_details: savededucationDetails._id },
         { new: true }
       );
   
@@ -201,12 +207,13 @@ const OnboardCandidate = Joi.object({
       } else {
         return res.status(404).json({ error: "Candidate not found" });
       }
-
-    }catch(error){
-      console.log(error);
-      return res.status(500).json({error:"Internal Server Error"});
+  
+    } catch (error) {
+      console.error(error);
+      return res.status(500).json({ error: "Internal Server Error" });
     }
-  }
+  };
+  
 
   exports.getAllCandidate = async (req, res) => {
     try {

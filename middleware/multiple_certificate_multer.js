@@ -3,7 +3,7 @@ const path = require("path");
 
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
-    cb(null, "Images/Certificate"); // Ensure this directory exists or create it before using
+    cb(null, "Images"); // Ensure this directory exists or create it before using
   },
   filename: (req, file, cb) => {
     cb(null, file.fieldname + "_" + Date.now() + path.extname(file.originalname));
@@ -43,3 +43,4 @@ const upload = multer({
 module.exports = {
   upload
 };
+
