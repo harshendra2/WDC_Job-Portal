@@ -1,6 +1,7 @@
 const CompanyJob = require("../../models/JobSchema");
 const company = require("../../models/Onboard_Company_Schema");
 const mongoose = require("mongoose");
+const moment=require('moment');
 
 exports.GetAllJobsListing = async (req, res) => {
   try {
@@ -8,13 +9,13 @@ exports.GetAllJobsListing = async (req, res) => {
       {
         $group: {
           _id: "$company_id",
-          jobCount: { $sum: 1 }, // Count the total number of jobs per company
+          jobCount: { $sum: 1 },
           activeJobCount: {
             $sum: { $cond: [{ $eq: ["$status", true] }, 1, 0] },
-          }, // Count active jobs
+          }, 
           inactiveJobCount: {
             $sum: { $cond: [{ $eq: ["$status", false] }, 1, 0] },
-          }, // Count inactive jobs
+          },
         },
       },
     ]);
@@ -80,16 +81,12 @@ exports.ListOutAllJob = async (req, res) => {
       { $match: { admin_verify: 'pending' } },
       {
         $lookup: {
-          from: 'companies', 
+          from: 'companies',
           localField: 'company_id',
           foreignField: '_id',
           as: 'company_details'
         }
-      },
-      // {$project:{
-      //   company_details.name:0,
-
-      // }}
+      }
     ]);
 
     if (data && data.length > 0) {
@@ -117,6 +114,7 @@ exports.ListOutAllJob = async (req, res) => {
       return res.status(404).json({ message: "No jobs found" });
     }
   } catch (error) {
+    console.log(error);
     return res.status(500).json({ error: "Internal server error" });
   }
 };
@@ -130,8 +128,43 @@ const isGoogleDriveLink = (url) => {
 exports.getSingleJobs=async(req,res)=>{
   const {jobId}=req.params;
   try{
+    const objectId = new mongoose.Types.ObjectId(jobId);
+     const data=await CompanyJob.aggregate([
+      {$match:{_id:objectId}},
+      {$lookup: {
+        from: 'companies',
+        localField: 'company_id',
+        foreignField: '_id',
+        as: 'company_details'
+      }}
+    ])
+    if (data && data.length > 0) {
+      const baseUrl = `${req.protocol}://${req.get('host')}`;
+      const updatedData = data.map(job => {
+        const companyDetails = job.company_details[0]; 
+        const profileUrl = companyDetails && companyDetails.profile 
+          ? (isGoogleDriveLink(companyDetails.profile) 
+              ? companyDetails.profile 
+              : `${baseUrl}/${companyDetails.profile.replace(/\\/g, '/')}`)
+          : null;
+
+        return {
+          ...job,
+          application: job.candidate_id.length,
+          company_details: {
+            ...companyDetails,
+            profileUrl: profileUrl,
+          }
+        };
+      });
+
+      return res.status(200).send(updatedData);
+    } else {
+      return res.status(404).json({ message: "No jobs found" });
+    }
 
   }catch(error){
+    console.log(error);
     return res.status(500).json({error:"Internal server error"});
   }
 }
@@ -183,3 +216,140 @@ exports.DisapproveJob = async (req, res) => {
     return res.status(500).json({ error: "Internal server error" });
   }
 };
+
+
+//Report job 
+exports.GetAllReportedJobs = async (req, res) => {
+  try {
+    const reportingData = await CompanyJob.aggregate([
+      {
+        $match: {
+          job_reporting: { $exists: true, $ne: [] }
+        }
+      },
+      {
+        $lookup: {
+          from: 'companies',
+          localField: 'company_id',
+          foreignField: '_id',
+          as: 'company_details'
+        }
+      },
+      {
+        $unwind: {
+          path: '$company_details',
+          preserveNullAndEmptyArrays: true 
+        }
+      }
+    ]).sort({reported_date: -1 });
+
+    if (reportingData && reportingData.length > 0) {
+      const baseUrl = `${req.protocol}://${req.get('host')}`;
+      const isGoogleDriveLink = (url) => {
+        return url && (url.includes('drive.google.com') || url.includes('docs.google.com'));
+      };
+
+      const updatedData = reportingData.map(job => {
+        const companyDetails = job.company_details || {}; 
+        const profileUrl = companyDetails.profile 
+          ? (isGoogleDriveLink(companyDetails.profile) 
+              ? companyDetails.profile 
+              : `${baseUrl}/${companyDetails.profile.replace(/\\/g, '/')}`)
+          : null;
+
+        return {
+          ...job,
+          timeSincePosted:moment(job.createdDate).fromNow(),
+          application: job.candidate_id.length,
+          reportingCount:job.job_reporting.length,
+          company_details: {
+            ...companyDetails,
+            profileUrl: profileUrl,
+          }
+        };
+      });
+
+      return res.status(200).send(updatedData);
+    } else {
+      return res.status(404).json({ message: "No reported jobs found" });
+    }
+
+  } catch (error) {
+    return res.status(500).json({ error: "Internal server error" });
+  }
+};
+
+exports.ReportingjobtoAdmin=async(req,res)=>{
+  const {jobId}=req.params;
+  try{
+    const objectId = new mongoose.Types.ObjectId(jobId);
+    const reportingData = await CompanyJob.aggregate([
+      {
+        $match: {_id:objectId}
+      },
+      {
+        $lookup: {
+          from: 'companies',
+          localField: 'company_id',
+          foreignField: '_id',
+          as: 'company_details'
+        }
+      },
+      {
+        $unwind: {
+          path: '$company_details',
+          preserveNullAndEmptyArrays: true 
+        }
+      }
+    ]);
+
+    if (reportingData && reportingData.length > 0) {
+      const baseUrl = `${req.protocol}://${req.get('host')}`;
+      const isGoogleDriveLink = (url) => {
+        return url && (url.includes('drive.google.com') || url.includes('docs.google.com'));
+      };
+
+      const updatedData = reportingData.map(job => {
+        const companyDetails = job.company_details || {}; 
+        const profileUrl = companyDetails.profile 
+          ? (isGoogleDriveLink(companyDetails.profile) 
+              ? companyDetails.profile 
+              : `${baseUrl}/${companyDetails.profile.replace(/\\/g, '/')}`)
+          : null;
+
+        return {
+          ...job,
+          timeSincePosted:moment(job.createdDate).fromNow(),
+          application: job.candidate_id.length,
+          reportingCount:job.job_reporting.length,
+          company_details: {
+            ...companyDetails,
+            profileUrl: profileUrl,
+          }
+        };
+      });
+
+      return res.status(200).send(updatedData);
+    } else {
+      return res.status(404).json({ message: "No reported jobs found" });
+    }
+  }catch(error){
+    return res.status(500).json({error:"Internal server error"});
+  }
+}
+
+exports.DeleteReportedJob=async(req,res)=>{
+  const {jobId}=req.params;
+  try{
+    const deleteJob = await CompanyJob.findByIdAndDelete(jobId);
+
+    if (deleteJob) {
+      return res.status(200).json({ message: "Job deleted successfully" });
+    } else {
+      return res.status(404).json({ error: "Job not found in the database" });
+    }
+
+  }catch(error){
+    return res.status(500).json({error:"Internal server error"});
+  }
+}

@@ -75,7 +75,22 @@ candidate_id:[{
     type: String,
     enum: ["pending", "verified", "Unverified"],
     default: "pending"
-  }
+  },
+  job_reporting:[
+    {
+      candidate_id:{
+        type: mongoose.Schema.Types.ObjectId,
+        ref:'candidate'
+      },
+      message:{
+        type:String
+      },
+      reported_date:{
+        type:Date,
+        default: Date.now
+      }
+    }
+  ]
 });
 
 module.exports = mongoose.model("CompanyJob", CompanyJobSchema);

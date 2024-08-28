@@ -132,6 +132,10 @@ exports.CreateNewSubAdmin=async(req,res)=>{
     if (!mongoose.Types.ObjectId.isValid(roleId)) {
       return res.status(400).json({ error: 'Invalid candidate ID' });
     }
+    const existDate=await admin.findOne({email});
+    if(existDate){
+      return res.status(400).json({error:"This email already existed in our data base"});
+    }
     const data = new admin({
       responsibility:roleId,
       email,
