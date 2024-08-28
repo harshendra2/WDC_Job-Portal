@@ -72,8 +72,9 @@ candidate_id:[{
     default:true
   },
   admin_verify:{
-    type:Boolean,
-    default:false
+    type: String,
+    enum: ["pending", "verified", "Unverified"],
+    default: "pending"
   }
 });
 

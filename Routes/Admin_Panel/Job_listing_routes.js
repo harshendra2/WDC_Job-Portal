@@ -8,6 +8,7 @@ router.get('/admin/getjobdescription/:jobId',controller.GetJobDescription);
 
 //verify jobs
 router.get('/admin/verifyjob_list',controller.ListOutAllJob);
+router.get('/admin/verifyjob_list/single/:jobId',controller.getSingleJobs);
 router.put('/admin/verify/company_job/:jobId',controller.VerifyCompanyJobPosted);
 router.put('/admin/disapprove/company_job/:jobId',controller.DisapproveJob);
 
