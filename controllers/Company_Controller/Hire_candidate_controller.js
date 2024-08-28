@@ -231,12 +231,17 @@ exports.KeywordSearchCandidate = async (req, res) => {
                     as: 'educationDetails'
                 }
             },
-            { $unwind: '$educationDetails' }
-            // {
-            //     // $match: {
-            //     //     'workDetails.designation': { $regex: query, $options: 'i' }
-            //     // }
-            // }
+            { $unwind: '$educationDetails' },
+            {
+                $match: {
+                    $or: [
+                        { 'workDetails.designation': { $regex: query, $options: 'i' } },
+                        //{ 'workDetails.work_experience': { $regex: query, $options: 'i' } },
+                        //{ 'basicDetails.name': { $regex: query, $options: 'i' } }, // Example for name search
+                        //{ 'personalDetails.location': { $regex: query, $options: 'i' } } // Example for location search
+                    ]
+                }
+            }
         ]);
 
         if (data.length > 0) {

@@ -129,6 +129,9 @@ exports.CreateNewSubAdmin=async(req,res)=>{
   const {roleId}=req.params;
   const {email,password,confirmpassword}=req.body;
   try{
+    if (!mongoose.Types.ObjectId.isValid(roleId)) {
+      return res.status(400).json({ error: 'Invalid candidate ID' });
+    }
     const hashedPassword = await bcrypt.hash(password, 12);
     const data = new admin({
       responsibility:roleId,
