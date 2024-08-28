@@ -70,6 +70,10 @@ candidate_id:[{
   status:{
     type:Boolean,
     default:true
+  },
+  admin_verify:{
+    type:Boolean,
+    default:false
   }
 });
 

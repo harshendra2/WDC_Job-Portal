@@ -77,3 +77,50 @@ exports.GetJobDescription=async(req,res)=>{
     return res.status(500).json({error:"Internal server error"});
   }
 }
+
+exports.ListOutAllJob=async(req,res)=>{
+  try{
+const data=await CompanyJob.find({});
+if(data){
+  return res.status(200).send(data);
+}
+  }catch(error){
+    return res.status(500).json({error:"Internal server error"});
+  }
+}
+
+exports.VerifyCompanyJobPosted = async (req, res) => {
+  const { jobId } = req.params;
+
+  try {
+    const existedJob = await CompanyJob.findById(jobId);
+    if (!existedJob) {
+      return res.status(400).json({ error: "This job does not exist in our database." });
+    }
+    const updatedJob = await CompanyJob.findByIdAndUpdate(
+      jobId, 
+      { admin_verify: true }, 
+      { new: true } 
+    );
+
+    if (updatedJob) {
+      return res.status(200).json({ message: "Job verified successfully." });
+    }
+
+  } catch (error) {
+    return res.status(500).json({ error: "Internal server error" });
+  }
+};
+
+exports.DisapproveJob=async(req,res)=>{
+  const {jobId}=req.params;
+  try{
+    const existedData=await CompanyJob.findById(jobId);
+    if(!existedData){
+      return res.status(400).json({error:"This job does not exist in our database."})
+    }
+    
+  }catch(error){
+    return res.status(500).json({error:"Internal server error"});
+  }
+}
