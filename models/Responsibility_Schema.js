@@ -26,7 +26,28 @@ const ResponsibilitySchema = new mongoose.Schema({
         support: {
           type: Boolean,
           default: false
-        }
+        },
+        dashboard:{
+          type: Boolean,
+          default: false
+        },
+        credibility:{
+          type: Boolean,
+          default: false
+        },
+        transaction: {
+          type: Boolean,
+          default: false
+        },
+        user_verification:{
+          type: Boolean,
+          default: false
+        },
+        job_module:{
+          type: Boolean,
+          default: false
+        },
+
       },
 });
 
