@@ -1,46 +1,39 @@
-const multer = require("multer");
-const path = require("path");
+const multer = require('multer');
+const path = require('path');
 
-const storage = multer.diskStorage({
+let storage = multer.diskStorage({
   destination: (req, file, cb) => {
-    cb(null, "Images"); // Ensure this directory exists or create it before using
+    cb(null, 'Images'); // Ensure the 'Images' directory exists
   },
   filename: (req, file, cb) => {
-    cb(null, file.fieldname + "_" + Date.now() + path.extname(file.originalname));
-  },
+    let ext = path.extname(file.originalname);
+    cb(null, file.fieldname + '-' + Date.now() + ext);
+  }
 });
 
-const fileFilter = (req, file, cb) => {
-  const allowedMimes = [
-    "image/jpeg",
-    "image/jpg",
-    "image/png",
-    "image/gif",
-    "application/pdf",
-    "application/msword", // DOC
-    "application/vnd.openxmlformats-officedocument.wordprocessingml.document", // DOCX
-    "application/vnd.ms-excel", // XLS
-    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-  ];
-
-  if (allowedMimes.includes(file.mimetype)) {
-    cb(null, true);
+const checkFileType = (file, cb) => {
+  // Allowable file extensions
+  const fileTypes = /jpeg|jpg|png|gif|svg|webp/;
+  // Check the extension name
+  const extName = fileTypes.test(path.extname(file.originalname).toLowerCase());
+  const mimeType = fileTypes.test(file.mimetype);
+  if (mimeType && extName) {
+    return cb(null, true);
   } else {
-    cb(new Error("Invalid file type."));
+    cb(new Error('Error: You can only upload images!'));
   }
 };
 
-const maxSize = 5 * 1024 * 1024; // 5MB
-
 const upload = multer({
   storage: storage,
-  fileFilter: fileFilter,
-  limits: {
-    fileSize: maxSize,
+  fileFilter: (req, file, cb) => {
+    checkFileType(file, cb);
   },
-});
+}).fields(
+  Array.from({ length: 10 }, (_, index) => ({
+    name: `certificates[${index}][image]`,
+    maxCount: 1,
+  }))
+);
 
-module.exports = {
-  upload
-};
-
+module.exports = upload;

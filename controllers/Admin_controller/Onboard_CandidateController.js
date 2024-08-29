@@ -169,50 +169,49 @@ const OnboardCandidate = Joi.object({
 
   exports.createEducationDetailsCandidate = async (req, res) => {
     const { highest_education, board_represent, articles, certificates, id } = req.body;
-  
     const { error } = OnboardCandidateEducationDetails.validate({
-      highest_education, board_represent, articles
+        highest_education, board_represent, articles
     });
-  
+
     if (error) {
-      return res.status(400).json({ error: error.details[0].message });
+        return res.status(400).json({ error: error.details[0].message });
     }
-  
+
     try {
-      const certificatesArray = certificates.map((certificate, index) => {
-        return {
-          Certificate: certificate,
-          image: req.files?.find(file => file.fieldname === `certificates[${index}][image]`)?.filename || null,
+        const certificatesArray = certificates.map((certificate, index) => {
+            const fileFieldName = `certificates[${index}][image]`;
+            const file = req.files[fileFieldName] ? req.files[fileFieldName][0] : null;
+            return {
+                Certificate: certificate.certificateName,
+                image: file ? file.path : null,
+            };
+        });
+        const Candidatedata = {
+            highest_education,
+            board_represent,
+            articles,
+            certificates: certificatesArray
         };
-      });
-  
-      const Candidatedata = {
-        highest_education,
-        board_represent,
-        articles,
-        certificates: certificatesArray
-      };
-  
-      const newEducationDetails = new education_details(Candidatedata);
-      const savededucationDetails = await newEducationDetails.save();
-  
-      const updatedCandidate = await candidate.findByIdAndUpdate(
-        id,
-        { education_details: savededucationDetails._id },
-        { new: true }
-      );
-  
-      if (updatedCandidate) {
-        return res.status(201).json({ message: "Candidate added successfully", candidate: updatedCandidate });
-      } else {
-        return res.status(404).json({ error: "Candidate not found" });
-      }
-  
+        const newEducationDetails = new education_details(Candidatedata);
+        const savededucationDetails = await newEducationDetails.save();
+        const updatedCandidate = await candidate.findByIdAndUpdate(
+            id,
+            { education_details: savededucationDetails._id },
+            { new: true }
+        );
+
+        if (updatedCandidate) {
+            return res.status(201).json({ message: "Candidate added successfully", candidate: updatedCandidate });
+        } else {
+            return res.status(404).json({ error: "Candidate not found" });
+        }
+
     } catch (error) {
-      console.error(error);
-      return res.status(500).json({ error: "Internal Server Error" });
+        console.error(error);
+        return res.status(500).json({ error: "Internal Server Error" });
     }
-  };
+};
+
   
 
   exports.getAllCandidate = async (req, res) => {

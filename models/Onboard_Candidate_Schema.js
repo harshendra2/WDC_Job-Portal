@@ -18,7 +18,7 @@ const CandidateShema=new mongoose.Schema({
     },
     status:{
         type:String,
-        default:"processing"
+        default:"Processing"
     },
     profile:{
        type:String

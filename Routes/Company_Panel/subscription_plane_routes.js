@@ -19,6 +19,8 @@ router.get('/company/get_renewplane/:company_id',controller.GetReNewSubscription
 
  // topup plane
  router.get('/company/get_topup_plane/:company_id',controller.GetAllTopupPlane);
+ router.get('/company/topup_plane/payment',controller.TopUpSubscriptionPlane);
+ router.post('/company/renewPlane/verify',controller.TopUpPlaneVerifyPayment);
 
 
 module.exports=router;

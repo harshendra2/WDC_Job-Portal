@@ -12,4 +12,9 @@ router.get('/admin/verification/getcandidate',controller.GetAllOnboardCandidate)
 router.put('/admin/verification/candidate/reject/:id',controller.OnboardCandidateRejectAction);
 router.put('/admin/verification/candidate/approve/:id',controller.OnboardCandidateApproveAction);
 
+//Verified Company
+router.get('/admin/verified/getcompany',controller.GetAllVerifiedOnboardCompany);
+//Verified Candidate
+router.get('/admin/verified/getcandidate',controller.GetAllVerifiedOnboardCandidate);
+
 module.exports=router;

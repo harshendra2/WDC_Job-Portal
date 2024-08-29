@@ -348,16 +348,151 @@ exports.RenewPlaneVerifyPayment = async (req, res) => {
 
 
 //TopUp Plane
-
 exports.GetAllTopupPlane = async (req, res) => {
     const { company_id } = req.params;
 
     try {
-        // Find the most recent subscription plan for the given company
-        const currentPlan = await CompanySubscription.findOne({ company_id }).sort({ createdDate: -1 }).limit(1);
-        const topUpplane=await TopUpPlane.find({})
-        // Check if a subscription plan exists
+        const currentPlan = await CompanySubscription.findOne({ company_id })
+            .sort({ createdDate: -1 })
+            .limit(1);
+
+        if (!currentPlan) {
+            return res.status(404).json({ error: "No subscription plan found for the company." });
+        }
+        async function getTopUpPlane(fieldName) {
+            const fieldValue = currentPlan[fieldName];
+            if (typeof fieldValue === 'string' && fieldValue === 'Unlimited') {
+                return await TopUpPlane.findOne({ [fieldName]: 'Unlimited' });
+            } else if (typeof fieldValue === 'boolean') {
+                return await TopUpPlane.findOne({ [fieldName]: true });
+            } else if (typeof fieldValue === 'number' && fieldValue!=0) {
+                return await TopUpPlane.findOne({ [fieldName]: { $ne: fieldValue } });
+            }
+
+            return null;
+        }
+
+        let topupArray = [];
+
+        function isDuplicate(data) {
+            return topupArray.some(item => item.plane_name == data.plane_name);
+        }
+        for (const topUp of currentPlan.topUp) {
+            const data = await TopUpPlane.findOne({ plane_name: topUp.plane_name });
+            if (data && !isDuplicate(data)) {
+                topupArray.push(data);
+            }
+        }
+        const fieldNames = [
+            'search_limit',
+            'cv_view_limit',
+            'job_posting',
+            'available_candidate',
+            'user_access',
+            'download_email_limit',
+            'download_cv_limit'
+        ];
+
+        for (const fieldName of fieldNames) {
+            const data = await getTopUpPlane(fieldName);
+            if (data && !isDuplicate(data)) {
+                topupArray.push(data);
+            }
+        }
+        return res.status(200).json(topupArray);
+
+    } catch (error) {
+        return res.status(500).json({ error: "Internal server error" });
+    }
+};
+
+
+exports.TopUpSubscriptionPlane=async(req,res)=>{
+    const { company_id, topup_id, price, mobile, name, email } = req.body;
+
+    if (!price || !mobile || !name || !email) {
+        return res.status(400).json({ error: "All fields are required: price, mobile, name, email" });
+    }
+    try{
+
+        const subscription = await TopUpPlane.findOne({ _id:topup_id});
         
+        if (!subscription) {
+            return res.status(404).json({ error: "TopUp plane not found" });
+        }
+        const orderId = generateOrderId();
+
+        const request = {
+            "order_amount": price,
+            "order_currency": "INR",
+            "order_id": orderId,
+            "customer_details": {
+                "customer_id": company_id, 
+                "customer_phone": mobile,
+                "customer_name": name,
+                "customer_email": email,
+            }
+        };
+        const response = await Cashfree.PGCreateOrder(request);
+        return res.json(response.data);
+
+    }catch(error){
+        return res.status(500).json({error:"Internal server error"});
+    }
+}
+
+
+exports.TopUpPlaneVerifyPayment = async (req, res) => {
+    const { orderId, topupId, companyId } = req.body;
+
+    try {
+        const response = await Cashfree.PGOrderFetchPayment(orderId);
+
+        if (response && response.data && response.data.order_status === 'PAID') {
+            const TopupData = await TopUpPlane.findById(topupId);
+
+            if (!TopupData) {
+                return res.status(404).json({ error: "Top-up plan not found" });
+            }
+
+            const existingSubscription = await CompanySubscription.findOne({ 
+                company_id: companyId 
+            }).sort({ createdDate: -1 });
+
+            if (!existingSubscription) {
+                return res.status(404).json({ error: "No subscription found for the company" });
+            }
+
+            existingSubscription.search_limit += TopupData.search_limit || 0;
+            existingSubscription.user_access += TopupData.user_access || 0;
+            existingSubscription.cv_view_limit += TopupData.cv_view_limit || 0;
+            existingSubscription.job_posting += TopupData.job_posting || 0;
+            
+            if (TopupData.available_candidate) {
+                existingSubscription.available_candidate = true;
+            }
+            if (TopupData.download_email_limit) {
+                existingSubscription.download_email_limit = true;
+            }
+            if (TopupData.download_cv_limit) {
+                existingSubscription.download_cv_limit = true;
+            }
+
+            existingSubscription.topUp.push({
+                plane_name: TopupData.plane_name,
+                plane_price: TopupData.plane_price,
+                order_Id: orderId,
+                Date: Date.now()
+            });
+            await existingSubscription.save();
+
+            return res.status(201).json({
+                message: "Payment verified and top-up plan applied successfully",
+                paymentData: response.data
+            });
+        } else {
+            return res.status(400).json({ error: "payment failed" });
+        }
 
     } catch (error) {
         return res.status(500).json({ error: "Internal server error" });

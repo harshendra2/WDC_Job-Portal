@@ -1,17 +1,39 @@
 const company=require('../../models/Onboard_Company_Schema');
 const candidate=require('../../models/Onboard_Company_Schema');
 
-exports.GetAllOnboardCompany=async(req,res)=>{
-    try{
-         const data=await company.find({}).sort({ createdAt: -1 });
-         if(data){
-            return res.status(200).send(data);
-         }
+exports.GetAllOnboardCompany = async (req, res) => {
+  try {
+      const companies = await company.find({ status: 'Processing' }).sort({ createdAt: -1 });
 
-    }catch(error){
-        return res.status(500).json({ error: "Internal Server Error" });
-    }
-}
+      if (companies.length > 0) {
+          const baseUrl = `${req.protocol}://${req.get('host')}`;
+          const isGoogleDriveLink = (url) => {
+              return url && (url.includes('drive.google.com') || url.includes('docs.google.com'));
+          };
+
+          const updatedCompanies = companies.map((company) => ({
+              ...company._doc,
+              profileUrl: company.profile
+                  ? (isGoogleDriveLink(company.profile) ? company.profile : `${baseUrl}/${company.profile.replace(/\\/g, '/')}`)
+                  : null,
+              PANImageUrl: company.PAN_image
+                  ? (isGoogleDriveLink(company.PAN_image) ? company.PAN_image : `${baseUrl}/${company.PAN_image.replace(/\\/g, '/')}`)
+                  : null,
+              GSTImageUrl: company.GST_image
+                  ? (isGoogleDriveLink(company.GST_image) ? company.GST_image : `${baseUrl}/${company.GST_image.replace(/\\/g, '/')}`)
+                  : null,
+          }));
+
+          return res.status(200).json(updatedCompanies);
+      } else {
+          return res.status(404).json({ error: "No companies found with 'Processing' status" });
+      }
+
+  } catch (error) {
+      return res.status(500).json({ error: "Internal Server Error" });
+  }
+};
+
 
 exports.OnboardCompanyRejectAction=async(req,res)=>{
     const {id}=req.params;
@@ -57,6 +79,7 @@ exports.OnboardCompanyApproveAction=async(req,res)=>{
 exports.GetAllOnboardCandidate=async(req,res)=>{
     try{
         const data = await candidate.aggregate([
+          {$match:{status:"Processing"}},
             {
               $lookup: {
                 from: 'candidate_basic_details',
@@ -136,4 +159,50 @@ exports.OnboardCandidateApproveAction=async(req,res)=>{
     }catch(error){
         return res.status(500).json({error:"Internal server error"});
     }
+}
+
+//Verified Company
+
+exports.GetAllVerifiedOnboardCompany=async(req,res)=>{
+  try{
+
+    const companies = await company.find({ status: 'approve' }).sort({ createdAt: -1 });
+
+    if (companies.length > 0) {
+        const baseUrl = `${req.protocol}://${req.get('host')}`;
+        const isGoogleDriveLink = (url) => {
+            return url && (url.includes('drive.google.com') || url.includes('docs.google.com'));
+        };
+
+        const updatedCompanies = companies.map((company) => ({
+            ...company._doc,
+            profileUrl: company.profile
+                ? (isGoogleDriveLink(company.profile) ? company.profile : `${baseUrl}/${company.profile.replace(/\\/g, '/')}`)
+                : null,
+            PANImageUrl: company.PAN_image
+                ? (isGoogleDriveLink(company.PAN_image) ? company.PAN_image : `${baseUrl}/${company.PAN_image.replace(/\\/g, '/')}`)
+                : null,
+            GSTImageUrl: company.GST_image
+                ? (isGoogleDriveLink(company.GST_image) ? company.GST_image : `${baseUrl}/${company.GST_image.replace(/\\/g, '/')}`)
+                : null,
+        }));
+
+        return res.status(200).json(updatedCompanies);
+    } else {
+        return res.status(404).json({ error: "No companies found"});
+    }
+
+  }catch(error){
+    return res.status(500).json({error:"Internal server error"});
+  }
+}
+
+//Verified Candidate
+
+exports.GetAllVerifiedOnboardCandidate=async(req,res)=>{
+  try{
+
+  }catch(error){
+    return res.status(500).json({error:"Internal server error"});
+  }
 }

@@ -77,7 +77,7 @@ exports.EditProfile = async (req, res) => {
         const companyData = {
           company_name, email, mobile, overView, address, industry,
           company_size, GST, PAN, website_url, location, contact_email,
-          contact_No, headQuater_add,GST_verify,PAN_verify
+          contact_No, headQuater_add,GST_verify,PAN_verify,status:'Processing',message:""
       };
          const panStatus=await company.findById(id);
          if(panStatus.self_PAN_verify){
