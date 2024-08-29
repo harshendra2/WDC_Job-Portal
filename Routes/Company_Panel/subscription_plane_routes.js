@@ -11,7 +11,14 @@ router.get('/company/get_using_Subscription/:id',controller.getCompanyUsingSubsc
 //Extend subscription Plane
 router.get('/company/extend/payment',controller.Extendpayment);
 router.post('/company/extend/verify',controller.ExtendVerifyPayment);
-//Buy new subscription plane
+
+//renew Subscription plane 
+router.get('/company/get_renewplane/:company_id',controller.GetReNewSubscriptionPlan);
+ router.get('/company/renewplane/payment',controller.RenewSubscriptionPlane);
+ router.post('/company/renewPlane/verify',controller.RenewPlaneVerifyPayment);
+
+ // topup plane
+ router.get('/company/get_topup_plane/:company_id',controller.GetAllTopupPlane);
 
 
 module.exports=router;

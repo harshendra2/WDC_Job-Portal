@@ -1,4 +1,4 @@
-const { required } = require('joi');
+const { required, number } = require('joi');
 const mongoose = require('mongoose');
 
 const CompanySubscriptionPlaneSchema = new mongoose.Schema({
@@ -8,7 +8,7 @@ const CompanySubscriptionPlaneSchema = new mongoose.Schema({
   },
   subscription_id:{
  type: mongoose.Schema.Types.ObjectId,
-        ref:'company'
+        ref:'SubscriptionPlane'
   },
   plane_name: {
     type: String,
@@ -17,6 +17,10 @@ const CompanySubscriptionPlaneSchema = new mongoose.Schema({
   price: {
     type: Number,
     required: true
+  },
+  transaction_Id:{
+    type:Number,
+    required:true
   },
   search_limit: {
       type: mongoose.Schema.Types.Mixed, // Allows both numbers and strings
@@ -54,7 +58,24 @@ const CompanySubscriptionPlaneSchema = new mongoose.Schema({
     type: Date,
     default: Date.now,
     // index: { expires: '30d' }, 
-}
+},
+topUp:[
+  {
+    plane_name:{
+      type:String
+    },
+    plane_price:{
+      type:Number
+    },
+    order_Id:{    //order_Id and transaction_id is same it will get when payment time
+      type:Number
+    },
+    Date:{
+      type:Date,
+      default: Date.now,
+    }
+  }
+]
 });
 
 module.exports = mongoose.model("CompanySubscriptionPlane", CompanySubscriptionPlaneSchema);

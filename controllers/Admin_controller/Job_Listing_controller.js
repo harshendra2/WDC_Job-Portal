@@ -44,6 +44,36 @@ exports.GetAllJobsListing = async (req, res) => {
   }
 };
 
+exports.GetVerifyAndReportingCount=async(req,res)=>{
+  try{
+
+    const verifiedCount = await CompanyJob.aggregate([
+      { $match: { admin_verify: 'pending' } },
+      {
+        $lookup: {
+          from: 'companies',
+          localField: 'company_id',
+          foreignField: '_id',
+          as: 'company_details'
+        }
+      }
+    ])
+    const verifyjobCount=verifiedCount.length
+
+    const reportingCount = await CompanyJob.aggregate([
+      {
+        $match: {
+          job_reporting: { $exists: true, $ne: [] }
+        }
+      }   
+    ])
+    const reportingjobcount=reportingCount.length
+    return res.status(200).json({verifyjobCount,reportingjobcount})
+  }catch(error){
+    return res.status(500).json({error:"Internal server error"});
+  }
+}
+
 exports.getAllJob = async (req, res) => {
   const { id } = req.params;
   try {
@@ -101,6 +131,7 @@ exports.ListOutAllJob = async (req, res) => {
 
         return {
           ...job,
+          timeSincePosted:moment(job.createdDate).fromNow(),
           application: job.candidate_id.length,
           company_details: {
             ...companyDetails,
@@ -150,6 +181,7 @@ exports.getSingleJobs=async(req,res)=>{
 
         return {
           ...job,
+          timeSincePosted:moment(job.createdDate).fromNow(),
           application: job.candidate_id.length,
           company_details: {
             ...companyDetails,

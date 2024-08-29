@@ -3,6 +3,7 @@ const {Cashfree}=require('cashfree-pg');
 const mongoose=require("mongoose");
 const subscription=require("../../models/SubscriptionSchema");
 const CompanySubscription=require("../../models/Company_SubscriptionSchema");
+const TopUpPlane=require("../../models/ToupPlane");
 
 // Configure Cashfree
 Cashfree.XClientId = process.env.CLIENT_ID;
@@ -29,8 +30,8 @@ exports.getAllSubscriptionPlane=async(req,res)=>{
 
 exports.payment = async (req, res) => {
     const {price,id,mobile,name,email}=req.body;
-    if (!price || !id || !mobile || !name || !email) {
-        return res.status(400).json({ error: "All fields are required: price, id, mobile, name, email" });
+    if (!price|| !mobile || !name || !email) {
+        return res.status(400).json({ error: "All fields are required: price,mobile,name,email" });
     }
     try {
         const orderId = generateOrderId();
@@ -71,6 +72,7 @@ exports.verifyPayment = async (req, res) => {
                     company_id: companyId,
                     subscription_id:subscriptionId,
                     plane_name: data.plane_name,
+                    transaction_Id:orderId,
                     price: data.price,
                     search_limit: data.search_limit,
                     available_candidate: data.available_candidate,
@@ -218,3 +220,146 @@ exports.ExtendVerifyPayment=async(req,res)=>{
         res.status(500).json({ error: "Internal Server Error" });
     }
 }
+
+
+//Renew Subsction plane
+
+exports.GetReNewSubscriptionPlan = async (req, res) => {
+    const { company_id } = req.params;
+
+    try {
+        const previousPlan = await CompanySubscription.findOne({
+            company_id,
+            plane_name: { $regex: /^Basic\s*$/, $options: 'i' } 
+        });
+         if(previousPlan){
+        const getSubscriptionPlans = await subscription.aggregate([
+            { $match: { _id: { $ne: previousPlan.subscription_id } } }
+        ]);
+        return res.status(200).send(getSubscriptionPlans);
+         }else{
+            const getSubscriptionPlans = await subscription.find({})
+            return res.status(200).send(getSubscriptionPlans);
+         } 
+
+    } catch (error) {
+       return res.status(500).json({error:"Internal server error"});
+    }
+}
+
+exports.RenewSubscriptionPlane = async (req, res) => {
+    const { company_id, subscription_id, price, mobile, name, email } = req.body;
+
+    if (!price || !mobile || !name || !email) {
+        return res.status(400).json({ error: "All fields are required: price, mobile, name, email" });
+    }
+
+    try {
+
+        const subscription = await subscription.findOne({ _id: subscription_id });
+        
+        if (!subscription) {
+            return res.status(404).json({ error: "Subscription not found" });
+        }
+        const orderId = generateOrderId();
+
+        const request = {
+            "order_amount": price,
+            "order_currency": "INR",
+            "order_id": orderId,
+            "customer_details": {
+                "customer_id": company_id, 
+                "customer_phone": mobile,
+                "customer_name": name,
+                "customer_email": email,
+            }
+        };
+        const response = await Cashfree.PGCreateOrder(request);
+        return res.json(response.data);
+
+    } catch (error) {
+        console.error(error); 
+        return res.status(500).json({ error: "Internal server error" });
+    }
+};
+
+
+exports.RenewPlaneVerifyPayment = async (req, res) => {
+    const { orderId, subscriptionId, companyId } = req.body;
+    try {
+        const response = await Cashfree.PGOrderFetchPayment(orderId);
+
+        if (response && response.data && response.data.order_status === 'PAID') {
+            const subscriptionData = await subscription.findById(subscriptionId);
+
+            if (subscriptionData) {
+                const existingSubscriptions = await CompanySubscription.find({ 
+                    company_id: companyId 
+                }).sort({ createdDate: -1 }).limit(1);
+
+                if (existingSubscriptions.length > 0) {
+                    const existingSubscription = existingSubscriptions[0];
+                    // Reset the limits of the existing subscription
+                    existingSubscription.search_limit = 0;
+                    existingSubscription.user_access = 0;
+                    existingSubscription.cv_view_limit = 0;
+                    existingSubscription.job_posting = 0;
+                    existingSubscription.available_candidate = false;
+                    existingSubscription.download_email_limit = false;
+                    existingSubscription.download_cv_limit = false;
+                    await existingSubscription.save();
+                }
+
+                // Create a new subscription for the company
+                const newSubscription = new CompanySubscription({
+                    company_id: companyId,
+                    subscription_id: subscriptionId,
+                    plane_name: subscriptionData.plane_name,
+                    price: subscriptionData.price,
+                    search_limit: subscriptionData.search_limit,
+                    available_candidate: subscriptionData.available_candidate,
+                    user_access: subscriptionData.user_access,
+                    cv_view_limit: subscriptionData.cv_view_limit,
+                    download_email_limit: subscriptionData.download_email_limit,
+                    download_cv_limit: subscriptionData.download_cv_limit,
+                    job_posting: subscriptionData.job_posting,
+                    createdDate: new Date(),
+                    expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), 
+                });
+                await newSubscription.save();
+
+                return res.status(201).json({
+                    message: "Payment verified and Subscription plan is renewed successfully",
+                    paymentData: response.data,
+                    subscriptionData: newSubscription
+                });
+            } else {
+                return res.status(404).json({ error: "Subscription not found" });
+            }
+        } else {
+            return res.status(400).json({ error: "Payment not verified or payment failed" });
+        }
+
+    } catch (error) {
+        return res.status(500).json({ error: "Internal server error" });
+    }
+};
+
+
+
+//TopUp Plane
+
+exports.GetAllTopupPlane = async (req, res) => {
+    const { company_id } = req.params;
+
+    try {
+        // Find the most recent subscription plan for the given company
+        const currentPlan = await CompanySubscription.findOne({ company_id }).sort({ createdDate: -1 }).limit(1);
+        const topUpplane=await TopUpPlane.find({})
+        // Check if a subscription plan exists
+        
+
+    } catch (error) {
+        return res.status(500).json({ error: "Internal server error" });
+    }
+};
