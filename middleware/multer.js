@@ -19,6 +19,8 @@ const fileFilter = (req, file, cb) => {
     "application/pdf",
     "application/msword", // DOC
     "application/vnd.openxmlformats-officedocument.wordprocessingml.document", // DOCX
+     "application/vnd.ms-excel", // XLS
+    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
   ];
 
   if (allowedMimes.includes(file.mimetype)) {

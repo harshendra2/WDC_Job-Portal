@@ -70,6 +70,9 @@ topUp:[
     order_Id:{    //order_Id and transaction_id is same it will get when payment time
       type:Number
     },
+    ExpireDate:{
+      type: Date
+    },
     Date:{
       type:Date,
       default: Date.now,

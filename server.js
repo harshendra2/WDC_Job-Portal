@@ -19,6 +19,7 @@ const adminUserVerification=require("./Routes/Admin_Panel/User_verification_rout
 const adminSupportRoute=require("./Routes/Admin_Panel/Support_routes");
 const JobListingRoute=require("./Routes/Admin_Panel/Job_listing_routes");
 const adminDashboard=require("./Routes/Admin_Panel/Admin_Dashboard");
+const AdminTransaction=require('./Routes/Admin_Panel/Transaction_routes');
 
 const CompanyCredentialRoute=require("./Routes/Company_Panel/company_routes")
 const companysubscriptionRoute=require("./Routes/Company_Panel/subscription_plane_routes")
@@ -48,6 +49,7 @@ app.use('/api',adminUserVerification);
 app.use('/api',adminSupportRoute);
 app.use('/api',JobListingRoute);
 app.use('/api',adminDashboard);
+app.use('/api',AdminTransaction);
 app.use('/api',CompanyCredentialRoute);
 app.use('/api',companysubscriptionRoute);
 app.use('/api',companyDashboardRoute);
