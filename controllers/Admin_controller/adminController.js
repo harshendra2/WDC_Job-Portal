@@ -77,12 +77,31 @@ exports.adminLogin = async (req, res) => {
     }
 
     // Generate token
+    preAdmin.OnlineStatus=true;
     const token = await preAdmin.generateAuthtoken();
     return res.status(200).json({ message: "Admin Login Successful", adminToken: token });
   } catch (error) {
     return res.status(500).json({ error: "Internal Server Error" });
   }
 };
+
+exports.LogOut = async (req, res) => {
+  const { id } = req.params;
+  try {
+    const existedAdmin = await admin.findById(id);
+
+    if (existedAdmin) {
+      existedAdmin.OnlineStatus = false;
+      await existedAdmin.save();
+      return res.status(200).json({ message: "Status changed successfully" });
+    } else {
+      return res.status(404).json({ error: "Admin not found" });
+    }
+  } catch (error) {
+    return res.status(500).json({ error: "Internal server error" });
+  }
+};
+
 
 
 exports.forgotPassword=async(req,res)=>{

@@ -1,4 +1,5 @@
 const Joi=require("joi");
+const axios=require('axios');
 const XLSX = require('xlsx');
 const mongoose = require('mongoose');
 const candidate=require("../../models/Onboard_Candidate_Schema");
@@ -631,85 +632,305 @@ const OnboardCandidate = Joi.object({
   };
 
 
-  exports.uploadExcelFile=async(req,res)=>{
-    try{
+  exports.uploadExcelFile = async (req, res) => {
+    try {
       const workbook = XLSX.readFile(req.file.path);
       const sheetName = workbook.SheetNames[0];
       const sheetData = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName]);
-       if(sheetData.length<1){
-        return res.status(400).json({error:"Empty Excel file"});
-       }
-    for (const row of sheetData) {
-      const basicDetails = {
-        name: row.Name,
-        email: row.Email,
-        mobile: row.Mobile_No,
-        linkedIn: row.linkedIn_Profile_Link
-      };
-
-      const personalDetails={
-        gender:row.Gender,
-        age:row.Age,
-        marriag_status:row.Marriage_Status,
-        aadhar_number:row.Aadhar_Number,
-        PAN:row.PAN_Number,
-        family_member:row.Member_In_Family,
-        father_name:row.Name_of_Father,
-        son_name:row.Son_Name,
-        spouse_profession:row.Spouse_profession
-
-      }
-
-      const workDetails = {
-        designation: row.Designation,
-        company_name: row.Company_name,
-        industry: row.Industry,
-        current_ctc: row.Current_CTC,
-        aspiring_position: row.Role,
-        work_experience: row.Total_experience,
-        current_report: row.Current_reporting_structure,
-        last_reporting: row.Last_reposrting_Structure,
-        career_highlight: row.Career_Highlight,
-        recognation: row.Recognation,
-        functions: row.Functions_S,
-        preferred_location:row.Preffered_location,
-        current_location:row.Current_location,
-        resume:row.Resume_Link
-      };
-
-      const educationDetails={
-        highest_education:row.Highest_Education,
-        board_represent:row.Board_Represent_Name,
-        articles:row.Articles
-      }
-
-      const existinEmail=await basic_details.findOne({email:row.Email});
-
-      if (existinEmail) {
-        return res.status(400).json({ 
-          error: `The email "${row.Email}"already exists in our database.` 
-        });
-      }
-
-      const existinMobile=await basic_details.findOne({mobile:row.Mobile_No,});
-
-      if (existinMobile) {
-        return res.status(400).json({ 
-          error: `The mobile number "${row.Mobile_No}"already exists in our database.` 
-        });
-      }
-
-      const savedBasicDetails = await new basic_details(basicDetails).save();
-      const savedPersonalDetails=await new personal_details(personalDetails).save();
-      const savedWorkDetails=await new work_details(workDetails).save();
-      const savedEducationDetails=await new education_details(educationDetails).save();
   
-      const newCandidate = new candidate({ basic_details: savedBasicDetails._id,personal_details:savedPersonalDetails._id,work_details:savedWorkDetails._id,education_details:savedEducationDetails._id});
-      const savedCandidate = await newCandidate.save();
-    }
-      res.status(200).json({ message: `${sheetData.length} Company Imported successfully` });
-    }catch(error){
+      if (sheetData.length < 1) {
+        return res.status(400).json({ error: "Empty Excel file" });
+      }
+
+      for (const row of sheetData) {
+        if(!row.Name&& !row.Email&& !row.Mobile_No && !row.linkedIn_Profile_Link&&!row.Gender&&!row.Age&&!row.Marriage_Status&&!row.Aadhar_Number&&!row.PAN_Number&&!row.Member_In_Family&&!row.Name_of_Father&&!row.Son_Name&&!row.Spouse_profession&&!row.Designation&&!row.Company_name&&!row.Industry&&!row.Current_CTC&&!row.Role&&!row.Total_experience&&!row.Current_reporting_structure&&!row.Last_reposrting_Structure&&!row.Career_Highlight&&!row.Recognation&&!row.Functions_S&&!row.Preffered_location&&!row.Current_location&&!row.Resume_Link&&!row.Highest_Education&&!row.Board_Represent_Name&&!row.Articles){
+          return res.status(400).json({ error: "Empty Excel file" });
+        }
+        // Validation for basic details
+        if (!row.Name || typeof row.Name !== 'string') {
+          return res.status(400).json({ error: "Name is required and must be a string." });
+        }
+        if (!row.Email || !/^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$/.test(row.Email)) {
+          return res.status(400).json({ error: `${row.Name} valid email is required.` });
+        }
+        if (!row.Mobile_No || !/^\d{10}$/.test(row.Mobile_No)) {
+          return res.status(400).json({ error: "A valid 10-digit mobile number is required." });
+        }
+        if (row.linkedIn_Profile_Link && typeof row.linkedIn_Profile_Link !== 'string') {
+          return res.status(400).json({ error: "LinkedIn profile link must be a string." });
+        }
+  
+        // Validation for personal details
+        if (!row.Gender || typeof row.Gender !== 'string') {
+          return res.status(400).json({ error: "Gender is required and must be a string." });
+        }
+        if (!row.Age || isNaN(row.Age)) {
+          return res.status(400).json({ error: "Age is required and must be a number." });
+        }
+        if (row.Marriage_Status && typeof row.Marriage_Status !== 'string') {
+          return res.status(400).json({ error: "Marriage status must be a string." });
+        }
+        if (row.Aadhar_Number && !/^\d{12}$/.test(row.Aadhar_Number)) {
+          return res.status(400).json({ error: "Aadhar number must be a valid 12-digit number." });
+        }
+        if (row.PAN_Number && !/^[A-Z]{5}[0-9]{4}[A-Z]{1}$/.test(row.PAN_Number)) {
+          return res.status(400).json({ error: "PAN number must be valid." });
+        }
+        if (row.Member_In_Family && isNaN(row.Member_In_Family)) {
+          return res.status(400).json({ error: "Family members must be a number." });
+        }
+        if (row.Name_of_Father && typeof row.Name_of_Father !== 'string') {
+          return res.status(400).json({ error: "Father's name must be a string." });
+        }
+        if (row.Son_Name && typeof row.Son_Name !== 'string') {
+          return res.status(400).json({ error: "Son's name must be a string." });
+        }
+        if (row.Spouse_profession && typeof row.Spouse_profession !== 'string') {
+          return res.status(400).json({ error: "Spouse profession must be a string." });
+        }
+  
+        // Validation for work details
+        if (!row.Designation || typeof row.Designation !== 'string') {
+          return res.status(400).json({ error: "Designation is required and must be a string." });
+        }
+        if (!row.Company_name || typeof row.Company_name !== 'string') {
+          return res.status(400).json({ error: "Company name is required and must be a string." });
+        }
+        if (row.Industry && typeof row.Industry !== 'string') {
+          return res.status(400).json({ error: "Industry must be a string." });
+        }
+        if (row.Current_CTC && isNaN(row.Current_CTC)) {
+          return res.status(400).json({ error: "Current CTC must be a number." });
+        }
+        if (row.Role && typeof row.Role !== 'string') {
+          return res.status(400).json({ error: "Aspiring position must be a string." });
+        }
+        if (row.Total_experience && isNaN(row.Total_experience)) {
+          return res.status(400).json({ error: "Work experience must be a number." });
+        }
+        if (row.Current_reporting_structure && typeof row.Current_reporting_structure !== 'string') {
+          return res.status(400).json({ error: "Current reporting structure must be a string." });
+        }
+        if (row.Last_reposrting_Structure && typeof row.Last_reposrting_Structure !== 'string') {
+          return res.status(400).json({ error: "Last reporting structure must be a string." });
+        }
+        if (row.Career_Highlight && typeof row.Career_Highlight !== 'string') {
+          return res.status(400).json({ error: "Career highlight must be a string." });
+        }
+        if (row.Recognation && typeof row.Recognation !== 'string') {
+          return res.status(400).json({ error: "Recognition must be a string." });
+        }
+        if (row.Functions_S && typeof row.Functions_S !== 'string') {
+          return res.status(400).json({ error: "Functions must be a string." });
+        }
+        if (row.Preffered_location && typeof row.Preffered_location !== 'string') {
+          return res.status(400).json({ error: "Preferred location must be a string." });
+        }
+        if (row.Current_location && typeof row.Current_location !== 'string') {
+          return res.status(400).json({ error: "Current location must be a string." });
+        }
+        if (row.Resume_Link && typeof row.Resume_Link !== 'string') {
+          return res.status(400).json({ error: "Resume link must be a string." });
+        }
+
+        const isPubliclyAccessible = async (url) => {
+          try {
+            const response = await axios.get(url, { maxRedirects: 0 });
+            return response.status === 200;
+          } catch (error) {
+            if (error.response && error.response.status === 200) {
+              return true;
+            }
+            return false;
+          }
+        };
+  
+        if (row.Resume_Link) {
+          const isImageAccessible = await isPubliclyAccessible(row.Resume_Link);
+          if (!isImageAccessible) {
+            return res.status(400).json({ error: `${row.Name} Resume image URL ${row.Resume_Link} is not publicly accessible` });
+          }
+        }
+  
+        // Validation for education details
+        if (!row.Highest_Education || typeof row.Highest_Education !== 'string') {
+          return res.status(400).json({ error: "Highest education is required and must be a string." });
+        }
+        if (row.Board_Represent_Name && typeof row.Board_Represent_Name !== 'string') {
+          return res.status(400).json({ error: "Board represent name must be a string." });
+        }
+        if (row.Articles && typeof row.Articles !== 'string') {
+          return res.status(400).json({ error: "Articles must be a string." });
+        }
+  
+        // Check if email already exists
+        const existingEmail = await basic_details.findOne({ email: row.Email });
+        if (existingEmail) {
+          return res.status(400).json({ error: `The email "${row.Email}" already exists in our database.` });
+        }
+  
+        // Check if mobile number already exists
+        const existingMobile = await basic_details.findOne({ mobile: row.Mobile_No });
+        if (existingMobile) {
+          return res.status(400).json({ error: `The mobile number "${row.Mobile_No}" already exists in our database.` });
+        }
+        
+      }
+  
+      for (const row of sheetData) {
+        // Validation for basic details
+        if (!row.Name || typeof row.Name !== 'string') {
+          return res.status(400).json({ error: "Name is required and must be a string." });
+        }
+        if (!row.Email || !/^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$/.test(row.Email)) {
+          return res.status(400).json({ error: `${row.Name} valid email is required.` });
+        }
+        if (!row.Mobile_No || !/^\d{10}$/.test(row.Mobile_No)) {
+          return res.status(400).json({ error: "A valid 10-digit mobile number is required." });
+        }
+        if (row.linkedIn_Profile_Link && typeof row.linkedIn_Profile_Link !== 'string') {
+          return res.status(400).json({ error: "LinkedIn profile link must be a string." });
+        }
+  
+        // Validation for personal details
+        if (!row.Gender || typeof row.Gender !== 'string') {
+          return res.status(400).json({ error: "Gender is required and must be a string." });
+        }
+        if (!row.Age || isNaN(row.Age)) {
+          return res.status(400).json({ error: "Age is required and must be a number." });
+        }
+        if (row.Marriage_Status && typeof row.Marriage_Status !== 'string') {
+          return res.status(400).json({ error: "Marriage status must be a string." });
+        }
+        if (row.Aadhar_Number && !/^\d{12}$/.test(row.Aadhar_Number)) {
+          return res.status(400).json({ error: "Aadhar number must be a valid 12-digit number." });
+        }
+        if (row.PAN_Number && !/^[A-Z]{5}[0-9]{4}[A-Z]{1}$/.test(row.PAN_Number)) {
+          return res.status(400).json({ error: "PAN number must be valid." });
+        }
+        if (row.Member_In_Family && isNaN(row.Member_In_Family)) {
+          return res.status(400).json({ error: "Family members must be a number." });
+        }
+        if (row.Name_of_Father && typeof row.Name_of_Father !== 'string') {
+          return res.status(400).json({ error: "Father's name must be a string." });
+        }
+        if (row.Son_Name && typeof row.Son_Name !== 'string') {
+          return res.status(400).json({ error: "Son's name must be a string." });
+        }
+        if (row.Spouse_profession && typeof row.Spouse_profession !== 'string') {
+          return res.status(400).json({ error: "Spouse profession must be a string." });
+        }
+  
+        // Validation for work details
+        if (!row.Designation || typeof row.Designation !== 'string') {
+          return res.status(400).json({ error: "Designation is required and must be a string." });
+        }
+        if (!row.Company_name || typeof row.Company_name !== 'string') {
+          return res.status(400).json({ error: "Company name is required and must be a string." });
+        }
+        if (row.Industry && typeof row.Industry !== 'string') {
+          return res.status(400).json({ error: "Industry must be a string." });
+        }
+        if (row.Current_CTC && isNaN(row.Current_CTC)) {
+          return res.status(400).json({ error: "Current CTC must be a number." });
+        }
+        if (row.Role && typeof row.Role !== 'string') {
+          return res.status(400).json({ error: "Aspiring position must be a string." });
+        }
+        if (row.Total_experience && isNaN(row.Total_experience)) {
+          return res.status(400).json({ error: "Work experience must be a number." });
+        }
+        if (row.Current_reporting_structure && typeof row.Current_reporting_structure !== 'string') {
+          return res.status(400).json({ error: "Current reporting structure must be a string." });
+        }
+        if (row.Last_reposrting_Structure && typeof row.Last_reposrting_Structure !== 'string') {
+          return res.status(400).json({ error: "Last reporting structure must be a string." });
+        }
+        if (row.Career_Highlight && typeof row.Career_Highlight !== 'string') {
+          return res.status(400).json({ error: "Career highlight must be a string." });
+        }
+        if (row.Recognation && typeof row.Recognation !== 'string') {
+          return res.status(400).json({ error: "Recognition must be a string." });
+        }
+        if (row.Functions_S && typeof row.Functions_S !== 'string') {
+          return res.status(400).json({ error: "Functions must be a string." });
+        }
+        if (row.Preffered_location && typeof row.Preffered_location !== 'string') {
+          return res.status(400).json({ error: "Preferred location must be a string." });
+        }
+        if (row.Current_location && typeof row.Current_location !== 'string') {
+          return res.status(400).json({ error: "Current location must be a string." });
+        }
+        if (row.Resume_Link && typeof row.Resume_Link !== 'string') {
+          return res.status(400).json({ error: "Resume link must be a string." });
+        }
+
+        const isPubliclyAccessible = async (url) => {
+          try {
+            const response = await axios.get(url, { maxRedirects: 0 });
+            return response.status === 200;
+          } catch (error) {
+            if (error.response && error.response.status === 200) {
+              return true;
+            }
+            return false;
+          }
+        };
+  
+        if (row.Resume_Link) {
+          const isImageAccessible = await isPubliclyAccessible(row.Resume_Link);
+          if (!isImageAccessible) {
+            return res.status(400).json({ error: `${row.Name} Resume image URL ${row.Resume_Link} is not publicly accessible` });
+          }
+        }
+  
+        // Validation for education details
+        if (!row.Highest_Education || typeof row.Highest_Education !== 'string') {
+          return res.status(400).json({ error: "Highest education is required and must be a string." });
+        }
+        if (row.Board_Represent_Name && typeof row.Board_Represent_Name !== 'string') {
+          return res.status(400).json({ error: "Board represent name must be a string." });
+        }
+        if (row.Articles && typeof row.Articles !== 'string') {
+          return res.status(400).json({ error: "Articles must be a string." });
+        }
+  
+        // Check if email already exists
+        const existingEmail = await basic_details.findOne({ email: row.Email });
+        if (existingEmail) {
+          return res.status(400).json({ error: `The email "${row.Email}" already exists in our database.` });
+        }
+  
+        // Check if mobile number already exists
+        const existingMobile = await basic_details.findOne({ mobile: row.Mobile_No });
+        if (existingMobile) {
+          return res.status(400).json({ error: `The mobile number "${row.Mobile_No}" already exists in our database.` });
+        }
+        const basicDetails={ name:row.Name, email:row.Email, mobile:row.Mobile_No, linkedIn:row.linkedIn_Profile_Link};
+        const personalDetails={gender:row.Gender,age:row.Age,marriag_status:row.Marriage_Status,aadhar_number:row.Aadhar_Number,PAN:row.PAN_Number,family_member:row.Member_In_Family, father_name:row.Name_of_Father, son_name:row.Son_Name, spouse_profession:row.Spouse_profession}
+        const workDetails={designation:row.Designation,company_name:row.Company_name,industry:row.Industry,current_ctc:row.Current_CTC,aspiring_position:row.Role,work_experience:row.Total_experience,current_report:row.Current_reporting_structure,last_reporting:row.Last_reposrting_Structure,career_highlight:row.Career_Highlight,recognation:row.Recognation,functions:row.Functions_S,preferred_location:row.Preffered_location,current_location:row.Current_location,resume:row.Resume_Link}
+        const educationDetails={ highest_education:row.Highest_Education,board_represent:row.Board_Represent_Name,articles:row.Articles}
+  
+        // Save data to the database
+        const savedBasicDetails = await new basic_details(basicDetails).save();
+        const savedPersonalDetails = await new personal_details(personalDetails).save();
+        const savedWorkDetails = await new work_details(workDetails).save();
+        const savedEducationDetails = await new education_details(educationDetails).save();
+  
+        // Create a new candidate record
+        const newCandidate = new candidate({
+          basic_details: savedBasicDetails._id,
+          personal_details: savedPersonalDetails._id,
+          work_details: savedWorkDetails._id,
+          education_details: savedEducationDetails._id,
+        });
+        await newCandidate.save();
+      }
+  
+      res.status(200).json({ message: `${sheetData.length} Candidate Imported successfully` });
+    } catch (error) {
       console.log(error);
-      return res.status(500).json({error:"Internal server error"});
+      return res.status(500).json({ error: "Internal server error" });
     }
-  }
+  };
+  

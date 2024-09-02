@@ -34,7 +34,14 @@ exports.GetAllAdmin=async(req,res)=>{
             foreignField: '_id',
             as: 'responsibility'
           }
-        },{$project:{tokens:0}}
+        },{$project:{tokens:0}},
+        {
+          $match: {
+            responsibility: {
+              $elemMatch: { role: { $ne: 'Super Admin' } }
+            }
+          }
+        }
       ]);
         if(data){
             return res.status(200).send(data);
@@ -79,7 +86,7 @@ exports.CreateNewRole=async(req,res)=>{
 
 exports.GetAllRole=async(req,res)=>{
   try{
-     const data=await responsibilities.aggregate([{$project:{responsibility:0}}]);
+     const data=await responsibilities.aggregate([{$match:{role:{$ne: 'Super Admin'}}}]);
      if(data){
       return res.status(200).send(data);
      }

@@ -33,7 +33,11 @@ tokens: [
         type: String
       },
     },
-  ]
+  ],
+  OnlineStatus:{
+    type:Boolean,
+    default:false
+  }
 });
 
 // Pre-save hook to hash the password
