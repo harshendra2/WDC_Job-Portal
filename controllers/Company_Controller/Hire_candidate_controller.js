@@ -172,7 +172,7 @@ exports.getCandidateDetails = async (req, res) => {
 // Key word Search Features
 exports.KeywordSearchCandidate = async (req, res) => {
     const { id } = req.params;
-    const query = req.query.query || "";
+const {job_profile,experience,location,skill,qalification}=req.body
 
     if (!query) {
         return res.status(400).json({ error: "Query parameter is missing" });

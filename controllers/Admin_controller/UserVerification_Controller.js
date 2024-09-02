@@ -42,6 +42,10 @@ exports.OnboardCompanyRejectAction=async(req,res)=>{
             if (!id) {
               return res.status(400).json({ error: "Company ID is required" });
             }
+
+            if(!message){
+              return res.status(400).json({error:"Please add some message"});
+            }
         
             const data = await company.findByIdAndUpdate(id, { status: "reject",message:message,PAN_verify:false,GST_verify:false}, { new: true });
         
@@ -128,6 +132,9 @@ exports.OnboardCandidateRejectAction=async(req,res)=>{
     try{
         if (!id) {
             return res.status(400).json({ error: "Candidate ID is required" });
+          }
+          if(!message){
+            return res.status(400).json({error:"Please add some message"});
           }
       
           const data = await candidate.findByIdAndUpdate(id, { status: "reject",message:message}, { new: true });
