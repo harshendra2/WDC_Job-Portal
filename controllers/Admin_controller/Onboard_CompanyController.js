@@ -64,13 +64,12 @@ exports.createOnboardCompany = async (req, res) => {
         // Extract the PAN and GST numbers from the text using regex
         const panNumber = extractPAN(panText);
         const gstNumber = extractGST(gstText);
-        console.log(gstNumber)
         if (panNumber != PAN) {
             return res.status(400).json({ error: "PAN number and PAN image number do not match" });
         }
-        if (gstNumber !=GST) {
-            return res.status(400).json({ error: "GST number and GST image number do not match" });
-        }
+        // if (gstNumber !=GST) {
+        //     return res.status(400).json({ error: "GST number and GST image number do not match" });
+        // }
 
 
 
