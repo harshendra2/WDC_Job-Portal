@@ -70,6 +70,9 @@ exports.adminLogin = async (req, res) => {
     if (!preAdmin) {
       return res.status(400).json({ error: "This Email Id is not registered in our Database" });
     }
+    if (preAdmin.status === true) {
+      return res.status(400).json({ error: "Your Account is blocked, please contact Super Admin" });
+    }
 
     const passwordMatch = await bcrypt.compare(password, preAdmin.password);
     if (!passwordMatch) {
