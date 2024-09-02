@@ -208,7 +208,44 @@ exports.GetAllVerifiedOnboardCompany=async(req,res)=>{
 
 exports.GetAllVerifiedOnboardCandidate=async(req,res)=>{
   try{
-
+    const data = await candidate.aggregate([
+      {$match:{status: 'approve'}},
+      {
+        $lookup: {
+          from: 'candidate_basic_details',
+          localField: 'basic_details',
+          foreignField: '_id',
+          as: 'basic_details'
+        }
+      },
+      {
+        $lookup: {
+          from: 'candidate_personal_details',
+          localField: 'personal_details',
+          foreignField: '_id',
+          as: 'personal_details'
+        }
+      },
+      {
+        $lookup: {
+          from: 'candidate_work_details',
+          localField: 'work_details',
+          foreignField: '_id',
+          as: 'work_details'
+        }
+      },
+      {
+        $lookup: {
+          from: 'candidate_education_details',
+          localField: 'education_details',
+          foreignField: '_id',
+          as: 'education_details'
+        }
+      }
+    ]).sort({ createdAt: -1 });
+    if(data){
+    return res.status(200).send(data);
+    }
   }catch(error){
     return res.status(500).json({error:"Internal server error"});
   }

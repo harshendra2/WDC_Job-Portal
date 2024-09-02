@@ -42,7 +42,7 @@ exports.GetAllAdmin=async(req,res)=>{
             }
           }
         }
-      ]);
+      ]).sort({ createdAt: -1 });
         if(data){
             return res.status(200).send(data);
         }
@@ -59,6 +59,10 @@ exports.CreateNewRole=async(req,res)=>{
     return res.status(400).json({ error: error.details[0].message });
   }
     try{
+      const existedRole=await responsibilities.findOne({role_name});
+      if(existedRole){
+        return res.status(400).json({error:"This role is already existed"});
+      }
         const data = new responsibilities({
             role:role_name,
             responsibility: {

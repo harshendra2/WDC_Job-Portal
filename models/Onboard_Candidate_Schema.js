@@ -1,3 +1,4 @@
+const { isDate } = require("moment");
 const mongoose=require("mongoose");
 const CandidateShema=new mongoose.Schema({
     basic_details:{
@@ -32,7 +33,42 @@ const CandidateShema=new mongoose.Schema({
     createdAt:{
         type: Date,
         default: Date.now
-      }
+      },
+      experience_Details:[{
+        designation:{
+            type:String
+        },
+        employee_type:{
+            type:String
+        },
+        companyName:{
+            type:String
+        },
+        location:{
+            type:String
+        },
+        location_type:{
+            type:String
+        },
+        reporting_structure:{
+            type:String
+        },
+        current_workingStatus:{
+            type:Date
+        },
+        notice_period:{
+            type:Number
+        },
+        negotiation_day:{
+            type:Number
+        },
+        start_date:{
+            type:Date
+        },
+        end_date:{
+            type:Date
+        }
+      }]
     
 })
 

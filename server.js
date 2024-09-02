@@ -34,6 +34,7 @@ const CompanyTransaction=require('./Routes/Company_Panel/Transaction_routes');
 const CandidateCredentialRoute=require("./Routes/Candidate_Panel/candidate_routes");
 const CandidateJobRoute=require("./Routes/Candidate_Panel/Jobs_routes");
 const CandidateAppliedJobRoute=require("./Routes/Candidate_Panel/Job_applied");
+const CandidteProfile=require('./Routes/Candidate_Panel/Candidate_profile');
 const PORT = 4000;
 
 
@@ -63,6 +64,7 @@ app.use('/api',CompanyTransaction);
 app.use('/api',CandidateCredentialRoute);
 app.use('/api',CandidateJobRoute);
 app.use('/api',CandidateAppliedJobRoute);
+app.use('/api',CandidteProfile);
 
 app.use('/Images', express.static(path.join(__dirname, 'Images')));
 const server=app.listen(PORT, () => {
