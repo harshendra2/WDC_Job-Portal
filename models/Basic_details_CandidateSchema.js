@@ -17,7 +17,17 @@ const basic_details_candidate=new mongoose.Schema({
     },
     password:{
         type:String
-    }
+    },
+    other_profile:[
+        {
+            profile_name:{
+                type:String
+            },
+            link:{
+                type:String
+            }
+        }
+    ]
 })
 
 // Method to generate auth token

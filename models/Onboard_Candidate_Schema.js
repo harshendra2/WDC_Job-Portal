@@ -53,9 +53,6 @@ const CandidateShema=new mongoose.Schema({
         reporting_structure:{
             type:String
         },
-        current_workingStatus:{
-            type:Date
-        },
         notice_period:{
             type:Number
         },
@@ -66,7 +63,10 @@ const CandidateShema=new mongoose.Schema({
             type:Date
         },
         end_date:{
-            type:Date
+            type: mongoose.Schema.Types.Mixed
+        },
+        current_position:{
+            type:Boolean
         }
       }]
     

@@ -28,7 +28,16 @@ const personal_details_candidate=new mongoose.Schema({
     },
     spouse_profession:{
         type:String
+    },
+    Pan_verified_status:{
+        type:Boolean,
+        default:false
+    },
+    Aadhar_verified_status:{
+        type:Boolean,
+        default:false
     }
+
 })
 
 module.exports = mongoose.model("candidate_personal_details", personal_details_candidate);

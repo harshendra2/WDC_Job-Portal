@@ -20,6 +20,31 @@ const education_details_candidate=new mongoose.Schema({
                 type:String
             }
         }
+    ],
+    Education:[
+        {
+            school:{
+                type:String
+            },
+            degree:{
+                type:String
+            },
+           Field_study:{
+            type:String
+           },
+           start_date:{
+            type:Date
+           } ,
+           end_date:{
+            type:String
+           },
+           grade:{
+            type:String
+           },
+           description:{
+            type:String
+           }
+        }
     ]
 
 })

@@ -81,29 +81,82 @@ exports.getAllJob = async (req, res) => {
 
     const data = await CompanyJob.aggregate([
       { $match: { company_id: objectId } },
+      {
+        $lookup: {
+          from: 'companies', 
+          localField: 'company_id',
+          foreignField: '_id',
+          as: 'company'
+        }
+      }
     ]);
 
     if (data && data.length > 0) {
-      return res.status(200).send(data);
+      const baseUrl = `${req.protocol}://${req.get('host')}`;
+      const updatedData = data.map(job => {
+        const companyDetails = job.company[0]; 
+        const profileUrl = companyDetails && companyDetails.profile 
+          ? (isGoogleDriveLink(companyDetails.profile) 
+              ? companyDetails.profile 
+              : `${baseUrl}/${companyDetails.profile.replace(/\\/g, '/')}`)
+          : null;
+
+        return {
+          ...job,
+          timeSincePosted:moment(job.createdDate).fromNow(),
+          application: job.candidate_id.length,
+          company_details: {
+            ...companyDetails,
+            profileUrl: profileUrl,
+          }
+        };
+      });
+
+      return res.status(200).send(updatedData);
     } else {
-      return res.status(404).json({ error: "No jobs found for this company" });
+      return res.status(404).json({ message: "No jobs found" });
     }
   } catch (error) {
     return res.status(500).json({ error: "Internal server error" });
   }
 };
+
 
 exports.GetJobDescription = async (req, res) => {
   const { jobId } = req.params;
   try {
-    const data = await CompanyJob.findById({ _id: jobId });
+    const data = await CompanyJob.findById(jobId).populate('company_id');
+    
     if (data) {
-      return res.status(200).send(data);
+      const baseUrl = `${req.protocol}://${req.get('host')}`;
+
+      const companyDetails = data.company_id; // Populated company details
+      const profileUrl = companyDetails && companyDetails.profile 
+        ? (isGoogleDriveLink(companyDetails.profile) 
+            ? companyDetails.profile 
+            : `${baseUrl}/${companyDetails.profile.replace(/\\/g, '/')}`)
+        : null;
+
+      const updatedData = {
+        ...data._doc, // Spread the original data
+        timeSincePosted: moment(data.createdDate).fromNow(),
+        application: data.candidate_id.length,
+        company_details: {
+          ...companyDetails._doc,
+          profileUrl: profileUrl,
+        },
+      };
+
+      return res.status(200).send(updatedData);
+    } else {
+      return res.status(404).json({ message: "No jobs found" });
     }
   } catch (error) {
     return res.status(500).json({ error: "Internal server error" });
   }
 };
+
+
 
 exports.ListOutAllJob = async (req, res) => {
   try {
