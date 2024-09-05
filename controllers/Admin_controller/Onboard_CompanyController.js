@@ -19,20 +19,41 @@ const GST_REGEX = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[A-Z0-9]{3}$/;
 
 const OnboardRegistration = Joi.object({
   email: Joi.string().email().required(),
-  mobile: Joi.string().min(10).required(),
-  company_name: Joi.string().min(5).required()
+  mobile: Joi.string().length(10).pattern(/^[0-9]+$/).required(), 
+  company_name: Joi.string().min(5).required(),
+  overView: Joi.string().min(6),
+  industry: Joi.string().min(1),
+  company_size: Joi.string(),
+  GST: Joi.string().pattern(/^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[A-Z0-9]{1}[Z]{1}[A-Z0-9]{1}$/), 
+  PAN: Joi.string().pattern(/^[A-Z]{5}[0-9]{4}[A-Z]{1}$/),
+  website_url: Joi.string().uri(),
+  location: Joi.string(),
+  contact_email: Joi.string().email(),
+  contact_No: Joi.string().pattern(/^[0-9]+$/), 
+  headQuater_add: Joi.string()
 });
 
+
 const OnboardComapanyEdit=Joi.object({
-  mobile: Joi.string().min(10).required(),
+  email: Joi.string().email().required(),
+  mobile: Joi.string().length(10).pattern(/^[0-9]+$/).required(), 
   company_name: Joi.string().min(5).required(),
-  email:Joi.string().email().required()
+  overView: Joi.string().min(6),
+  industry: Joi.string().min(1),
+  company_size: Joi.string(),
+  GST: Joi.string().pattern(/^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[A-Z0-9]{1}[Z]{1}[A-Z0-9]{1}$/), 
+  PAN: Joi.string().pattern(/^[A-Z]{5}[0-9]{4}[A-Z]{1}$/),
+  website_url: Joi.string().uri(),
+  location: Joi.string(),
+  contact_email: Joi.string().email(),
+  contact_No: Joi.string().pattern(/^[0-9]+$/), 
+  headQuater_add: Joi.string()
 })
 
 exports.createOnboardCompany = async (req, res) => {
   const {email, mobile, company_name,overView,industry,company_size,GST,PAN,website_url,location,contact_email,contact_No,headQuater_add} = req.body;
 
-  const { error } = OnboardRegistration.validate({ email, mobile, company_name});
+  const { error } = OnboardRegistration.validate({ email, mobile, company_name,overView,industry,company_size,GST,PAN,website_url,location,contact_email,contact_No,headQuater_add});
   const panImage = req.files['panImage'] ? req.files['panImage'][0].path : null;
   const gstImage = req.files['gstImage'] ? req.files['gstImage'][0].path : null;
   const profile = req.files['profile'] ? req.files['profile'][0].path : null;
@@ -43,7 +64,16 @@ exports.createOnboardCompany = async (req, res) => {
   try {
     const existingCompany = await Company.findOne({ email });
     if (existingCompany) {
-      return res.status(400).json({ error: "Email already created" });
+      return res.status(400).json({ error: "Email already existed" });
+    }
+    const existingName = await Company.findOne({company_name});
+    if (existingName) {
+      return res.status(400).json({ error: "Company already existed" });
+    }
+
+    const existingMobile = await Company.findOne({mobile});
+    if (existingMobile) {
+      return res.status(400).json({ error: "Mobile number already existed" });
     }
 
     let panText = '';
@@ -173,7 +203,7 @@ exports.editOnboardCompany = async (req, res) => {
   const panImage = req.files['panImage'] ? req.files['panImage'][0].path : null;
   const gstImage = req.files['gstImage'] ? req.files['gstImage'][0].path : null;
   const profile = req.files['profile'] ? req.files['profile'][0].path : null;
-  const { error } = OnboardComapanyEdit.validate({mobile,company_name,email});
+  const { error } = OnboardComapanyEdit.validate({mobile,company_name,email,overView,industry,company_size,GST,PAN,website_url,location,contact_email,contact_No,headQuater_add});
   if (error) {
     return res.status(400).json({ error: error.details[0].message });
   }
