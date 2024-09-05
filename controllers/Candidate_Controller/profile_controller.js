@@ -1,9 +1,11 @@
 const Joi=require('joi');
 const axios=require('axios');
+const mongoose=require('mongoose');
 const candidate=require('../../models/Onboard_Candidate_Schema');
 const basic_details=require('../../models/Basic_details_CandidateSchema')
 const personal_details=require('../../models/Personal_details_candidateSchema');
-const education_details=require('../../models/education_details_candidateSchema')
+const education_details=require('../../models/education_details_candidateSchema');
+const work_details=require('../../models/work_details_candidate')
 
 const WorkExperience = Joi.object({
   designation: Joi.string().required(),
@@ -214,6 +216,29 @@ exports.getProfilePercentageStatus = async (req, res) => {
   }
 
 
+  exports.DeleteWorkDetails=async(req,res)=>{
+    const {work_id,user_id}=req.params;
+    try{
+      const candidateData = await candidate.findOneAndUpdate(
+        { _id: user_id },
+        { $pull: { experience_Details: { _id: work_id } } },
+        { new: true } 
+      );
+  
+      if (!candidateData) {
+        return res.status(404).json({ error: "Candidate or work detail not found" });
+      }
+  
+      return res.status(200).json({
+        message: "Work detail deleted successfully",
+        candidateData
+      });
+    }catch(error){
+      return res.status(500).json({error:"Internal server error"});
+    }
+  }
+
+
   exports.GetBasicDetails=async(req,res)=>{
     const {user_id}=req.params;
     try{
@@ -236,10 +261,28 @@ exports.getProfilePercentageStatus = async (req, res) => {
     const { name, email, mobile, linkedIn, other_profile } = req.body;
 
     try {
-        const candidate = await candidate.findById(user_id).populate('basic_details');
+        const candidates = await candidate.findById(user_id).populate('basic_details');
 
-        if (!candidate || !candidate.basic_details) {
-            return res.status(404).json({ error: "Candidate or basic details not found" });
+        if (!candidates || !candidates.basic_details) {
+          const existEmail=await basic_details.findOne({email:email});
+          if(existEmail){
+           return res.status(400).json({error:"This email Id already exists in our data base"});
+          }
+   
+          const existmobile=await basic_details.findOne({mobile:mobile});
+          if(existmobile){
+           return res.status(400).json({error:"This mobile number already exists in our data base"});
+          }
+          const candidateData = {
+            name, email, mobile, linkedIn
+          };
+         const newBasicDetails = new basic_details(candidateData);
+         const savedBasicDetails = await newBasicDetails.save();
+     
+         const newCandidate = new candidate({ basic_details: savedBasicDetails._id });
+         const savedCandidate = await newCandidate.save();
+     
+         return res.status(201).json({ message: "Candidate details added successfully", candidate: savedCandidate });
         }
 
         const updateData = {
@@ -247,10 +290,10 @@ exports.getProfilePercentageStatus = async (req, res) => {
             email: email || candidate.basic_details.email,
             mobile: mobile || candidate.basic_details.mobile,
             linkedIn: linkedIn || candidate.basic_details.linkedIn,
-            other_profile: other_profile || candidate.basic_details.other_profile
+            other_profile: other_profile
         };
         const updatedBasicDetails = await basic_details.findByIdAndUpdate(
-            candidate.basic_details._id,
+            candidates.basic_details._id,
             { $set: updateData },
             { new: true }
         );
@@ -260,6 +303,7 @@ exports.getProfilePercentageStatus = async (req, res) => {
             updatedBasicDetails
         });
     } catch (error) {
+      console.log(error);
         return res.status(500).json({ error: "Internal server error" });
     }
 };
@@ -291,14 +335,7 @@ exports.EditPersonalDetails = async (req, res) => {
   }
 
   try {
-    // Fetch the candidate with personal details populated
-    const candidateData = await candidate.findById(user_id).populate('personal_details');
-
-    if (!candidateData || !candidateData.personal_details) {
-      return res.status(404).json({ error: "Candidate or Personal details not found" });
-    }
-
-    // PAN verification using Cashfree API
+    let candidateData = await candidate.findById(user_id).populate('personal_details');
     const panVerificationUrl = 'https://api.cashfree.com/verification/pan';
     const panRequestData = { pan: PAN };
     const panRequestOptions = {
@@ -323,9 +360,8 @@ exports.EditPersonalDetails = async (req, res) => {
       panVerified = false;
     }
 
-    // Aadhar verification logic (assuming similar API, adjust according to actual API)
     let aadharVerified = false;
-    const aadharVerificationUrl = 'https://api.example.com/verification/aadhar'; // Replace with actual API URL
+    const aadharVerificationUrl = 'https://api.example.com/verification/aadhar';
     const aadharRequestData = { aadhar: aadhar_number };
     const aadharRequestOptions = {
       method: 'POST',
@@ -346,8 +382,34 @@ exports.EditPersonalDetails = async (req, res) => {
       console.error("Aadhar verification failed:", aadharError);
       aadharVerified = false;
     }
+    if (!candidateData) {
+      // If the candidate does not exist, return an error
+      return res.status(404).json({ error: "Candidate not found" });
+    }
+    if (!candidateData.personal_details) {
+      // Create new personal details if the candidate doesn't exist
+      const newPersonalDetails = new personal_details({
+        gender,
+        age,
+        marriag_status,
+        aadhar_number,
+        PAN,
+        family_member,
+        father_name,
+        son_name,
+        spouse_profession,
+        disability,
+        disbility_name,
+        Pan_verified_status: panVerified,
+        Aadhar_verified_status: aadharVerified
+      });
 
-    // Prepare data for update
+      const savedPersonalDetails = await newPersonalDetails.save();
+      const newCandidate = new candidate({ _id: user_id, personal_details: savedPersonalDetails._id });
+      const savedCandidate = await newCandidate.save();
+
+      return res.status(201).json({ message: "Candidate created and personal details added successfully", candidate: savedCandidate });
+    }
     const updateData = {
       gender: gender || candidateData.personal_details.gender,
       age: age || candidateData.personal_details.age,
@@ -363,7 +425,6 @@ exports.EditPersonalDetails = async (req, res) => {
       Pan_verified_status: panVerified,
       Aadhar_verified_status: aadharVerified
     };
-    // Update the personal details
     const updatedPersonalDetails = await personal_details.findByIdAndUpdate(
       candidateData.personal_details._id,
       { $set: updateData },
@@ -381,6 +442,7 @@ exports.EditPersonalDetails = async (req, res) => {
 };
 
 
+
 exports.GetworkDetails=async(req,res)=>{
   const {user_id}=req.params;
   try{
@@ -394,45 +456,71 @@ exports.GetworkDetails=async(req,res)=>{
   }
 }
 
-exports.EditWorkDetails=async(req,res)=>{
-  const {user_id}=req.params;
-  const {current_ctc,aspiring_position,work_experience,career_highlight,recognation,skill}=req.body;
-    const { error } = OnboardCandidateWorkDetails.validate({
-      current_ctc,aspiring_position,work_experience,career_highlight,recognation,skill
-    });
-  
-    if (error) {
-      return res.status(400).json({ error: error.details[0].message });
-    }
-  try{
+exports.EditWorkDetails = async (req, res) => {
+  const { user_id } = req.params;
+  const { current_ctc, aspiring_position, work_experience, career_highlight, recognation, skill } = req.body;
 
+  const { error } = OnboardCandidateWorkDetails.validate({
+    current_ctc, aspiring_position, work_experience, career_highlight, recognation, skill
+  });
+
+  if (error) {
+    return res.status(400).json({ error: error.details[0].message });
+  }
+
+  try {
     if (!mongoose.Types.ObjectId.isValid(user_id)) {
       return res.status(400).json({ error: 'Invalid candidate ID' });
     }
+
+    // Check if a resume file is uploaded
     if (!req.file) {
-      return res.status(400).json({ error: "Please upload a file" });
+      return res.status(400).json({ error: "Please upload a resume file" });
     }
-    const candidateData = {
-    current_ctc,aspiring_position,work_experience,current_report,last_reporting,career_highlight,recognation,skill,resume:req.file.filename
+
+    const workDetailsData = {
+      current_ctc,
+      aspiring_position,
+      work_experience,
+      career_highlight,
+      recognation,
+      skill,
+      resume: req.file.filename
     };
 
-    if (req.file && req.file.filename) {
-      candidateData.resume = req.file.filename;
+    const candidates = await candidate.findById(user_id).populate('work_details');
+
+    if (!candidates) {
+      // If the candidate does not exist, return an error
+      return res.status(404).json({ error: "Candidate not found" });
     }
 
-    const candidate = await candidate.findById(user_id).populate('work_details');
-    const updatedData = await work_details.findByIdAndUpdate(candidate.work_details._id, { $set: candidateData }, { new: true });
+    if (!candidates.work_details) {
+      // If the candidate exists but does not have work details, create new work details
+      const newWorkDetails = new work_details(workDetailsData);
+      const savedWorkDetails = await newWorkDetails.save();
 
-    if (updatedData) {
-      return res.status(200).json({ message: "Work Details Updated Successfully", data: updatedData });
+      // Associate the new work details with the existing candidate
+      candidates.work_details = savedWorkDetails._id;
+      await candidates.save();
+
+      return res.status(201).json({ message: "Work details added successfully", work_details: savedWorkDetails });
     } else {
-      return res.status(404).json({ error: "Work Details is not updated" });
+      // If the candidate already has work details, update them
+      const updatedWorkDetails = await work_details.findByIdAndUpdate(
+        candidates.work_details._id,
+        { $set: workDetailsData },
+        { new: true }
+      );
+
+      return res.status(200).json({ message: "Work details updated successfully", work_details: updatedWorkDetails });
     }
 
-  }catch(error){
-    return res.status(500).json({error:"Internal server error"});
+  } catch (error) {
+    console.error("Error updating work details:", error);
+    return res.status(500).json({ error: "Internal server error" });
   }
-}
+};
 
 
 exports.GetEducationDetails=async(req,res)=>{
@@ -451,22 +539,30 @@ if(data){
 }
 
 
-exports.AddNewAducation=async(req,res)=>{
-  const {user_id}=req.params;
-  const {highest_education,board_represent,articles,school,degree,Field_study,start_date,end_date,grade,description}=req.body;
-  try{
+exports.AddNewAducation = async (req, res) => {
+  const { user_id } = req.params;
+  const {
+    highest_education,
+    board_represent,
+    articles,
+    school,
+    degree,
+    Field_study,
+    start_date,
+    end_date,
+    grade,
+    description
+  } = req.body;
 
+  try {
     if (!mongoose.Types.ObjectId.isValid(user_id)) {
       return res.status(400).json({ error: 'Invalid candidate ID' });
     }
 
-    // Find the candidate by ID
-    const candidateData = await candidate.findById(user_id).populate('education_details')
+    const candidateData = await candidate.findById(user_id).populate('education_details');
     if (!candidateData) {
       return res.status(404).json({ error: 'Candidate not found' });
     }
-
-    // Create the new education entry
     const newEducation = {
       school,
       degree,
@@ -477,20 +573,63 @@ exports.AddNewAducation=async(req,res)=>{
       description
     };
 
-    const data=await education_details.findByIdAndUpdate(candidateData.education_details._id,{
-      $addToSet: {
-        Education: newEducation,
-      },
-    })
+    if(!candidateData.education_details){
+      const newEducationDetails = new education_details(newEducation);
+      const savedEducationDetails = await newEducationDetails.save();
+  
+      const newCandidate = new candidate({education_details: savedEducationDetails._id });
+      const savedCandidate = await newCandidate.save();
+  
+      return res.status(201).json({ message: "Education added successfully", candidate: savedCandidate });
+    }
 
+    const updatedEducationDetails = await education_details.findByIdAndUpdate(
+      candidateData.education_details._id,
+      {
+        highest_education,
+        board_represent,
+        articles,
+        $addToSet: { Education: newEducation }
+      },
+      { new: true } 
+    );
+
+    candidateData.education_details = updatedEducationDetails._id;
+    await candidateData.save();
 
     return res.status(200).json({
       message: "Education details added successfully",
-      educationDetails: candidateData.education_details
+      educationDetails: updatedEducationDetails
     });
 
+  } catch (error) {
+    console.log(error)
+    return res.status(500).json({ error: "Internal server error" });
+  }
+};
+
+
+exports.DeleteEducation=async(req,res)=>{
+  const {user_id,education_id}=req.params;
+  try{
+
+    const candidateData = await candidate.findById(user_id).populate('education_details');
+    const updatedEducationDetails = await education_details.findByIdAndDelete(
+      candidateData.education_details._id,
+      { $pull: { Education: { _id: education_id } } },
+      { new: true } 
+    );
+
+    if (!updatedEducationDetails) {
+      return res.status(404).json({ error: "Candidate or work detail not found" });
+    }
+
+    return res.status(200).json({
+      message: "Work detail deleted successfully",
+      candidateData
+    });
 
   }catch(error){
-    return res.status(500).json({error:"Internal server error"});
+    return res.status(500).json({error:"Iternal server error"});
   }
 }

@@ -504,8 +504,9 @@ exports.uploadExcelFile = async (req, res) => {
       const savedBasicDetails = await new Company(Details).save();
     }
 
-    res.status(200).json({ message: `${sheetData.length} companies imported successfully.` });
+    res.status(200).json({ message: `${sheetData.length} companies imported successfully.`,savedBasicDetails});
   } catch (error) {
+    console.log(error)
     return res.status(500).json({ error: 'Internal server error' });
   }
 };

@@ -498,3 +498,63 @@ exports.TopUpPlaneVerifyPayment = async (req, res) => {
         return res.status(500).json({ error: "Internal server error" });
     }
 };
+
+
+//Early Subscription plane
+exports.GetEarySubscriptionplane=async(req,res)=>{
+    const {company_id}=req.params;
+    try{
+
+        const currentPlan = await CompanySubscription.findOne({ company_id })
+        .sort({ createdDate: -1 })
+        .limit(1);
+
+    if (!currentPlan) {
+        return res.status(404).json({ error: "No subscription plan found for the company." });
+    }
+    async function getTopUpPlane(fieldName) {
+        const fieldValue = currentPlan[fieldName];
+        if (typeof fieldValue === 'string' && fieldValue === 'Unlimited') {
+            return await TopUpPlane.findOne({ [fieldName]: 'Unlimited' });
+        } else if (typeof fieldValue === 'boolean') {
+            return await TopUpPlane.findOne({ [fieldName]: true });
+        } else if (typeof fieldValue === 'number' && fieldValue!=0) {
+            return await TopUpPlane.findOne({ [fieldName]: { $ne: fieldValue } });
+        }
+
+        return null;
+    }
+
+    let topupArray = [];
+
+    function isDuplicate(data) {
+        return topupArray.some(item => item.plane_name == data.plane_name);
+    }
+    for (const topUp of currentPlan.topUp) {
+        const data = await TopUpPlane.findOne({ plane_name: topUp.plane_name });
+        if (data && !isDuplicate(data)) {
+            topupArray.push(data);
+        }
+    }
+    const fieldNames = [
+        'search_limit',
+        'cv_view_limit',
+        'job_posting',
+        'available_candidate',
+        'user_access',
+        'download_email_limit',
+        'download_cv_limit'
+    ];
+
+    for (const fieldName of fieldNames) {
+        const data = await getTopUpPlane(fieldName);
+        if (data && !isDuplicate(data)) {
+            topupArray.push(data);
+        }
+    }
+    return res.status(200).json(topupArray);
+
+    }catch(error){
+        return res.status(500).json({error:"Iternal server error"});
+    }
+}

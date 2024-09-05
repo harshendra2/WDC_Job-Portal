@@ -381,6 +381,14 @@ exports.ReportingjobtoAdmin=async(req,res)=>{
         }
       },
       {
+        $lookup:{
+          from:'candidates',
+          localField:'job_reporting.candidate_id',
+          foreignField:'_id',
+          as:"Candidate_details"
+        }
+      },
+      {
         $unwind: {
           path: '$company_details',
           preserveNullAndEmptyArrays: true 
@@ -422,6 +430,8 @@ exports.ReportingjobtoAdmin=async(req,res)=>{
     return res.status(500).json({error:"Internal server error"});
   }
 }
+
+
 
 exports.DeleteReportedJob=async(req,res)=>{
   const {jobId}=req.params;

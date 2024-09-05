@@ -8,6 +8,7 @@ router.get('/candidate/profile/:id',controller.getProfilePercentageStatus);
  router.put('/candidate/profile/experience/:id',controller.AddSomeWorkexperience);
  router.get('/candidate/profile/get_single/exp/:user_id/:exp_id',controller.getSingleWorkExp);
  router.put('/candidate/profile/edit_exp/:user_id/:exp_id',controller.EditExp);
+ router.delete('/candidate/profile/delete_work/:work_id/:user_id',controller.DeleteWorkDetails);
 
  //edit Basic details 
  router.get('/candidate/profile/get_basic/:user_id',controller.GetBasicDetails);
@@ -24,6 +25,10 @@ router.get('/candidate/profile/:id',controller.getProfilePercentageStatus);
  //Edit Education details
  router.get('/candidate/profile/get_education/:user_id',controller.GetEducationDetails);
  router.put('/candidate/profile/add_education/:user_id',controller.AddNewAducation);
+ router.delete('/candidate/profile/delete_education/:user_id/:education_id',controller.DeleteEducation);
+
+ //Reviews
+
 
 
 module.exports=router;

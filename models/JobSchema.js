@@ -88,6 +88,9 @@ candidate_id:[{
       reported_date:{
         type:Date,
         default: Date.now
+      },
+      name:{
+        type:String
       }
     }
   ]
