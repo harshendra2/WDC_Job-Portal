@@ -6,39 +6,56 @@ const CompanyJobSchema = new mongoose.Schema({
         type: mongoose.Schema.Types.ObjectId,
         ref:'company'
     },
-candidate_id:[{
- type: mongoose.Schema.Types.ObjectId,
-        ref:'candidate'
-  }],
+    applied_candidates: [
+      {
+        candidate_id: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: 'candidate',
+          required: true,
+        },
+        applied_date: {
+          type: Date,
+          default: Date.now,
+        }
+      }
+    ],   
   Save_id:[{
  type: mongoose.Schema.Types.ObjectId,
         ref:'candidate'
   }],
+  Interviewed:[
+    {
+      candidate_id: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'candidate',
+        required: true,
+      },
+      applied_date: {
+        type: Date,
+        default: Date.now,
+      }
+    }
+  ],
   apply_status:{
     type:Boolean,
     default:false
   },
   job_title: {
-    type: String,
-    required: true
+    type: String
   },
   company_name: {
-    type:String,
-    required: true
+    type:String
   },
   industry: {
     type:String,
-    required:true
   },
   salary: {
     type:String,
-    default:0,
-    required:true
+    default:0
   },
   experience: {
     type: mongoose.Schema.Types.Mixed, // Allows both numbers and strings
-    default:0,
-    required:true
+    default:0
   },
   location: {
     type:String,
@@ -78,7 +95,7 @@ candidate_id:[{
   },
   job_reporting:[
     {
-      candidate_id:{
+      candidate_ids:{
         type: mongoose.Schema.Types.ObjectId,
         ref:'candidate'
       },

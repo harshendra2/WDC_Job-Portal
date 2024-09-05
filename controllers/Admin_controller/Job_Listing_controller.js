@@ -76,6 +76,7 @@ exports.GetVerifyAndReportingCount=async(req,res)=>{
 
 exports.getAllJob = async (req, res) => {
   const { id } = req.params;
+  
   try {
     const objectId = new mongoose.Types.ObjectId(id);
 
@@ -83,7 +84,7 @@ exports.getAllJob = async (req, res) => {
       { $match: { company_id: objectId } },
       {
         $lookup: {
-          from: 'companies', 
+          from: 'companies',
           localField: 'company_id',
           foreignField: '_id',
           as: 'company'
@@ -94,7 +95,7 @@ exports.getAllJob = async (req, res) => {
     if (data && data.length > 0) {
       const baseUrl = `${req.protocol}://${req.get('host')}`;
       const updatedData = data.map(job => {
-        const companyDetails = job.company[0]; 
+        const companyDetails = job.company[0]; // Extract company details from the lookup
         const profileUrl = companyDetails && companyDetails.profile 
           ? (isGoogleDriveLink(companyDetails.profile) 
               ? companyDetails.profile 
@@ -103,8 +104,8 @@ exports.getAllJob = async (req, res) => {
 
         return {
           ...job,
-          timeSincePosted:moment(job.createdDate).fromNow(),
-          application: job.candidate_id.length,
+          timeSincePosted: job.createdDate ? moment(job.createdDate).fromNow() : 'N/A', // Safely handle createdDate
+          application: job.applied_candidates ? job.applied_candidates.length : 0, // Handle candidate_id safely
           company_details: {
             ...companyDetails,
             profileUrl: profileUrl,
@@ -117,6 +118,7 @@ exports.getAllJob = async (req, res) => {
       return res.status(404).json({ message: "No jobs found" });
     }
   } catch (error) {
+    console.error(error);
     return res.status(500).json({ error: "Internal server error" });
   }
 };
@@ -140,7 +142,7 @@ exports.GetJobDescription = async (req, res) => {
       const updatedData = {
         ...data._doc, // Spread the original data
         timeSincePosted: moment(data.createdDate).fromNow(),
-        application: data.candidate_id.length,
+        application: data.applied_candidates.length,
         company_details: {
           ...companyDetails._doc,
           profileUrl: profileUrl,
@@ -152,6 +154,7 @@ exports.GetJobDescription = async (req, res) => {
       return res.status(404).json({ message: "No jobs found" });
     }
   } catch (error) {
+    console.log(error)
     return res.status(500).json({ error: "Internal server error" });
   }
 };

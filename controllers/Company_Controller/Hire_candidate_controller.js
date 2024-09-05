@@ -3,86 +3,89 @@ const CompanyJob=require('../../models/JobSchema');
 const candidate=require('../../models/Onboard_Candidate_Schema');
 
 exports.getAllAppliedCandidate = async (req, res) => {
-  const { id } = req.params;
-  try {
-      const objectId = new mongoose.Types.ObjectId(id);
-      const data = await CompanyJob.aggregate([
-          { $match: { company_id: objectId } },
-          {
-              $lookup: {
-                  from: 'candidates',
-                  localField: 'candidate_id',
-                  foreignField: '_id',
-                  as: 'candidateDetails'
-              }
-          },
-          { $unwind: '$candidateDetails' },
-          {
-              $lookup: {
-                  from: 'candidate_basic_details',
-                  localField: 'candidateDetails.basic_details',
-                  foreignField: '_id',
-                  as: 'basicDetails'
-              }
-          },
-          { $unwind: '$basicDetails' },
-          {
-              $lookup: {
-                  from: 'candidate_personal_details',
-                  localField: 'candidateDetails.personal_details',
-                  foreignField: '_id',
-                  as: 'personalDetails'
-              }
-          },
-          { $unwind: '$personalDetails' },
-          {
-              $lookup: {
-                  from: 'candidate_work_details',
-                  localField: 'candidateDetails.work_details',
-                  foreignField: '_id',
-                  as: 'workDetails'
-              }
-          },
-          { $unwind: '$workDetails' },
-          {
-              $lookup: {
-                  from: 'candidate_education_details',
-                  localField: 'candidateDetails.education_details',
-                  foreignField: '_id',
-                  as: 'educationDetails'
-              }
-          },
-          { $unwind: '$educationDetails' }
-      ]);
+    const { id } = req.params;
+    try {
+        const objectId = new mongoose.Types.ObjectId(id);
+  
+        const data = await CompanyJob.aggregate([
+            { $match: { company_id: objectId } },
+            { $unwind: '$applied_candidates' }, // Unwind the applied candidates array
+            {
+                $lookup: {
+                    from: 'candidates',
+                    localField: 'applied_candidates.candidate_id',
+                    foreignField: '_id',
+                    as: 'candidateDetails'
+                }
+            },
+            { $unwind: '$candidateDetails' },
+            {
+                $lookup: {
+                    from: 'candidate_basic_details',
+                    localField: 'candidateDetails.basic_details',
+                    foreignField: '_id',
+                    as: 'basicDetails'
+                }
+            },
+            { $unwind: '$basicDetails' },
+            {
+                $lookup: {
+                    from: 'candidate_personal_details',
+                    localField: 'candidateDetails.personal_details',
+                    foreignField: '_id',
+                    as: 'personalDetails'
+                }
+            },
+            { $unwind: '$personalDetails' },
+            {
+                $lookup: {
+                    from: 'candidate_work_details',
+                    localField: 'candidateDetails.work_details',
+                    foreignField: '_id',
+                    as: 'workDetails'
+                }
+            },
+            { $unwind: '$workDetails' },
+            {
+                $lookup: {
+                    from: 'candidate_education_details',
+                    localField: 'candidateDetails.education_details',
+                    foreignField: '_id',
+                    as: 'educationDetails'
+                }
+            },
+            // { $unwind: '$educationDetails' }
+        ]);
+       console.log(data);
+        if (data && data.length > 0) {
+            const baseUrl = `${req.protocol}://${req.get('host')}`;
+            const isGoogleDriveLink = (url) => {
+                return url && (url.includes('drive.google.com') || url.includes('docs.google.com'));
+            };
 
-      if (data && data.length > 0) {
-          const baseUrl = `${req.protocol}://${req.get('host')}`;
-          const isGoogleDriveLink = (url) => {
-              return url && (url.includes('drive.google.com') || url.includes('docs.google.com'));
-          };
-          const updatedData = data.map(item => {
-              const resumeUrl = item.workDetails.resume
-                  ? (isGoogleDriveLink(item.workDetails.resume) ? item.workDetails.resume : `${baseUrl}/${item.workDetails.resume.replace(/\\/g, '/')}`)
-                  : null;
-
-              return {
-                  ...item,
-                  workDetails: {
-                      ...item.workDetails,
-                      resume: resumeUrl
-                  }
-              };
-          });
-
-          return res.status(200).json(updatedData);
-      } else {
-          return res.status(404).json({ error: "No candidates found for this company" });
-      }
-  } catch (error) {
-      return res.status(500).json({ error: "Internal server error" });
-  }
-};
-
+            const updatedData = data.map(item => {
+                const resumeUrl = item.workDetails.resume
+                    ? (isGoogleDriveLink(item.workDetails.resume) ? item.workDetails.resume : `${baseUrl}/${item.workDetails.resume.replace(/\\/g, '/')}`)
+                    : null;
+  
+                return {
+                    ...item,
+                    workDetails: {
+                        ...item.workDetails,
+                        resume: resumeUrl
+                    }
+                };
+            });
+  
+            return res.status(200).json(updatedData);
+        } else {
+            return res.status(404).json({ error: "No candidates found for this company" });
+        }
+    } catch (error) {
+        console.error(error);
+        return res.status(500).json({ error: "Internal server error" });
+    }
+  };
 
 exports.getCandidateDetails = async (req, res) => {
   const { id, userId } = req.params;

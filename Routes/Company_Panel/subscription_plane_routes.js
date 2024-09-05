@@ -24,6 +24,8 @@ router.get('/company/get_renewplane/:company_id',controller.GetReNewSubscription
 
  //Eary buying 
  router.get('/company/get_earlysubcription/:company_id',controller.GetEarySubscriptionplane);
+ router.get('/company/early_plane/payment',controller.EarlySubscriptionplane);
+ router.post('/company/early_subscription/verify',controller.SubscriptionPlaneVerifyPayment);
 
 
 module.exports=router;

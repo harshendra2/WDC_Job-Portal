@@ -3,12 +3,15 @@ const moment = require('moment');
 const CompanyJob=require("../../models/JobSchema");
 
 
-exports.getAppliedjob = async (req, res) => {
-    const { userId } = req.params;
+exports.getAppliedJob = async (req, res) => {
+    const { userId } = req.params; 
 
     try {
         const id = new mongoose.Types.ObjectId(userId);
-        const jobs = await CompanyJob.find({ candidate_id: id });
+
+        const jobs = await CompanyJob.find({
+            "applied_candidates.candidate_id": id
+        });
 
         if (jobs.length === 0) {
             return res.status(404).json({ message: "No jobs found for this user" });
@@ -24,7 +27,6 @@ exports.getAppliedjob = async (req, res) => {
 
         return res.status(200).json(jobDetails);
     } catch (error) {
-        console.log(error);
         return res.status(500).json({ error: "Internal server error" });
     }
 };

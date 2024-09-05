@@ -3,12 +3,15 @@ const moment = require('moment');
 const CompanyJob=require("../../models/JobSchema");
 
 exports.getUnappliedJob = async (req, res) => {
-    const { id } = req.params;
+    const { id } = req.params; 
+
     try {
         const jobs = await CompanyJob.find({});
 
         const unappliedJobs = jobs.filter(job => 
-            !job.candidate_id.includes(id) 
+            !job.applied_candidates.some(candidate => 
+                candidate.candidate_id.toString() === id
+            )
         ).map(job => {
             const timeSincePosted = moment(job.createdDate).fromNow();
             return {
@@ -16,14 +19,12 @@ exports.getUnappliedJob = async (req, res) => {
                 timeSincePosted
             };
         });
-
         return res.status(200).send(unappliedJobs);
     } catch (error) {
-        console.log(error);
+        console.error(error);
         return res.status(500).json({ error: "Internal server error" });
     }
 };
-
 
 exports.getJobDetails=async(req,res)=>{
     const {id}=req.params;
@@ -53,9 +54,21 @@ exports.applyToJob = async (req, res) => {
     const { userId, jobId } = req.params;
 
     try {
+        const job = await CompanyJob.findById(jobId);
+        if (!job) {
+            return res.status(404).json({ message: "Job not found" });
+        }
+
         const applyToJob = await CompanyJob.findOneAndUpdate(
             { _id: jobId },
-            { $addToSet: { candidate_id: userId } },
+            {
+                $addToSet: {
+                    applied_candidates: {
+                        candidate_id: userId,   
+                        applied_date: new Date() 
+                    }
+                }
+            },
             { new: true }
         );
 

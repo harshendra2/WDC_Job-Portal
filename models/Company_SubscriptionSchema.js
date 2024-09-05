@@ -19,8 +19,7 @@ const CompanySubscriptionPlaneSchema = new mongoose.Schema({
     required: true
   },
   transaction_Id:{
-    type:Number,
-    required:true
+    type:Number
   },
   search_limit: {
       type: mongoose.Schema.Types.Mixed, // Allows both numbers and strings
