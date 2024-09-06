@@ -87,6 +87,14 @@ const CompanySchema = new Schema({
     type: Boolean,
     default: false,
   },
+  company_access_count:{
+    type:Number,
+    default:1
+  },
+  Logged_In_count:{
+    type:Number,
+    default:0
+  },
   createdAt: {
     type: Date,
     default: Date.now,
