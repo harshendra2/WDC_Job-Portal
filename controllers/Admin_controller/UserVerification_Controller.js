@@ -67,7 +67,7 @@ exports.OnboardCompanyApproveAction=async(req,res)=>{
             return res.status(400).json({ error: "Company ID is required" });
           }
       
-          const data = await company.findByIdAndUpdate(id, { status: "approve",PAN_verify:false,GST_verify:false}, { new: true });
+          const data = await company.findByIdAndUpdate(id, { status: "approve",PAN_verify:true,GST_verify:true}, { new: true });
       
           if (data) {
             return res.status(200).json({ message: "Status updated successfully", company: data });

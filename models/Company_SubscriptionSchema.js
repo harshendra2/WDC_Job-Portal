@@ -33,10 +33,6 @@ const CompanySubscriptionPlaneSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.Mixed, // Allows both numbers and strings
     default:1
   },
-  user_access_Login_count:{
-    type: mongoose.Schema.Types.Mixed,
-    default:1
-  },
   cv_view_limit: {
     type: mongoose.Schema.Types.Mixed, // Allows both numbers and strings
     default:200

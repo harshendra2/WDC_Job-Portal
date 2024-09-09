@@ -1,7 +1,25 @@
 const mongoose=require("mongoose");
 const tesseract = require('tesseract.js');
+const Joi=require('joi');
 const company=require("../../models/Onboard_Company_Schema");
 const axios= require("axios");
+
+const EditCompanyProfile=Joi.object({
+  company_name: Joi.string().min(3).max(100).required(),
+  email: Joi.string().email().required(), 
+  mobile: Joi.string().pattern(/^[0-9]{10}$/).required(),
+  overView: Joi.string().optional(),
+  address: Joi.string().optional(), 
+  industry: Joi.string().optional(),
+  company_size: Joi.number().integer().min(1).max(10000).optional(),
+  GST: Joi.string().pattern(/^[0-9]{15}$/).optional(),
+  PAN: Joi.string().pattern(/^[A-Z]{5}[0-9]{4}[A-Z]{1}$/).optional(),
+  website_url: Joi.string().uri().optional(),
+  location: Joi.string().optional(),
+  contact_email: Joi.string().email().optional(),
+  contact_No: Joi.string().pattern(/^[0-9]{10}$/).optional(),
+  headQuater_add: Joi.string().optional()
+})
 
 exports.GetCompanyProfile=async(req,res)=>{
     const {id}=req.params;
@@ -45,8 +63,16 @@ exports.EditProfile = async (req, res) => {
     const {
         company_name, email, mobile, overView, address, industry,
         company_size, GST, PAN, website_url, location, contact_email,
-        contact_No, headQuater_add,GST_verify,PAN_verify
+        contact_No, headQuater_add
     } = req.body;
+
+    
+  const { error } = EditCompanyProfile.validate({ company_name, email, mobile, overView, address, industry,
+    company_size, GST, PAN, website_url, location, contact_email,
+    contact_No, headQuater_add});
+  if (error) {
+    return res.status(400).json({ error: error.details[0].message });
+  }
 
     const panImage = req.files['panImage'] ? req.files['panImage'][0].path : null;
     const gstImage = req.files['gstImage'] ? req.files['gstImage'][0].path : null;
@@ -74,19 +100,20 @@ exports.EditProfile = async (req, res) => {
         if (gstNumber !=GST) {
             return res.status(400).json({ error: "GST number and GST image number do not match" });
         }
+         const existedEmail=await company.findOne({email});
+         if(existedEmail){
+          return res.status(400).json({error:"This email Id already existed"});
+         }
+         const existedCompanyName=await company.findOne({company_name});
+         if(existedCompanyName){
+          return res.status(400).json({error:"This Company Name already existed"});
+         }
+
         const companyData = {
           company_name, email, mobile, overView, address, industry,
           company_size, GST, PAN, website_url, location, contact_email,
-          contact_No, headQuater_add,GST_verify,PAN_verify,status:'Processing',message:""
+          contact_No, headQuater_add,GST_verify:false,PAN_verify:false,status:'Processing',message:""
       };
-         const panStatus=await company.findById(id);
-         if(panStatus.self_PAN_verify){
-          companyData.PAN=PAN
-         }
-         if(panStatus.self_GST_verify){
-          companyData.GST=GST;
-         }
-
         if (panImage) {
             companyData.PAN_image = panImage
         }

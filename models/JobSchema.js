@@ -23,6 +23,23 @@ const CompanyJobSchema = new mongoose.Schema({
  type: mongoose.Schema.Types.ObjectId,
         ref:'candidate'
   }],
+  Shortlisted:[
+    {
+      candidate_id: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'candidate',
+        required: true,
+      },
+      sortlisted_date: {
+        type: Date,
+        default: Date.now,
+      },
+      shorted_status:{
+        type:Boolean,
+        default:false
+      }
+    }
+  ],
   Interviewed:[
     {
       candidate_id: {
@@ -33,9 +50,44 @@ const CompanyJobSchema = new mongoose.Schema({
       applied_date: {
         type: Date,
         default: Date.now,
+      },
+      feedBack:{
+        type:String
       }
     }
   ],
+  Job_offer:[
+    {
+      candidate_id: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'candidate',
+        required: true,
+      },
+      offer_date: {
+        type: Date,
+        default: Date.now,
+      },
+      offer_letter:{
+        type:String
+      },
+      offer_accepted_status:{
+        type: String,
+        enum: ["pending", "accepted", "rejected"],
+        default: "pending"
+      }
+    }
+  ],
+  hired_candidate:[{
+   candidate:{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'candidate',
+    required: true,
+   },
+   hired_date:{
+    type:Date,
+    default: Date.now
+  }
+  }],
   apply_status:{
     type:Boolean,
     default:false
@@ -57,6 +109,9 @@ const CompanyJobSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.Mixed, // Allows both numbers and strings
     default:0
   },
+  No_openings:{
+   type:Number
+  },
   location: {
     type:String,
     required:true
@@ -72,13 +127,21 @@ const CompanyJobSchema = new mongoose.Schema({
   skills: {
     type:Array
   },
+  Benifits:{
+  type:Array
+  },
   education:{
     type:String,
     required:true
   },
   description:{
-    type:String,
-    required:true
+    type:String
+  },
+  responsibility:{
+  type:Array
+  },
+  Requirements:{
+  type:Array
   },
   createdDate:{
     type:Date,

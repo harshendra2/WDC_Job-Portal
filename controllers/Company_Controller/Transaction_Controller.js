@@ -1,19 +1,12 @@
+const mongoose=require('mongoose');
 const CompanySubscription=require('../../models/Company_SubscriptionSchema');
 
 exports.GetAllTransaction=async(req,res)=>{
+    const {compId}=req.params;
     try{
+        const objectId = new mongoose.Types.ObjectId(compId);
         const data = await CompanySubscription.aggregate([
-            {
-                $lookup: {
-                    from: 'companies',
-                    localField: 'company_id',
-                    foreignField: '_id',
-                    as: 'company_details'
-                }
-            },
-            {
-                $unwind: '$company_details'
-            },
+            {$match:{company_id:objectId}},
             {
                 $project: {
                     _id: 1,
@@ -30,28 +23,17 @@ exports.GetAllTransaction=async(req,res)=>{
                         job_posting: "$job_posting",
                         createdDate: "$createdDate",
                         expiresAt: "$expiresAt"
-                    },
-                    company_details: 1 
+                    }
                 }
             }
         ]);
 
         const topUpPlans = await CompanySubscription.aggregate([
+            {$match:{company_id:objectId}},
             {
                 $match: {
                     topUp: { $exists: true, $not: { $size: 0 } } 
                 }
-            },
-            {
-                $lookup: {
-                    from: 'companies',
-                    localField: 'company_id',
-                    foreignField: '_id',
-                    as: 'company_details'
-                }
-            },
-            {
-                $unwind: '$company_details'
             },
             {
                 $unwind: '$topUp' 
@@ -66,8 +48,7 @@ exports.GetAllTransaction=async(req,res)=>{
                         order_Id: "$topUp.order_Id",
                         date: "$topUp.Date",
                         ExpireDate:"$topUp.ExpireDate"
-                    },
-                    company_details: 1
+                    }
                 }
             }
         ]);
