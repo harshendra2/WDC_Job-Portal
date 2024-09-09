@@ -189,18 +189,136 @@ exports.ViewJobListDetails=async(req,res)=>{
   }
 }
 
-exports.ListoutAllAppliedApplicante=async(req,res)=>{
-  const {jobId}=req.params;
+exports.ListOutAllAppliedApplicants = async (req, res) => {
+  const { jobId } = req.params;
+  try {
+    const jobObjectId = new mongoose.Types.ObjectId(jobId);
+
+    const candidateDetails = await CompanyJob.aggregate([
+      { $match: { _id: jobObjectId} }, 
+      { $unwind: '$applied_candidates' },
+      {$match:{'applied_candidates.Shortlist_status':false}},
+      {
+        $lookup: {
+          from: 'candidates',
+          localField: 'applied_candidates.candidate_id',
+          foreignField: '_id',
+          as: 'CandidateDetails'
+        }
+      },
+      { $unwind: '$CandidateDetails' },
+      {
+        $lookup: {
+          from: 'candidate_basic_details',
+          localField: 'CandidateDetails.basic_details',
+          foreignField: '_id',
+          as: 'BasicDetails'
+        }
+      },
+      { $unwind: '$BasicDetails' },
+      {
+        $lookup: {
+          from: 'candidate_work_details',
+          localField: 'CandidateDetails.work_details',
+          foreignField: '_id',
+          as: 'WorkDetails'
+        }
+      },
+      { $unwind: '$WorkDetails' },
+      {
+        $project: {
+          _id: 1,
+          'applied_candidates.applied_date':1,
+          'CandidateDetails._id': 1,
+          'CandidateDetails.name': 1,
+          'CandidateDetails.email': 1,
+          'BasicDetails': 1,
+          'WorkDetails':1
+        }
+      }
+    ]);
+
+    if (candidateDetails && candidateDetails.length > 0) {
+      return res.status(200).json(candidateDetails);
+    } else {
+      return res.status(404).json({ message: 'No candidates found for this job.' });
+    }
+  } catch (error) {
+    return res.status(500).json({ error: 'Internal server error' });
+  }
+};
+
+
+exports.ShortlistCandidate = async (req, res) => {
+  const { jobId, userId } = req.params;
+  try {
+    const jobObjectId = new mongoose.Types.ObjectId(jobId);
+    const userObjectId = new mongoose.Types.ObjectId(userId);
+    const updateCandidate = await CompanyJob.updateOne(
+      { _id: jobObjectId, 'applied_candidates.candidate_id': userObjectId },
+      { $set: { 'applied_candidates.$.Shortlist_status': true } }
+    );
+
+    if (updateCandidate.nModified === 0) {
+      return res.status(404).json({ error: 'Candidate not found or already shortlisted' });
+    }
+
+    await CompanyJob.updateOne(
+      { _id: jobObjectId },
+      {
+        $addToSet: {
+          Shortlisted: {
+            candidate_id: userObjectId,   
+            sortlisted_date: new Date() 
+          }
+        }
+      }
+    );
+
+    return res.status(200).json({ message: 'Candidate shortlisted successfully' });
+  } catch (error) {
+    return res.status(500).json({ error: 'Internal server error' });
+  }
+};
+
+
+exports.ListOutAllShortlistedApplicent=async(req,res)=>{
   try{
-    const jobIds=new mongoose.Types.ObjectId(jobId);
-    const CandidateDetails=await CompanyJob.aggregate([{$match:{_id:jobIds}},
-  {$unwind:'$applied_candidates'},
-  {$lookup:{
-    foreignField:''
-  }}
-    ])
 
   }catch(error){
-    return res.status(500).json({error:"Intenal server error"});
+    return res.sta
+  }
+}
+
+exports.AddUserFeedBack=async(req,res)=>{
+  const {jobId,userId}=req.params;
+  try{
+    const jobObjectId = new mongoose.Types.ObjectId(jobId);
+    const userObjectId = new mongoose.Types.ObjectId(userId);
+    const updateCandidate = await CompanyJob.updateOne(
+      { _id: jobObjectId, 'applied_candidates.candidate_id': userObjectId },
+      { $set: { 'applied_candidates.$.Shortlist_status': true } }
+    );
+
+    if (updateCandidate.nModified === 0) {
+      return res.status(404).json({ error: 'Candidate not found or already shortlisted' });
+    }
+
+    await CompanyJob.updateOne(
+      { _id: jobObjectId },
+      {
+        $addToSet: {
+          Shortlisted: {
+            candidate_id: userObjectId,   
+            sortlisted_date: new Date() 
+          }
+        }
+      }
+    );
+
+    return res.status(200).json({ message: 'Candidate shortlisted successfully' });
+
+  }catch(error){
+    return res.status(500).json({error:"Internal server error"});
   }
 }

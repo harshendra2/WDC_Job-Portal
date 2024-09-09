@@ -10,7 +10,11 @@ router.put('/company/job_Restart/:jobId',controller.RestartJobPosted);
 // View Single Job application
 router.get('/company/view_job/:jobId',controller.ViewJobListDetails);
 //Listout Application
-router.get('/company/listout_applicant/:jobId',controller.ListoutAllAppliedApplicante);
+router.get('/company/listout_applicant/:jobId',controller.ListOutAllAppliedApplicants);
+router.put('/company/sortlist/candidate/:jobId/:userId',controller.ShortlistCandidate);
+//Sortlist Section
+router.get('/company/listout_sortliste/applicent/:jobId',controller.ListOutAllShortlistedApplicent);
+router.put('/company/add_feedback/:jobId/:userId',controller.AddUserFeedBack);
 
 
 module.exports=router;

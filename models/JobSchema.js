@@ -16,6 +16,10 @@ const CompanyJobSchema = new mongoose.Schema({
         applied_date: {
           type: Date,
           default: Date.now,
+        },
+        Shortlist_status:{
+          type:Boolean,
+          default:false
         }
       }
     ],   
@@ -51,8 +55,16 @@ const CompanyJobSchema = new mongoose.Schema({
         type: Date,
         default: Date.now,
       },
+      rating:{
+       type:Number,
+       default:0
+      },
       feedBack:{
         type:String
+      },
+      interview_Status:{
+        type:Boolean,
+        default:false
       }
     }
   ],

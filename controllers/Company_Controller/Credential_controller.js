@@ -257,7 +257,7 @@ exports.CompanyOTP = async (req, res) => {
       ]
     }).lean();
 
-    if (typeof subscriptionExists.user_access=='number') {
+    if (typeof subscriptionExists?.user_access=='number') {
       // Update user_access_Login_count and Logged_In_count
       await CompanySubscription.updateOne(
         { _id: subscriptionExists._id },
@@ -277,7 +277,7 @@ exports.CompanyOTP = async (req, res) => {
       );
 
       return res.status(200).json({ message: "Company login successfully", companyToken: token });
-    }else if(typeof subscriptionExists.user_access=='string'){
+    }else if(typeof subscriptionExists?.user_access=='string'){
       await company.updateOne(
         { _id: existedCompany._id },
         { $inc: { Logged_In_count: 1 } }
@@ -313,6 +313,7 @@ exports.CompanyOTP = async (req, res) => {
     return res.status(400).json({ error: "No login access available for this company" });
 
   } catch (error) {
+    console.log(error);
     return res.status(500).json({ error: "Internal server error" });
   }
 };
