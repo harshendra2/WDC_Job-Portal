@@ -12,9 +12,12 @@ router.get('/company/view_job/:jobId',controller.ViewJobListDetails);
 //Listout Application
 router.get('/company/listout_applicant/:jobId',controller.ListOutAllAppliedApplicants);
 router.put('/company/sortlist/candidate/:jobId/:userId',controller.ShortlistCandidate);
-//Sortlist Section
+//Shortlist Section
 router.get('/company/listout_sortliste/applicent/:jobId',controller.ListOutAllShortlistedApplicent);
 router.put('/company/add_feedback/:jobId/:userId',controller.AddUserFeedBack);
+//Job offer 
+router.get('/company/get_user_offer/:jobId/:userId',controller.GetUserDetailsForOffer);
+router.put('/company/job_offer/:jobId/:userId',controller.OfferJobToCandidate);
 
 
 module.exports=router;

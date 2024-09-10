@@ -282,41 +282,153 @@ exports.ShortlistCandidate = async (req, res) => {
 };
 
 
-exports.ListOutAllShortlistedApplicent=async(req,res)=>{
-  try{
+exports.ListOutAllShortlistedApplicent = async (req, res) => {
+  const { jobId } = req.params;
+  try {
+    const jobObjectId = new mongoose.Types.ObjectId(jobId);
 
-  }catch(error){
-    return res.sta
+    const candidateDetails = await CompanyJob.aggregate([
+      { $match: { _id: jobObjectId } }, 
+      { $unwind: '$Shortlisted' },
+      { $match: { 'Shortlisted.shorted_status': false } },
+      {
+        $lookup: {
+          from: 'candidates',
+          localField: 'Shortlisted.candidate_id',
+          foreignField: '_id',
+          as: 'CandidateDetails'
+        }
+      },
+      { $unwind: '$CandidateDetails' },
+      {
+        $lookup: {
+          from: 'candidate_basic_details',
+          localField: 'CandidateDetails.basic_details',
+          foreignField: '_id',
+          as: 'BasicDetails'
+        }
+      },
+      { $unwind: '$BasicDetails' },
+      {
+        $lookup: {
+          from: 'candidate_work_details',
+          localField: 'CandidateDetails.work_details',
+          foreignField: '_id',
+          as: 'WorkDetails'
+        }
+      },
+      { $unwind: '$WorkDetails' },
+      {
+        $project: {
+          _id: 1,
+          'Interviewed.interview_Status':1,
+          'Shortlisted.sortlisted_date': 1,
+          'CandidateDetails._id': 1,
+          'CandidateDetails.name': 1,
+          'CandidateDetails.email': 1,
+          'BasicDetails': 1,
+          'WorkDetails': 1
+        }
+      }
+    ]);
+
+    if (candidateDetails && candidateDetails.length > 0) {
+      const baseUrl = `${req.protocol}://${req.get('host')}`;
+
+      const updatedData = candidateDetails.map((company) => {
+        return {
+          ...company,
+          resumeUrl: company.WorkDetails?.resume
+            ? `${baseUrl}/${company.WorkDetails.resume.replace(/\\/g, '/')}`
+            : null,
+        };
+      });
+
+      return res.status(200).json(updatedData);
+    } else {
+      return res.status(404).json({ message: "No shortlisted applicants found" });
+    }
+
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ error: "Internal server error" });
   }
-}
+};
+
 
 exports.AddUserFeedBack=async(req,res)=>{
   const {jobId,userId}=req.params;
+  const {feedBack,rating}=req.body;
   try{
     const jobObjectId = new mongoose.Types.ObjectId(jobId);
     const userObjectId = new mongoose.Types.ObjectId(userId);
-    const updateCandidate = await CompanyJob.updateOne(
-      { _id: jobObjectId, 'applied_candidates.candidate_id': userObjectId },
-      { $set: { 'applied_candidates.$.Shortlist_status': true } }
-    );
+    // const updateCandidate = await CompanyJob.updateOne(
+    //   { _id: jobObjectId, 'Shortlisted.candidate_id': userObjectId }
+    //   // { $set: { 'applied_candidates.$.Shortlist_status': true } }
+    // );
 
-    if (updateCandidate.nModified === 0) {
-      return res.status(404).json({ error: 'Candidate not found or already shortlisted' });
-    }
+    // if (updateCandidate.nModified === 0) {
+    //   return res.status(404).json({ error: 'Candidate not found or already shortlisted' });
+    // }
 
     await CompanyJob.updateOne(
       { _id: jobObjectId },
       {
         $addToSet: {
-          Shortlisted: {
+          Interviewed: {
             candidate_id: userObjectId,   
-            sortlisted_date: new Date() 
+            sortlisted_date: new Date() ,
+            rating,
+            feedBack,
+            interview_Status:true
           }
         }
       }
     );
 
-    return res.status(200).json({ message: 'Candidate shortlisted successfully' });
+    return res.status(200).json({ message: 'FeedBack added successfully' });
+
+  }catch(error){
+    return res.status(500).json({error:"Internal server error"});
+  }
+}
+
+exports.GetUserDetailsForOffer = async (req, res) => {
+  const { userId, jobId } = req.params;
+  try {
+    const userIds = new mongoose.Types.ObjectId(userId);
+    const jobIds = new mongoose.Types.ObjectId(jobId);
+
+    const data = await CompanyJob.aggregate([
+      { $match: { _id: jobIds } }, 
+      { $unwind: '$Interviewed' },
+      { $match: { 'Interviewed.candidate_id': userIds } },
+      {
+        $lookup: {
+          from: 'candidates',
+          localField: 'Shortlisted.candidate_id',
+          foreignField: '_id',
+          as: 'CandidateDetails'
+        }
+      },
+      { $unwind: '$CandidateDetails' }
+    ]);
+
+    if (data && data.length > 0) {
+      return res.status(200).json(data);
+    } else {
+      return res.status(404).json({ error: "User details not available" });
+    }
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ error: "Internal server error" });
+  }
+};
+
+
+exports.OfferJobToCandidate=async(req,res)=>{
+  const {userId,jobId}=req.params;
+  try{
 
   }catch(error){
     return res.status(500).json({error:"Internal server error"});
