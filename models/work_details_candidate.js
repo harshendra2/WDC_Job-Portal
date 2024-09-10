@@ -44,8 +44,8 @@ const work_details_candidate=new mongoose.Schema({
     resume:{
         type:String
     },
-    skill:{
-      type:String
+    skills:{
+      type:Array
     },
     Experience:[
         {

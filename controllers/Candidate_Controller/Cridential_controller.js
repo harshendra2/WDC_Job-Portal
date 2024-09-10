@@ -12,7 +12,7 @@ const education_details = require("../../models/education_details_candidateSchem
 const OnboardRegistration = Joi.object({
   email: Joi.string().email().required(),
   setpassword: Joi.string().min(6).required(),
-  confirmpassword: Joi.string()
+  password: Joi.string()
     .min(6)
     .required()
     .valid(Joi.ref("setpassword"))
@@ -45,12 +45,11 @@ const forgotPasswordConfirmation=Joi.object({
 })
 
 exports.Registration = async (req, res) => {
-  const { email, setpassword, confirmpassword } = req.body;
-
+  const { email, password, setpassword } = req.body;
   const { error } = OnboardRegistration.validate({
     email,
     setpassword,
-    confirmpassword,
+    password,
   });
 
   if (error) {

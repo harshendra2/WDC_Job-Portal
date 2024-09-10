@@ -406,18 +406,47 @@ exports.GetUserDetailsForOffer = async (req, res) => {
       {
         $lookup: {
           from: 'candidates',
-          localField: 'Shortlisted.candidate_id',
+          localField: 'Interviewed.candidate_id', // Corrected to match 'Interviewed.candidate_id'
           foreignField: '_id',
           as: 'CandidateDetails'
         }
       },
-      { $unwind: '$CandidateDetails' }
+      { $unwind: '$CandidateDetails' },
+      {
+        $lookup: {
+          from: 'candidate_work_details',
+          localField: 'CandidateDetails.work_details',
+          foreignField: '_id',
+          as: 'workdetails'
+        }
+      },
+      { $unwind: { path: '$workdetails', preserveNullAndEmptyArrays: true } }, // Unwind workdetails, but allow empty results
+      {
+        $project: {
+          applied_candidates: 0,
+          Shortlisted: 0,
+          Interviewed: 0, // You can modify if you want to keep Interviewed or not
+          'CandidateDetails.password': 0, // Hiding sensitive info
+          'CandidateDetails.__v': 0,     // Hiding MongoDB version key if unnecessary
+        }
+      }
     ]);
 
     if (data && data.length > 0) {
-      return res.status(200).json(data);
+      const baseUrl = `${req.protocol}://${req.get('host')}`;
+
+      const updatedData = data.map((company) => {
+        return {
+          ...company,
+          resumeUrl: company.workdetails?.resume
+            ? `${baseUrl}/${company.workdetails.resume.replace(/\\/g, '/')}`
+            : null,
+        };
+      });
+
+      return res.status(200).json(updatedData);
     } else {
-      return res.status(404).json({ error: "User details not available" });
+      return res.status(404).json({ message: "No shortlisted applicants found" });
     }
   } catch (error) {
     console.error(error);
@@ -426,11 +455,94 @@ exports.GetUserDetailsForOffer = async (req, res) => {
 };
 
 
+
 exports.OfferJobToCandidate=async(req,res)=>{
   const {userId,jobId}=req.params;
+  if(!req.file){
+    return res.status(400).json({error:"Please upload offer letter"});
+  }
   try{
+    const userIds=new mongoose.Types.ObjectId(userId);
+    const jobIds=new mongoose.Types.ObjectId(jobId);
+
+    await CompanyJob.updateOne(
+      { _id: jobIds },
+      {
+        $addToSet: {
+          Job_offer: {
+            candidate_id: userIds,   
+            offer_date: new Date() ,
+            offer_letter:req.file.path
+          }
+        }
+      }
+    );
+    return res.status(200).json({error:"Offer letter uploaded successfully"});
 
   }catch(error){
     return res.status(500).json({error:"Internal server error"});
   }
 }
+
+exports.GetUserDetailswithofferStatus = async (req, res) => {
+  const { userId, jobId } = req.params;
+  try {
+    const userIds = new mongoose.Types.ObjectId(userId);
+    const jobIds = new mongoose.Types.ObjectId(jobId);
+
+    const data = await CompanyJob.aggregate([
+      { $match: { _id: jobIds } }, 
+      { $unwind: '$Interviewed' },
+      { $match: { 'Interviewed.candidate_id': userIds } },
+      {
+        $lookup: {
+          from: 'candidates',
+          localField: 'Interviewed.candidate_id',
+          foreignField: '_id',
+          as: 'CandidateDetails'
+        }
+      },
+      { $unwind: '$CandidateDetails' },
+      {
+        $lookup: {
+          from: 'candidate_work_details',
+          localField: 'CandidateDetails.work_details',
+          foreignField: '_id',
+          as: 'workdetails'
+        }
+      },
+      { $unwind: { path: '$workdetails', preserveNullAndEmptyArrays: true } },
+      {
+        $project: {
+          'Job_offer': 1, // Explicitly include Job_offer
+          'CandidateDetails.name': 1, // Example of included fields
+          'CandidateDetails.email': 1,
+          'workdetails': 1, // Include workdetails
+          'CandidateDetails.password': 0, // Exclude sensitive info
+          'CandidateDetails.__v': 0 // Exclude version field
+        }
+      }
+    ]);
+
+    if (data && data.length > 0) {
+      const baseUrl = `${req.protocol}://${req.get('host')}`;
+
+      const updatedData = data.map((company) => {
+        return {
+          ...company,
+          resumeUrl: company.workdetails?.resume
+            ? `${baseUrl}/${company.workdetails.resume.replace(/\\/g, '/')}`
+            : null,
+        };
+      });
+
+      return res.status(200).json(updatedData);
+    } else {
+      return res.status(404).json({ message: "No shortlisted applicants found" });
+    }
+
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ error: "Internal server error" });
+  }
+};

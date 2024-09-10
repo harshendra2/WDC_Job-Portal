@@ -23,11 +23,11 @@ const companyRegistration = Joi.object({
 const OnboardRegistration = Joi.object({
   email: Joi.string().email().required(),
   password: Joi.string().min(6).required(),
-  confirmpassword: Joi.string()
+  setpassword: Joi.string()
     .min(6)
     .required()
     .valid(Joi.ref("password"))
-    .messages({ "any.only": "Password and confirm password do not match" }),
+    .messages({ "any.only": "Password and set password do not match" }),
   company_name: Joi.string().min(3).required(),
   mobile: Joi.number().min(10).required(),
   location: Joi.string().required(),
@@ -102,7 +102,7 @@ exports.getOTP = async (req, res) => {
     const message = await client.messages.create({
       body: `Dear user, your DI Data Bank verification code is ${OTP}. Please use this code to complete your registration or login process. This code is valid for the next 10 minutes. Do not share this code with anyone for security reasons.`,
       to: mobile,
-      from: "+91 7736408809",
+      from: "+91 9130408935",
     });
 
     if (message) {
@@ -117,17 +117,18 @@ exports.getOTP = async (req, res) => {
         });
     }
   } catch (error) {
+    console.log(error);
     return res.status(500).json({ error: "Internal Server Error" });
   }
 };
 
 exports.Registration = async (req, res) => {
-  const { email, password, company_name, mobile, location, confirmpassword } =
+  const { email, password, company_name, mobile, location, setpassword } =
     req.body;
   const { error } = OnboardRegistration.validate({
     email,
     password,
-    confirmpassword,
+    setpassword,
     company_name,
     mobile,
     location,
@@ -369,23 +370,35 @@ exports.NewPassowrd = async (req, res) => {
   }
 
   try {
-    const validAdmin = await company.findOne({ email });
-    if (!validAdmin) {
-      return res
-        .status(401)
-        .json({ status: 401, message: "User does not exist" });
+
+    const [existedCompany, existedUser] = await Promise.all([
+      company.findOne({ email }).lean(),
+      basic_details.findOne({ email }).lean()
+    ]);
+    if (!existedCompany && !existedUser) {
+      return res.status(404).json({ status: 404, message: "Company or User does not exist" });
     }
 
     const newPass = await bcrypt.hash(password, 12);
 
-    validAdmin.password = newPass;
-    await validAdmin.save();
-
-    return res
-      .status(201)
-      .json({ status: 201, message: "Password updated successfully" });
+    if(existedCompany){
+      existedCompany.password = newPass;
+      await existedCompany.save();
+  
+      return res
+        .status(201)
+        .json({ status: 201, message: "Password updated successfully" });
+    }
+    if(existedUser){
+      existedUser.password = newPass;
+      await existedUser.save();
+  
+      return res
+        .status(201)
+        .json({ status: 201, message: "Password updated successfully" });
+    }
   } catch (error) {
-    console.error("Internal Server Error:", error);
+  
     return res.status(500).json({ error: "Internal Server Error" });
   }
 };

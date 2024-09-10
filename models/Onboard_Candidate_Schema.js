@@ -27,6 +27,10 @@ const CandidateShema=new mongoose.Schema({
     summary:{
         type:String
     },
+    isRead:{
+        type:Boolean,
+        default:false
+    },
     message:{
         type:String
     },

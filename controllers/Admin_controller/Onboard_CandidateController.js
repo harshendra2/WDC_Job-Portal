@@ -145,7 +145,7 @@ const OnboardCandidate = Joi.object({
       if (!req.file) {
         return res.status(400).json({ error: "Please upload a file" });
       }
-      const Candidatedata={designation,company_name,industry,current_ctc,aspiring_position,work_experience,current_report,last_reporting,career_highlight,recognation,functions,preferred_location,current_location,resume:req.file.filename};
+      const Candidatedata={designation,company_name,industry,current_ctc,aspiring_position,work_experience,current_report,last_reporting,career_highlight,recognation,functions,preferred_location,current_location,resume:req.file.path};
       const newWorkDetails = new work_details(Candidatedata);
       const savedWorkDetails = await newWorkDetails.save();
           
@@ -459,7 +459,7 @@ const OnboardCandidate = Joi.object({
         return res.status(400).json({ error: "Please upload a file" });
       }
       const candidateData = {
-        designation,company_name,industry,current_ctc,aspiring_position,work_experience,current_report,last_reporting,career_highlight,recognation,functions,preferred_location,current_location,resume:req.file.filename
+        designation,company_name,industry,current_ctc,aspiring_position,work_experience,current_report,last_reporting,career_highlight,recognation,functions,preferred_location,current_location,resume:req.file.path
       };
   
       const updatedData = await work_details.findByIdAndUpdate(id, candidateData, { new: true });

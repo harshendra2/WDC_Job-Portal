@@ -4,4 +4,5 @@ const controller=require('../../controllers/Company_Controller/SideBar_Controlle
 
 router.get('/company/profile_status/:id',controller.CompanyProfileStatus);
 
+
 module.exports=router;
