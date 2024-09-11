@@ -6,5 +6,9 @@ router.get('/company/get_appliedcandidate/:id',controller.getAllAppliedCandidate
 router.get('/company/get_candidatedetails/:userId',controller.getCandidateDetails);
 //search Features
 router.get('/company/get_searchcandiate/:id',controller.KeywordSearchCandidate);
+//Download Email
+router.post('/company/download_email/:companyId',controller.DownloadMultipleEmailId);
+//Download Resume
+router.post('/company/download_resume/:companyId',controller.DownloadMultipleResume);
 
 module.exports=router;

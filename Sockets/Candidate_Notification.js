@@ -1,23 +1,23 @@
-const { getAllnotificatio, ViewDetails } = require('../controllers/Company_Controller/Notification_controller');
+const { getAllnotificatio, ViewDetails } = require('../controllers/Candidate_Controller/Notification_controller');
 
-const companyNotification = (io) => {
+const candidateNotification = (io) => {
     io.on("connection", (socket) => {
-        console.log("notification connected")
+        console.log("candidate notification is connected")
 
         const loadNotification = async () => {
             try {
                 const Notification = await getAllnotificatio ()
-                socket.emit('notification', Notification)
+                socket.emit('companynotification', Notification)
             } catch (err) {
                 console.log(err)
             }
         }
         loadNotification()
 
-        socket.on('viewnotification', async (userId) => {
+        socket.on('companyviewnotification', async (userId) => {
             try {
                 const Viewed = await ViewDetails(userId)
-                io.emit('view', Viewed)
+                io.emit('companyview', Viewed)
             } catch (err) {
                 console.log(err)
             }
@@ -29,4 +29,4 @@ const companyNotification = (io) => {
     })
 }
 
-module.exports = companyNotification
+module.exports = candidateNotification

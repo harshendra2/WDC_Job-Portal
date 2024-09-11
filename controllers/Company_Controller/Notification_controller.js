@@ -18,14 +18,16 @@ exports.getAllnotificatio=async()=>{
     }
 }
 
-exports.ViewDetails=async(req,res)=>{
-    const {userId}=req.params;
+exports.ViewDetails=async(arg)=>{
+    console.log("controller",arg)
     try{
-       const data=await candidate.findByIdAndUpdate(userId,{isRead:true})
-       if(data){
-        return res.status(200).json({message:"Candidate details viewed"});
-       }
-
+       const data=await candidate.findByIdAndUpdate(arg,{isRead:true}).populate('basic_details')
+       .populate('education_details')
+       .populate('work_details')
+       .populate('personal_details');
+      if(data){
+        return data ||[]
+      }
     }catch(error){
         return res.status(500).json({error:"Internal Server Error"});
     }

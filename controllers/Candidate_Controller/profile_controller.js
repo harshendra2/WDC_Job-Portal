@@ -145,7 +145,6 @@ exports.getProfilePercentageStatus = async (req, res) => {
 
       return res.status(201).json({ message: "Work details added successfully", work_details: savedWorkDetails });
       } else {
-        console.log("this code is working")
         const updatedWorkDetails = await work_details.findByIdAndUpdate(
           candidates.work_details._id,
           { $push: { Experience: workDetailsData } }, 

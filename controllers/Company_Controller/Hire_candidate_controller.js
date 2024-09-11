@@ -1,4 +1,8 @@
 const mongoose=require("mongoose");
+const { createObjectCsvStringifier } = require('csv-writer');
+const JSZip = require('jszip');
+const path = require('path');
+const fs = require('fs');
 const CompanyJob=require('../../models/JobSchema');
 const candidate=require('../../models/Onboard_Candidate_Schema');
 
@@ -274,3 +278,113 @@ const {job_profile,experience,location,skill,qalification}=req.body
     }
 };
 
+exports.DownloadMultipleEmailId = async (req, res) => {
+    const { companyId } = req.params;
+    const { selectedCandidates } = req.body;
+
+    try {
+        const objectId = new mongoose.Types.ObjectId(companyId);
+
+        const data = await CompanyJob.aggregate([
+            { $match: { company_id: objectId } },
+            { $unwind: '$applied_candidates' }, 
+            {
+                $lookup: {
+                    from: 'candidates',
+                    localField: 'applied_candidates.candidate_id',
+                    foreignField: '_id',
+                    as: 'candidateDetails'
+                }
+            },
+            { $match: { 'candidateDetails._id': { $in: selectedCandidates.map(id => new mongoose.Types.ObjectId(id)) } } },
+            { $unwind: '$candidateDetails' },
+            {
+                $lookup: {
+                    from: 'candidate_basic_details',
+                    localField: 'candidateDetails.basic_details',
+                    foreignField: '_id',
+                    as: 'basicDetails'
+                }
+            },
+            { $unwind: '$basicDetails' }
+        ]).exec();
+
+        if (!data || data.length === 0) {
+            return res.status(404).json({ error: 'No candidates found' });
+        }
+
+        const uniqueEmails = [...new Set(data.map(candidate => candidate.basicDetails.email))];
+
+        const csvHeader = "Email\n";
+        const csvContent = uniqueEmails.join('\n');
+        const csvData = csvHeader + csvContent;
+
+        res.header('Content-Type', 'text/csv');
+        res.attachment('selected_emails.csv');
+        res.send(csvData);
+
+    } catch (error) {
+        return res.status(500).json({ error: 'Internal server error' });
+    }
+};
+
+exports.DownloadMultipleResume=async(req,res)=>{
+    const { companyId } = req.params;
+    const { selectedCandidates } = req.body;
+    try{
+        const objectId = new mongoose.Types.ObjectId(companyId);
+
+        const data = await CompanyJob.aggregate([
+            { $match: { company_id: objectId } },
+            { $unwind: '$applied_candidates' },
+            {
+                $lookup: {
+                    from: 'candidates',
+                    localField: 'applied_candidates.candidate_id',
+                    foreignField: '_id',
+                    as: 'candidateDetails'
+                }
+            },
+            { $match: { 'candidateDetails._id': { $in: selectedCandidates.map(id => new mongoose.Types.ObjectId(id)) } } },
+            { $unwind: '$candidateDetails' },
+            {
+                $lookup: {
+                    from: 'candidate_basic_details',
+                    localField: 'candidateDetails.basic_details',
+                    foreignField: '_id',
+                    as: 'basicDetails'
+                }
+            },
+            { $unwind: '$basicDetails' }
+        ]).exec();
+
+        if (!data || data.length === 0) {
+            return res.status(404).json({ error: 'No candidates found' });
+        }
+
+        // Collect resume URLs and email
+        const resumes = data.map(candidate => ({
+            email: candidate.basicDetails.email,
+            resumeUrl: candidate.basicDetails.resumeUrl // Assuming resumeUrl is stored here
+        }));
+
+        // Create a zip file containing resumes
+        const zip = new JSZip();
+        for (const resume of resumes) {
+            if (resume.resumeUrl) {
+                const fileName = path.basename(resume.resumeUrl); // Get file name from URL
+                const fileContent = await fs.promises.readFile(path.join(__dirname, '../resumes', fileName)); // Adjust path as needed
+                zip.file(fileName, fileContent);
+            }
+        }
+
+        const zipContent = await zip.generateAsync({ type: 'nodebuffer' });
+
+        res.header('Content-Type', 'application/zip');
+        res.attachment('selected_resumes.zip');
+        res.send(zipContent);
+
+    }catch(error){
+        return res.status(500).json({error:"Internal server error"});
+    }
+}

@@ -95,10 +95,35 @@ const CompanySchema = new Schema({
     type:Number,
     default:0
   },
+  isRead:{
+    type:Boolean,
+    default:false
+  },
   createdAt: {
     type: Date,
     default: Date.now,
   },
+  verified_batch:[
+  {
+    batch_name: {
+      type: String,
+      required: true
+    },
+    price: {
+      type: Number,
+      required: true
+    },
+    orderId:{
+     type:Number
+    },
+    ExpireDate:{
+      type: Date
+    },
+    Date:{
+      type:Date,
+      default: Date.now,
+    }   
+  }]
 });
 
 // Method to generate auth token

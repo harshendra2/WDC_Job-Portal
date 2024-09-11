@@ -9,6 +9,7 @@ require('./SubscriptionExpire/subscriptionExpiry');
 //import Sockets Files
 const chatSocket = require('./Sockets/chatSockets');
 const companyNotification=require('./Sockets/Company_Notification');
+const candidateNotification=require('./Sockets/Candidate_Notification');
 
 
 const router = require("./Routes/Admin_Panel/admin_routes");
@@ -80,5 +81,6 @@ const io = require("socket.io")(server, {
 
 chatSocket(io);
 companyNotification(io);
+candidateNotification(io)
 
 
