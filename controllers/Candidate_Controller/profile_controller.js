@@ -112,8 +112,8 @@ exports.getProfilePercentageStatus = async (req, res) => {
   
 
   exports.AddSomeWorkexperience=async(req,res)=>{
-    const {id}=req.params;
-    const {designation,employee_type,companyName,location,location_type,reporting_structure,current_workingStatus,notice_period,negotiation_day,start_date,end_date}=req.body;
+    const {userId}=req.params;
+    const {designation,employee_type,companyName,location,location_type,reporting_structure,current_workingStatus,notice_period,negotiation_day,start_date,end_date,End_posistion,CTC}=req.body;
 
     const { error } = WorkExperience.validate({designation,employee_type,companyName,location,location_type,reporting_structure,current_workingStatus,notice_period,negotiation_day});
   if (error) {
@@ -121,34 +121,41 @@ exports.getProfilePercentageStatus = async (req, res) => {
   }
 
     try{
-      const updatedCandidate = await candidate.findByIdAndUpdate(
-        id,
-        {
-          $addToSet: {
-            experience_Details: {
-              designation,
-              employee_type,
-              companyName,
-              location,
-              location_type,
-              reporting_structure,
-              current_workingStatus,
-              notice_period,
-              negotiation_day,
-              start_date,
-              end_date,
-            },
-          },
-        },
-        { new: true }
-      );
+      if (!mongoose.Types.ObjectId.isValid(userId)) {
+        return res.status(400).json({ error: 'Invalid candidate ID' });
+      }
+
+      const workDetailsData = {
+        designation,employee_type,companyName,location,location_type,reporting_structure,current_workingStatus,notice_period,negotiation_day,start_date,end_date,End_posistion,CTC
+      };
   
-      if (updatedCandidate) {
-        return res.status(200).json({ message: "New experience added successfully" });
+      const candidates = await candidate.findById(userId).populate('work_details');
+  
+      if (!candidates) {
+        return res.status(404).json({ error: "Candidate not found" });
+      }
+  
+      if (!candidates.work_details) {
+        const newWorkDetails = new work_details();  
+      newWorkDetails.Experience.push(workDetailsData); 
+      const savedWorkDetails = await newWorkDetails.save(); 
+
+      candidates.work_details = savedWorkDetails._id;
+      await candidate.save(); 
+
+      return res.status(201).json({ message: "Work details added successfully", work_details: savedWorkDetails });
       } else {
-        return res.status(400).json({ error: "Failed to add new experience" });
+        console.log("this code is working")
+        const updatedWorkDetails = await work_details.findByIdAndUpdate(
+          candidates.work_details._id,
+          { $push: { Experience: workDetailsData } }, 
+          { new: true }
+        );
+  
+        return res.status(200).json({ message: "Work experience added successfully", work_details: updatedWorkDetails });
       }
     }catch(error){
+      console.log(error);
       return res.status(500).json({error:"Internal server error"});
     }
   }
@@ -157,12 +164,12 @@ exports.getProfilePercentageStatus = async (req, res) => {
     const { user_id, exp_id } = req.params;
     
     try {
-      const candidateData = await candidate.findById(user_id);
+      const candidateData = await candidate.findById(user_id).populate('work_details')
       if (!candidateData) {
         return res.status(400).json({ error: "Candidate not available" });
       }
 
-      const expData = candidateData.experience_Details.find(exp => exp._id.toString() === exp_id);
+      const expData = candidateData?.work_details?.Experience.find(exp => exp._id.toString() === exp_id);
       if (!expData) {
         return res.status(404).json({ error: "Experience not found" });
       }
@@ -176,7 +183,7 @@ exports.getProfilePercentageStatus = async (req, res) => {
 
   exports.EditExp=async(req,res)=>{
     const {user_id,exp_id}=req.params;
-    const {designation,employee_type,companyName,location,location_type,reporting_structure,current_workingStatus,notice_period,negotiation_day,start_date,end_date}=req.body;
+    const {designation,employee_type,companyName,location,location_type,reporting_structure,current_workingStatus,notice_period,negotiation_day,start_date,end_date,End_posistion,CTC}=req.body;
 
     const { error } = WorkExperience.validate({designation,employee_type,companyName,location,location_type,reporting_structure,current_workingStatus,notice_period,negotiation_day});
   if (error) {
@@ -184,26 +191,30 @@ exports.getProfilePercentageStatus = async (req, res) => {
   }
     try{
 
-      const updatedCandidate = await candidate.findOneAndUpdate(
-        { _id: user_id, 'experience_Details._id': exp_id },
+      const candidate=await await candidate.findById(user_id);
+
+      const updatedCandidate = await work_details.findOneAndUpdate(
+        { _id:candidate.work_details, 'Experience._id': exp_id },
         {
           $set: {
-            'experience_Details.$.designation': designation,
-            'experience_Details.$.employee_type': employee_type,
-            'experience_Details.$.companyName': companyName,
-            'experience_Details.$.location': location,
-            'experience_Details.$.location_type': location_type,
-            'experience_Details.$.reporting_structure': reporting_structure,
-            'experience_Details.$.current_workingStatus': current_workingStatus,
-            'experience_Details.$.notice_period': notice_period,
-            'experience_Details.$.negotiation_day': negotiation_day,
-            'experience_Details.$.start_date': start_date,
-            'experience_Details.$.end_date': end_date,
+            'Experience.$.designation': designation,
+            'Experience.$.employee_type': employee_type,
+            'Experience.$.companyName': companyName,
+            'Experience.$.location': location,
+            'Experience.$.location_type': location_type,
+            'Experience.$.reporting_structure': reporting_structure,
+            'Experience.$.current_workingStatus': current_workingStatus,
+            'Experience.$.notice_period': notice_period,
+            'Experience.$.negotiation_day': negotiation_day,
+            'Experience.$.start_date': start_date,
+            'Experience.$.end_date': end_date,
+            'Experience.$.End_posistion': End_posistion,
+            'Experience.$.CTC':CTC,
           },
         },
         { new: true }
       );
-  
+
       if (updatedCandidate) {
         return res.status(200).json({ message: "Experience edited successfully" });
       } else {
@@ -220,10 +231,14 @@ exports.getProfilePercentageStatus = async (req, res) => {
     const {work_id,user_id}=req.params;
     try{
       const candidateData = await candidate.findOneAndUpdate(
-        { _id: user_id },
-        { $pull: { experience_Details: { _id: work_id } } },
-        { new: true } 
+        { _id: user_id }
       );
+
+      const workDetails=await work_details.findOneAndUpdate(
+        { _id: candidateData?.work_details },
+        { $pull: { Experience: { _id: work_id } } },
+        { new: true } 
+      )
   
       if (!candidateData) {
         return res.status(404).json({ error: "Candidate or work detail not found" });

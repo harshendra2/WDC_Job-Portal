@@ -370,38 +370,34 @@ exports.NewPassowrd = async (req, res) => {
   }
 
   try {
-
     const [existedCompany, existedUser] = await Promise.all([
-      company.findOne({ email }).lean(),
-      basic_details.findOne({ email }).lean()
+      company.findOne({ email }),
+      basic_details.findOne({ email })
     ]);
     if (!existedCompany && !existedUser) {
       return res.status(404).json({ status: 404, message: "Company or User does not exist" });
     }
 
     const newPass = await bcrypt.hash(password, 12);
-
-    if(existedCompany){
+    if (existedCompany) {
       existedCompany.password = newPass;
       await existedCompany.save();
-  
-      return res
-        .status(201)
-        .json({ status: 201, message: "Password updated successfully" });
+
+      return res.status(201).json({ status: 200, message: "Password updated successfully" });
     }
-    if(existedUser){
+
+    if (existedUser) {
       existedUser.password = newPass;
-      await existedUser.save();
-  
-      return res
-        .status(201)
-        .json({ status: 201, message: "Password updated successfully" });
+      await existedUser.save(); 
+
+      return res.status(201).json({ status: 200, message: "Password updated successfully" });
     }
   } catch (error) {
-  
     return res.status(500).json({ error: "Internal Server Error" });
   }
 };
+
+
 
 exports.CompanyLogOut=async(req,res)=>{
   const {email}=req.body;

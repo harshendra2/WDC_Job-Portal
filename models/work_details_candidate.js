@@ -11,9 +11,6 @@ const work_details_candidate=new mongoose.Schema({
      industry:{
         type:String
     },
-     current_ctc:{
-        type:Number
-    },
     aspiring_position:{
       type:String
     },
@@ -52,20 +49,35 @@ const work_details_candidate=new mongoose.Schema({
           designation:{
             type:String
           },
-          company_name:{
+          companyName:{
             type:String
           },
-          work_type:{
+          CTC:{
+            type:Number
+          },
+          location:{
             type:String
           },
-          joining_date:{
+          location_type:{
+            type:String
+          },
+          reporting_structure:{
+            type:String
+          },
+          current_workingStatus:{
+            type: mongoose.Schema.Types.Mixed, 
+          },
+          notice_period:{
+            type:Number
+          },
+          negotiation_day:{
+            type:Number
+          },
+          start_date:{
             type:Date
           },
-          last_date:{
-            type:Date
-          },
-          reporting:{
-            type:String
+          End_posistion:{
+            type:Boolean
           },
           reliving_letter:{
             type:String

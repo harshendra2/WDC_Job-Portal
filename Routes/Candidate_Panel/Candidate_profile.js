@@ -5,7 +5,7 @@ const controller=require('../../controllers/Candidate_Controller/profile_control
 
 router.get('/candidate/profile/:id',controller.getProfilePercentageStatus);
 //add some work experience
- router.put('/candidate/profile/experience/:id',controller.AddSomeWorkexperience);
+ router.put('/candidate/profile/experience/:userId',controller.AddSomeWorkexperience);
  router.get('/candidate/profile/get_single/exp/:user_id/:exp_id',controller.getSingleWorkExp);
  router.put('/candidate/profile/edit_exp/:user_id/:exp_id',controller.EditExp);
  router.delete('/candidate/profile/delete_work/:work_id/:user_id',controller.DeleteWorkDetails);

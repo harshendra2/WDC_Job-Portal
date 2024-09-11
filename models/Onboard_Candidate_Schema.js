@@ -38,41 +38,41 @@ const CandidateShema=new mongoose.Schema({
         type: Date,
         default: Date.now
       },
-      experience_Details:[{
-        designation:{
-            type:String
-        },
-        employee_type:{
-            type:String
-        },
-        companyName:{
-            type:String
-        },
-        location:{
-            type:String
-        },
-        location_type:{
-            type:String
-        },
-        reporting_structure:{
-            type:String
-        },
-        notice_period:{
-            type:Number
-        },
-        negotiation_day:{
-            type:Number
-        },
-        start_date:{
-            type:Date
-        },
-        end_date:{
-            type: mongoose.Schema.Types.Mixed
-        },
-        current_position:{
-            type:Boolean
-        }
-      }]
+    //   experience_Details:[{
+    //     designation:{
+    //         type:String
+    //     },
+    //     employee_type:{
+    //         type:String
+    //     },
+    //     companyName:{
+    //         type:String
+    //     },
+    //     location:{
+    //         type:String
+    //     },
+    //     location_type:{
+    //         type:String
+    //     },
+    //     reporting_structure:{
+    //         type:String
+    //     },
+    //     notice_period:{
+    //         type:Number
+    //     },
+    //     negotiation_day:{
+    //         type:Number
+    //     },
+    //     start_date:{
+    //         type:Date
+    //     },
+    //     end_date:{
+    //         type: mongoose.Schema.Types.Mixed
+    //     },
+    //     current_position:{
+    //         type:Boolean
+    //     }
+    //   }]
     
 })
 
