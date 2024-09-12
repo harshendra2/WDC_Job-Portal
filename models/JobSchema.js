@@ -139,21 +139,12 @@ const CompanyJobSchema = new mongoose.Schema({
   skills: {
     type:Array
   },
-  Benifits:{
-  type:Array
-  },
   education:{
     type:String,
     required:true
   },
   description:{
     type:String
-  },
-  responsibility:{
-  type:Array
-  },
-  Requirements:{
-  type:Array
   },
   createdDate:{
     type:Date,

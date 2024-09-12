@@ -6,6 +6,7 @@ const fs = require('fs');
 const axios=require('axios')
 const CompanyJob=require('../../models/JobSchema');
 const candidate=require('../../models/Onboard_Candidate_Schema');
+const CompanySubscription=require('../../models/Company_SubscriptionSchema');
 
 exports.getAllAppliedCandidate = async (req, res) => {
     const { id } = req.params;
@@ -444,4 +445,51 @@ function extractGoogleDriveFileId(url) {
     const regex = /\/d\/(.*?)\//;
     const match = url.match(regex);
     return match ? match[1] : null;
+}
+
+exports.getSubscriptionCountStatus=async(req,res)=>{
+    const {companyId}=req.params;
+    try{
+        const objectId = new mongoose.Types.ObjectId(companyId);
+
+        const [subscriptionData, jobData] = await Promise.all([
+          CompanySubscription.aggregate([
+            { $match: { company_id: objectId, expiresAt: { $gte: new Date() } } },
+            {
+              $lookup: {
+                from: "subscriptionplanes",
+                localField: "subscription_id",
+                foreignField: "_id",
+                as: "AdminSubscription",
+              },
+            },
+          ]),
+          CompanyJob.find({ company_id: objectId }),
+        ]);
+        if (subscriptionData && subscriptionData.length > 0) {
+          const formattedSubscriptionData = subscriptionData.map((subscription) => {
+            
+            if (
+              Array.isArray(subscription.topUp) &&
+              subscription.topUp.length > 0
+            ) {
+              subscription.topUp = subscription.topUp.map((topUp) => {
+                
+                return topUp;
+              });
+            }
+    
+            return subscription;
+          });
+          
+          return res.status(200).json({
+            subscriptionData: formattedSubscriptionData
+          });
+        } else {
+          returnres.status(404).json({ error: "No subscription data found" });
+        }
+    }catch(error){
+        console.log(error);
+        return res.status(500).json({error:"Internal server error"});
+    }
 }

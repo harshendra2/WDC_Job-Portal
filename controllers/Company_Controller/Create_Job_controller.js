@@ -84,9 +84,21 @@ const temp = await CompanyJob.aggregate([{$match:{company_id:objectId}},
     }
 }
 
+exports.GetSuggestionJobDescription=async(req,res)=>{
+  try{
+    const jobdescription=await CompanyJob.aggregate([{$project:{description:1,_id:0}}]);
+    if(jobdescription){
+      return res.status(200).send(jobdescription);
+    }
+
+  }catch(error){
+    return res.status(500).json({error:"Internal server error"});
+  }
+}
+
 exports.CreateNewJob = async (req, res) => {
     const { id } = req.params;
-    const {job_title,company_name,industry,salary,experience,location,job_type,work_type,skills,education,description,Benifits,responsibility,Requirements} = req.body;
+    const {job_title,company_name,industry,salary,experience,location,job_type,work_type,skills,education,description} = req.body;
 
     try {
         const objectId = new mongoose.Types.ObjectId(id); 
@@ -113,10 +125,7 @@ exports.CreateNewJob = async (req, res) => {
             skills,
             education,
             description,
-            company_id: id,
-            Benifits,
-            responsibility,
-            Requirements
+            company_id: id
         });
 
         await jobCreated.save();
@@ -157,15 +166,29 @@ exports.RestartJobPosted = async (req, res) => {
     if (!job) {
       return res.status(404).json({ error: "Job not found" });
     }
-    const updatedStatus = await CompanyJob.findByIdAndUpdate(
-      jobId,
-      { status: !job.status }, 
-      { new: true } 
-    );
 
-    if (updatedStatus) {
-      return res.status(200).json({ message: "Job status updated", status: updatedStatus.status });
+    let updatedStatus;
+
+    if (job.status === true) {
+      updatedStatus = await CompanyJob.findByIdAndUpdate(
+        jobId,
+        { status: false },
+        { new: true }
+      );
+    } else {
+      updatedStatus = await CompanyJob.findByIdAndUpdate(
+        jobId,
+        { status: true, createdDate: new Date() },
+        { new: true }
+      );
     }
+    if (updatedStatus) {
+      return res.status(200).json({
+        message: "Job status updated",
+        status: updatedStatus.status,
+      });
+    }
+
   } catch (error) {
     return res.status(500).json({ error: "Internal server error" });
   }
@@ -492,12 +515,12 @@ exports.GetUserDetailswithofferStatus = async (req, res) => {
 
     const data = await CompanyJob.aggregate([
       { $match: { _id: jobIds } }, 
-      { $unwind: '$Interviewed' },
-      { $match: { 'Interviewed.candidate_id': userIds } },
+      { $unwind: '$Job_offer' },
+      { $match: { 'Job_offer.candidate_id': userIds } },
       {
         $lookup: {
           from: 'candidates',
-          localField: 'Interviewed.candidate_id',
+          localField: 'Job_offer.candidate_id',
           foreignField: '_id',
           as: 'CandidateDetails'
         }
@@ -518,8 +541,6 @@ exports.GetUserDetailswithofferStatus = async (req, res) => {
           'CandidateDetails.name': 1, // Example of included fields
           'CandidateDetails.email': 1,
           'workdetails': 1, // Include workdetails
-          'CandidateDetails.password': 0, // Exclude sensitive info
-          'CandidateDetails.__v': 0 // Exclude version field
         }
       }
     ]);

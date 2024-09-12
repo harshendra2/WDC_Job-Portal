@@ -4,6 +4,7 @@ const controller=require("../../controllers/Company_Controller/Create_Job_contro
 const {upload}=require('../../middleware/multer');
 
 router.get('/company/job_status/:company_id',controller.GetCreatedJobStatus);
+router.get('/company/job/suggestion_description',controller.GetSuggestionJobDescription);
 router.post('/company/create_job/:id',controller.CreateNewJob);
 router.delete('/company/Job_post/:jobId',controller.deleteJobPosted);
 router.put('/company/job_Restart/:jobId',controller.RestartJobPosted);
@@ -20,7 +21,7 @@ router.put('/company/add_feedback/:jobId/:userId',controller.AddUserFeedBack);
 router.get('/company/get_user_offer/:jobId/:userId',controller.GetUserDetailsForOffer);
 router.put('/company/job_offer/:jobId/:userId',upload.single("file"),controller.OfferJobToCandidate);
 //hire Candidate
-router.get('/company/get_user_detail/hire/:jobId/:userId',controller.GetUserDetailswithofferStatus); // This code is pending
+router.get('/company/get_user_detail/hire/:jobId/:userId',controller.GetUserDetailswithofferStatus); 
 
 
 module.exports=router;

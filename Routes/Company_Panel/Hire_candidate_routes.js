@@ -10,5 +10,6 @@ router.get('/company/get_searchcandiate/:id',controller.KeywordSearchCandidate);
 router.post('/company/download_email/:companyId',controller.DownloadMultipleEmailId);
 //Download Resume
 router.post('/company/download_resume/:companyId',controller.DownloadMultipleResume);
+router.get('/company/subscription_count_status/:companyId',controller.getSubscriptionCountStatus);
 
 module.exports=router;
