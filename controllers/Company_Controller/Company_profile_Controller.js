@@ -9,7 +9,6 @@ const EditCompanyProfile=Joi.object({
   email: Joi.string().email().required(), 
   mobile: Joi.string().pattern(/^[0-9]{10}$/).required(),
   overView: Joi.string().optional(),
-  address: Joi.string().optional(), 
   industry: Joi.string().optional(),
   company_size: Joi.number().integer().min(1).max(10000).optional(),
   GST: Joi.string().pattern(/^[0-9]{15}$/).optional(),
@@ -61,13 +60,13 @@ exports.GetCompanyProfile=async(req,res)=>{
 exports.EditProfile = async (req, res) => {
     const { id } = req.params;
     const {
-        company_name, email, mobile, overView, address, industry,
+        company_name, email, mobile, overView, industry,
         company_size, GST, PAN, website_url, location, contact_email,
         contact_No, headQuater_add
     } = req.body;
 
     
-  const { error } = EditCompanyProfile.validate({ company_name, email, mobile, overView, address, industry,
+  const { error } = EditCompanyProfile.validate({ company_name, email, mobile, overView, industry,
     company_size, GST, PAN, website_url, location, contact_email,
     contact_No, headQuater_add});
   if (error) {
@@ -87,19 +86,19 @@ exports.EditProfile = async (req, res) => {
             panText = panResult.data.text;
         }
 
-        if (gstImage) {
-            const gstResult = await tesseract.recognize(gstImage, 'eng');
-            gstText = gstResult.data.text;
-        }
+        // if (gstImage) {
+        //     const gstResult = await tesseract.recognize(gstImage, 'eng');
+        //     gstText = gstResult.data.text;
+        // }
         const panNumber = extractPAN(panText);
-        const gstNumber = extractGST(gstText);
+        // const gstNumber = extractGST(gstText);
 
         if (panNumber != PAN) {
             return res.status(400).json({ error: "PAN number and PAN image number do not match" });
         }
-        if (gstNumber !=GST) {
-            return res.status(400).json({ error: "GST number and GST image number do not match" });
-        }
+        // if (gstNumber !=GST) {
+        //     return res.status(400).json({ error: "GST number and GST image number do not match" });
+        // }
          const existedEmail=await company.findOne({email});
          if(existedEmail){
           return res.status(400).json({error:"This email Id already existed"});
@@ -110,7 +109,7 @@ exports.EditProfile = async (req, res) => {
          }
 
         const companyData = {
-          company_name, email, mobile, overView, address, industry,
+          company_name, email, mobile, overView, industry,
           company_size, GST, PAN, website_url, location, contact_email,
           contact_No, headQuater_add,GST_verify:false,PAN_verify:false,status:'Processing',message:""
       };
@@ -145,11 +144,11 @@ const extractPAN = (text) => {
 };
 
 // Function to extract GST number from text using regex
-const extractGST = (text) => {
-    const gstRegex = /\d{2}[A-Z]{5}\d{4}[A-Z]{1}[A-Z\d]{1}[Z]{1}[A-Z\d]{1}/;
-    const match = text.match(gstRegex);
-    return match ? match[0] : null;
-};
+// const extractGST = (text) => {
+//     const gstRegex = /\d{2}[A-Z]{5}\d{4}[A-Z]{1}[A-Z\d]{1}[Z]{1}[A-Z\d]{1}/;
+//     const match = text.match(gstRegex);
+//     return match ? match[0] : null;
+// };
 
 
 //Company GST Card Verify

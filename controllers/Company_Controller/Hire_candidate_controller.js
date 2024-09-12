@@ -3,6 +3,7 @@ const { createObjectCsvStringifier } = require('csv-writer');
 const JSZip = require('jszip');
 const path = require('path');
 const fs = require('fs');
+const axios=require('axios')
 const CompanyJob=require('../../models/JobSchema');
 const candidate=require('../../models/Onboard_Candidate_Schema');
 
@@ -10,10 +11,10 @@ exports.getAllAppliedCandidate = async (req, res) => {
     const { id } = req.params;
     try {
         const objectId = new mongoose.Types.ObjectId(id);
-  
+
         const data = await CompanyJob.aggregate([
             { $match: { company_id: objectId } },
-            { $unwind: '$applied_candidates' }, // Unwind the applied candidates array
+            { $unwind: '$applied_candidates' },
             {
                 $lookup: {
                     from: 'candidates',
@@ -31,7 +32,6 @@ exports.getAllAppliedCandidate = async (req, res) => {
                     as: 'basicDetails'
                 }
             },
-            { $unwind: '$basicDetails' },
             {
                 $lookup: {
                     from: 'candidate_personal_details',
@@ -40,7 +40,6 @@ exports.getAllAppliedCandidate = async (req, res) => {
                     as: 'personalDetails'
                 }
             },
-            { $unwind: '$personalDetails' },
             {
                 $lookup: {
                     from: 'candidate_work_details',
@@ -49,7 +48,6 @@ exports.getAllAppliedCandidate = async (req, res) => {
                     as: 'workDetails'
                 }
             },
-            { $unwind: '$workDetails' },
             {
                 $lookup: {
                     from: 'candidate_education_details',
@@ -58,122 +56,156 @@ exports.getAllAppliedCandidate = async (req, res) => {
                     as: 'educationDetails'
                 }
             },
-            // { $unwind: '$educationDetails' }
+            {
+                $group: {
+                    _id: '$candidateDetails._id',
+                    candidateDetails: { $first: '$candidateDetails' },
+                    basicDetails: { $first: '$basicDetails' },
+                    personalDetails: { $first: '$personalDetails' },
+                    workDetails: { $first: '$workDetails' },
+                    educationDetails: { $first: '$educationDetails' },
+                }
+            }
         ]);
-       console.log(data);
+
         if (data && data.length > 0) {
             const baseUrl = `${req.protocol}://${req.get('host')}`;
-            const isGoogleDriveLink = (url) => {
-                return url && (url.includes('drive.google.com') || url.includes('docs.google.com'));
-            };
+            const isGoogleDriveLink = (url) => url && (url.includes('drive.google.com') || url.includes('docs.google.com'));
 
             const updatedData = data.map(item => {
-                const resumeUrl = item.workDetails.resume
+                const resumeUrl = item.workDetails?.resume
                     ? (isGoogleDriveLink(item.workDetails.resume) ? item.workDetails.resume : `${baseUrl}/${item.workDetails.resume.replace(/\\/g, '/')}`)
                     : null;
-  
+
+                const profileUrl = item.candidateDetails?.profile
+                    ? (isGoogleDriveLink(item.candidateDetails.profile) ? item.candidateDetails.profile : `${baseUrl}/${item.candidateDetails.profile.replace(/\\/g, '/')}`)
+                    : null;
+
                 return {
                     ...item,
                     workDetails: {
                         ...item.workDetails,
                         resume: resumeUrl
+                    },
+                    candidateDetails: {
+                        ...item.candidateDetails,
+                        profile: profileUrl
                     }
                 };
             });
-  
+
             return res.status(200).json(updatedData);
         } else {
             return res.status(404).json({ error: "No candidates found for this company" });
         }
     } catch (error) {
-        console.error(error);
         return res.status(500).json({ error: "Internal server error" });
     }
-  };
+};
+
+
+
+
 
 exports.getCandidateDetails = async (req, res) => {
-  const { id, userId } = req.params;
-  try {
-      // Validate the candidate ID
+    const { userId } = req.params;
+    try {
       if (!mongoose.Types.ObjectId.isValid(userId)) {
-          return res.status(400).json({ error: 'Invalid candidate ID' });
+        return res.status(400).json({ error: 'Invalid candidate ID' });
       }
-
+  
       const objectId = new mongoose.Types.ObjectId(userId);
       const data = await candidate.aggregate([
-          { $match: { _id: objectId } },
-          {
-              $lookup: {
-                  from: 'candidate_basic_details',
-                  localField: 'basic_details',
-                  foreignField: '_id',
-                  as: 'basicDetails'
-              }
-          },
-          { $unwind: '$basicDetails' },
-          {
-              $lookup: {
-                  from: 'candidate_personal_details',
-                  localField: 'personal_details',
-                  foreignField: '_id',
-                  as: 'personalDetails'
-              }
-          },
-          { $unwind: '$personalDetails' },
-          {
-              $lookup: {
-                  from: 'candidate_work_details',
-                  localField: 'work_details',
-                  foreignField: '_id',
-                  as: 'workDetails'
-              }
-          },
-          { $unwind: '$workDetails' },
-          {
-              $lookup: {
-                  from: 'candidate_education_details',
-                  localField: 'education_details',
-                  foreignField: '_id',
-                  as: 'educationDetails'
-              }
-          },
-          { $unwind: '$educationDetails' }
+        { $match: { _id: objectId } },
+        {
+          $lookup: {
+            from: 'candidate_basic_details',
+            localField: 'basic_details',
+            foreignField: '_id',
+            as: 'basicDetails'
+          }
+        },
+        { $unwind: '$basicDetails' },
+        {
+          $lookup: {
+            from: 'candidate_personal_details',
+            localField: 'personal_details',
+            foreignField: '_id',
+            as: 'personalDetails'
+          }
+        },
+        { $unwind: '$personalDetails' },
+        {
+          $lookup: {
+            from: 'candidate_work_details',
+            localField: 'work_details',
+            foreignField: '_id',
+            as: 'workDetails'
+          }
+        },
+        { $unwind: '$workDetails' },
+        {
+          $lookup: {
+            from: 'candidate_education_details',
+            localField: 'education_details',
+            foreignField: '_id',
+            as: 'educationDetails'
+          }
+        },
+        { $unwind: '$educationDetails' }
       ]);
-
+  
       if (data.length > 0) {
-          const baseUrl = `${req.protocol}://${req.get('host')}`;
+        const baseUrl = `${req.protocol}://${req.get('host')}`;
+        const isGoogleDriveLink = (url) => {
+          return url && (url.includes('drive.google.com') || url.includes('docs.google.com'));
+        };
+  
+        const bindUrlOrPath = (url) => {
+          return isGoogleDriveLink(url)
+            ? url
+            : `${baseUrl}/${url.replace(/\\/g, '/')}`;
+        };
+  
+        const updatedData = data.map(candidate => {
+          const resumeUrl = candidate.workDetails.resume
+            ? bindUrlOrPath(candidate.workDetails.resume)
+            : null;
+  
+          const profileUrl = candidate?.profile
+            ? bindUrlOrPath(candidate?.profile)
+            : null;
 
-          // Helper function to check if a URL is a Google Drive link
-          const isGoogleDriveLink = (url) => {
-              return url && (url.includes('drive.google.com') || url.includes('docs.google.com'));
+  
+          const certificates = candidate.educationDetails.certificates.map(cert => ({
+            ...cert,
+            image: bindUrlOrPath(cert.image)
+          }));
+  
+          return {
+            ...candidate,
+            profile: profileUrl,
+            workDetails: {
+              ...candidate.workDetails,
+              resume: resumeUrl
+            },
+           
+            educationDetails: {
+              ...candidate.educationDetails,
+              certificates
+            }
           };
-
-          // Map over the data to update the Resume URL
-          const updatedData = data.map(candidate => {
-              const resumeUrl = candidate.workDetails.resume
-                  ? (isGoogleDriveLink(candidate.workDetails.resume)
-                      ? candidate.workDetails.resume
-                      : `${baseUrl}/${candidate.workDetails.resume.replace(/\\/g, '/')}`)
-                  : null;
-
-              return {
-                  ...candidate,
-                  workDetails: {
-                      ...candidate.workDetails,
-                      resume: resumeUrl
-                  }
-              };
-          });
-
-          return res.status(200).json(updatedData[0]); 
+        });
+  
+        return res.status(200).json(updatedData[0]);
       } else {
-          return res.status(404).json({ error: "Candidate not found" });
+        return res.status(404).json({ error: "Candidate not found" });
       }
-
-  } catch (error) {
+    } catch (error) {
       return res.status(500).json({ error: "Internal server error" });
-  }
-};
+    }
+  };
+  
 
 
 // Key word Search Features
@@ -328,10 +360,12 @@ exports.DownloadMultipleEmailId = async (req, res) => {
     }
 };
 
-exports.DownloadMultipleResume=async(req,res)=>{
+
+exports.DownloadMultipleResume = async (req, res) => {
     const { companyId } = req.params;
     const { selectedCandidates } = req.body;
-    try{
+
+    try {
         const objectId = new mongoose.Types.ObjectId(companyId);
 
         const data = await CompanyJob.aggregate([
@@ -349,42 +383,65 @@ exports.DownloadMultipleResume=async(req,res)=>{
             { $unwind: '$candidateDetails' },
             {
                 $lookup: {
-                    from: 'candidate_basic_details',
-                    localField: 'candidateDetails.basic_details',
+                    from: 'candidate_work_details',
+                    localField: 'candidateDetails.work_details',
                     foreignField: '_id',
-                    as: 'basicDetails'
+                    as: 'WorkDetails'
                 }
             },
-            { $unwind: '$basicDetails' }
+            { $unwind: '$WorkDetails' }
         ]).exec();
 
         if (!data || data.length === 0) {
             return res.status(404).json({ error: 'No candidates found' });
         }
 
-        // Collect resume URLs and email
         const resumes = data.map(candidate => ({
-            email: candidate.basicDetails.email,
-            resumeUrl: candidate.basicDetails.resumeUrl // Assuming resumeUrl is stored here
+            resumeUrl: candidate.WorkDetails.resume
         }));
 
-        // Create a zip file containing resumes
         const zip = new JSZip();
+
         for (const resume of resumes) {
             if (resume.resumeUrl) {
-                const fileName = path.basename(resume.resumeUrl); // Get file name from URL
-                const fileContent = await fs.promises.readFile(path.join(__dirname, '../resumes', fileName)); // Adjust path as needed
-                zip.file(fileName, fileContent);
+                if (resume.resumeUrl.includes('drive.google.com')) {
+                    const fileId = extractGoogleDriveFileId(resume.resumeUrl);
+                    const downloadUrl = `https://drive.google.com/uc?export=download&id=${fileId}`;
+
+                    try {
+                        const response = await axios.get(downloadUrl, { responseType: 'arraybuffer' });
+                        const fileName = `resume_${fileId}.pdf`;
+                        zip.file(fileName, response.data);
+                    } catch (err) {
+                        console.log(`Failed to download from Google Drive: ${resume.resumeUrl}`);
+                    }
+                } else {
+                    const fileName = path.basename(resume.resumeUrl); 
+                    const filePath = path.join(__dirname, '../../Images', fileName); 
+
+                    if (fs.existsSync(filePath)) {
+                        const fileContent = await fs.promises.readFile(filePath);
+                        zip.file(fileName, fileContent);
+                    } else {
+                        console.log(`File not found: ${filePath}`);
+                    }
+                }
             }
         }
 
         const zipContent = await zip.generateAsync({ type: 'nodebuffer' });
-
         res.header('Content-Type', 'application/zip');
         res.attachment('selected_resumes.zip');
         res.send(zipContent);
 
-    }catch(error){
-        return res.status(500).json({error:"Internal server error"});
+    } catch (error) {
+        console.log(error);
+        return res.status(500).json({ error: 'Internal server error' });
     }
+};
+
+function extractGoogleDriveFileId(url) {
+    const regex = /\/d\/(.*?)\//;
+    const match = url.match(regex);
+    return match ? match[1] : null;
 }

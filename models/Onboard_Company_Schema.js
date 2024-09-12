@@ -17,9 +17,6 @@ const CompanySchema = new Schema({
   overView: {
     type: String,
   },
-  address: {
-    type: String,
-  },
   industry: {
     type: String,
   },
