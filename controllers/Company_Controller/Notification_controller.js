@@ -1,5 +1,7 @@
 const mongoose=require("mongoose");
+const moment=require('moment');
 const candidate=require('../../models/Onboard_Candidate_Schema');
+const Issue=require('../../models/Issue_Schema');
 
 //Chat Session 
 
@@ -29,6 +31,39 @@ exports.ViewDetails=async(arg)=>{
         return data ||[]
       }
     }catch(error){
-        return res.status(500).json({error:"Internal Server Error"});
+        throw error;
+    }
+}
+
+//Issue notification
+exports.getAllIssueNotificatio=async(companyId)=>{
+    try{
+        const companyObjectId = new mongoose.Types.ObjectId(companyId);
+        const notificationData = await Issue.aggregate([
+          { $match: { company_id: companyObjectId, isRead: false,status:'solved'} }
+        ]);
+        const formattedData = notificationData.map(notification => ({
+            ...notification,
+            solvedData: moment(notification.solved_date).fromNow()
+          }));
+      
+          return formattedData || [];
+    }catch(error){
+        throw error;
+    }
+}
+
+exports.ViewIssues=async(companyId)=>{
+    try{
+        const Id = new mongoose.Types.ObjectId(companyId);
+        const updatedNotification = await Issue.updateMany(
+          { company_id: Id, isRead: false },
+          { $set: { isRead: true } } 
+        );
+    
+        return updatedNotification || {};
+
+    }catch(error){
+        throw error;
     }
 }

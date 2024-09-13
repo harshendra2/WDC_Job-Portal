@@ -4,6 +4,6 @@ const controller=require('../../controllers/Company_Controller/Support_controlle
 const { upload } = require("../../middleware/multer");
 
 router.post('/company/add_issue/:id',upload.single('file'),controller.AddNewIssue);
-router.get('/company/get_issue/:id',controller.getAllIssuesClaim);
+router.get('/company/get_issue/:companyId',controller.getAllIssuesClaim);
 
 module.exports=router;

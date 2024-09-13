@@ -8,6 +8,7 @@ router.get('/company/job/suggestion_description',controller.GetSuggestionJobDesc
 router.post('/company/create_job/:id',controller.CreateNewJob);
 router.delete('/company/Job_post/:jobId',controller.deleteJobPosted);
 router.put('/company/job_Restart/:jobId',controller.RestartJobPosted);
+router.put('/company/edit_job/:jobId',controller.EditPostedJob);
 
 // View Single Job application
 router.get('/company/view_job/:jobId',controller.ViewJobListDetails);

@@ -133,7 +133,7 @@ exports.EditProfile = async (req, res) => {
         const companyData = {
           company_name, email, mobile, overView, industry,
           company_size, GST, PAN, website_url, location, contact_email,
-          contact_No, headQuater_add,GST_verify:false,PAN_verify:false,status:'Processing',message:""
+          contact_No, headQuater_add,GST_verify:false,PAN_verify:false,status:'processing',message:""
       };
         if (panImage) {
             companyData.PAN_image = panImage

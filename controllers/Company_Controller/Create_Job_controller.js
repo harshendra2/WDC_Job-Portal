@@ -1,8 +1,22 @@
 const mongoose=require("mongoose");
 const moment = require('moment');
+const Joi=require('joi');
 const CompanyJob=require("../../models/JobSchema");
 const company=require('../../models/Onboard_Company_Schema');
 const companySubscription=require("../../models/Company_SubscriptionSchema");
+
+const EditJobs=Joi.object({
+  job_title: Joi.string().required(),
+  No_openings: Joi.number().required(),
+  industry: Joi.string().required(),
+  salary: Joi.string().required(),
+  experience: Joi.required(),
+  location: Joi.string().required(),
+  job_type: Joi.string().required(),
+  work_type: Joi.string().required(),
+  education:Joi.string().required(),
+  description: Joi.string().min(100).required()
+})
 
 exports.GetCreatedJobStatus=async(req,res)=>{
     const {company_id}=req.params;
@@ -98,7 +112,7 @@ exports.GetSuggestionJobDescription=async(req,res)=>{
 
 exports.CreateNewJob = async (req, res) => {
     const { id } = req.params;
-    const {job_title,company_name,industry,salary,experience,location,job_type,work_type,skills,education,description} = req.body;
+    const {job_title,No_openings,industry,salary,experience,location,job_type,work_type,skills,education,description} = req.body;
 
     try {
         const objectId = new mongoose.Types.ObjectId(id); 
@@ -115,7 +129,7 @@ exports.CreateNewJob = async (req, res) => {
         // Create a new job
         const jobCreated = new CompanyJob({
             job_title,
-            company_name,
+            No_openings,
             industry,
             salary,
             experience,
@@ -193,6 +207,29 @@ exports.RestartJobPosted = async (req, res) => {
     return res.status(500).json({ error: "Internal server error" });
   }
 };
+
+exports.EditPostedJob=async(req,res)=>{
+  const {jobId}=req.params;
+  const {job_title,No_openings,industry,salary,experience,location,job_type,work_type,skills,education,description} = req.body;
+
+  const { error } = EditJobs.validate({job_title,No_openings,industry,salary,experience,location,job_type,work_type,education,description});
+  if (error) {
+    return res.status(400).json({ error: error.details[0].message });
+  }
+  try{
+    const jobData = { job_title, No_openings, industry, salary, experience, location, job_type, work_type, skills, education, description };
+
+    const existedJob = await CompanyJob.findByIdAndUpdate(jobId, jobData, { new: true });
+    
+    if (existedJob) {
+      return res.status(200).json({ message: "Job updated successfully", job: existedJob });
+    } else {
+      return res.status(404).json({ error: "Job not found" });
+    }
+  }catch(error){
+    return res.status(500).json({error:"Internal server error"});
+  }
+}
 
 
 //View Single Job application 

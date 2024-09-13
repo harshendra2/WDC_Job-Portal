@@ -6,7 +6,7 @@ exports.getUnappliedJob = async (req, res) => {
     const { id } = req.params; 
 
     try {
-        const jobs = await CompanyJob.find({});
+        const jobs = await CompanyJob.find({}).populate('')
 
         const unappliedJobs = jobs.filter(job => 
             !job.applied_candidates.some(candidate => 

@@ -28,6 +28,36 @@ exports.getAllSubscriptionPlane=async(req,res)=>{
     }
 }
 
+exports.getAllPaymentMethod=async(req,res)=>{
+    try{
+        const paymentMethods = [
+            {
+              "name": "upi",
+              "display_name": "UPI",
+              "active": true
+            },
+            {
+              "name": "credit_card",
+              "display_name": "Credit Card",
+              "active": true
+            },
+            {
+              "name": "net_banking",
+              "display_name": "Net Banking",
+              "active": true
+            }
+          ];
+        if (paymentMethods) {
+            return res.status(200).json({ paymentMethods: paymentMethods});
+        } else {
+            return res.status(500).json({ error: "Unable to fetch payment methods" });
+        }
+    }catch(error){
+        console.log(error);
+        return res.status(500).json({error:"Internal server error"});
+    }
+}
+
 exports.payment = async (req, res) => {
     const {price,id,mobile,name,email}=req.body;
     if (!price|| !mobile || !name || !email) {
@@ -285,7 +315,7 @@ exports.RenewSubscriptionPlane = async (req, res) => {
 
 
 exports.RenewPlaneVerifyPayment = async (req, res) => {
-    const { orderId, subscriptionId, companyId } = req.body;
+    const { orderId, subscriptionId, companyId,paymentMethod} = req.body;
     try {
         const response = await Cashfree.PGOrderFetchPayment(orderId);
 
@@ -307,6 +337,7 @@ exports.RenewPlaneVerifyPayment = async (req, res) => {
                     existingSubscription.available_candidate = false;
                     existingSubscription.download_email_limit = false;
                     existingSubscription.download_cv_limit = false;
+                    existingSubscription.paymentMethod=paymentMethod;
                     await existingSubscription.save();
                 }
 
@@ -323,6 +354,7 @@ exports.RenewPlaneVerifyPayment = async (req, res) => {
                     download_email_limit: subscriptionData.download_email_limit,
                     download_cv_limit: subscriptionData.download_cv_limit,
                     job_posting: subscriptionData.job_posting,
+                    paymentMethod:paymentMethod,
                     createdDate: new Date(),
                     expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), 
                 });
@@ -443,7 +475,7 @@ exports.TopUpSubscriptionPlane=async(req,res)=>{
 
 
 exports.TopUpPlaneVerifyPayment = async (req, res) => {
-    const { orderId, topupId, companyId } = req.body;
+    const { orderId, topupId, companyId,paymentMethod} = req.body;
 
     try {
         const response = await Cashfree.PGOrderFetchPayment(orderId);
@@ -482,7 +514,8 @@ exports.TopUpPlaneVerifyPayment = async (req, res) => {
                 plane_name: TopupData.plane_name,
                 plane_price: TopupData.plane_price,
                 order_Id: orderId,
-                Date: Date.now()
+                Date: Date.now(),
+                paymentMethods:paymentMethod
             });
             await existingSubscription.save();
 
@@ -559,7 +592,7 @@ exports.EarlySubscriptionplane=async(req,res)=>{
 }
 
 exports.SubscriptionPlaneVerifyPayment = async (req, res) => {
-    const { orderId, sub_id, companyId } = req.body;
+    const { orderId, sub_id, companyId,paymentMethod} = req.body;
     
     try {
         const response = await Cashfree.PGOrderFetchPayment(orderId);
@@ -594,6 +627,7 @@ exports.SubscriptionPlaneVerifyPayment = async (req, res) => {
                 job_posting: subData.job_posting,
                 createdDate: new Date(previousPlan.expiresAt),
                 expiresAt: new Date(newExpirationDate),
+                paymentMethod:paymentMethod
             });
             await newSubscription.save();
 

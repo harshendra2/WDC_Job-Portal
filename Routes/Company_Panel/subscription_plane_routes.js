@@ -3,6 +3,7 @@ const router = new express.Router();
 const controller=require('../../controllers/Company_Controller/Subscription_controller')
 
 router.get('/company/get_allsubscription',controller.getAllSubscriptionPlane);
+router.get('/company/get_payment/method',controller.getAllPaymentMethod);
 router.get('/company/payment',controller.payment);
 router.post('/company/verify',controller.verifyPayment);
 

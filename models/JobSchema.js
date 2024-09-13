@@ -107,9 +107,6 @@ const CompanyJobSchema = new mongoose.Schema({
   job_title: {
     type: String
   },
-  company_name: {
-    type:String
-  },
   industry: {
     type:String,
   },

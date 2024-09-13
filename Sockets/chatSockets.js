@@ -4,15 +4,11 @@ const chatSocket = (io) => {
     io.on("connection", (socket) => {
         console.log("connected")
 
-        const loadMessages = async () => {
-            try {
-                const messages = await getAllMessages()
-                socket.emit('chat', messages)
-            } catch (err) {
-                console.log(err)
-            }
-        }
-        loadMessages()
+                socket.on('getAllMessage',async(IssueId)=>{
+                    const messages = await getAllMessages(IssueId)
+                    socket.emit('chat', messages)
+                })
+           
 
         socket.on('newMessage', async (msg) => {
             try {

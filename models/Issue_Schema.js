@@ -10,12 +10,10 @@ const IssueSchema = new mongoose.Schema({
       ref:'candidate'
   },
   Issue_type: {
-    type: String,
-    required: true
+    type: String
   },
   description: {
-      type:String,
-      required:true
+      type:String
   },
   file: {
     type:String
@@ -27,6 +25,13 @@ const IssueSchema = new mongoose.Schema({
   status:{
     type:String,
     default:"pending"
+  },
+  solved_date:{
+   type:Date
+  },
+  isRead:{
+    type:Boolean,
+    default:false
   }
 });
 

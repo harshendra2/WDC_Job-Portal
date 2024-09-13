@@ -21,13 +21,11 @@ const IssueValidation=Joi.object({
         if (!req.file) {
             return res.status(400).json({ error: "Please upload a file" });
           }
-          // Construct the file URL
-        const fileUrl = `${req.protocol}://${req.get("host")}/Images/${req.file.filename}`;
         const createdData =new IssueSchema({
             Issue_type,
             description,
             company_id:new mongoose.Types.ObjectId(id),
-            file:fileUrl 
+            file:req.file.path
         });
 
         const data = await createdData.save();
@@ -40,9 +38,9 @@ const IssueValidation=Joi.object({
 
 
 exports.getAllIssuesClaim=async(req,res)=>{
-    const {id}=req.params;
+    const {companyId}=req.params;
     try{
-        const data=await IssueSchema.findOne({company_id:id});
+        const data=await IssueSchema.findOne({company_id:companyId}).sort({createdDate:-1})
         if(data){
             return res.status(200).send(data);
         }else{
@@ -58,7 +56,8 @@ exports.getAllIssuesClaim=async(req,res)=>{
 
 exports.getAllMessages=async(Id)=>{
     try{
-     const message=await messageModel.find({Issue_id:Id});
+     const issueId=new mongoose.Types.ObjectId(Id);
+     const message=await messageModel.aggregate([{$match:{Issue_id:issueId}}])
         return message || [];
 
     }catch(error){

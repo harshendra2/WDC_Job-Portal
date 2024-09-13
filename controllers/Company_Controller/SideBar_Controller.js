@@ -49,12 +49,12 @@ exports.CompanyGreenTicks=async(req,res)=>{
 }
 
 exports.GreenTickVerifyPayment = async (req, res) => {
-    const { orderId, green_id, company_id } = req.body;
+    const { orderId, green_id, company_id,paymentMethod} = req.body;
     
     try {
-        // const response = await Cashfree.PGOrderFetchPayment(orderId);
+        const response = await Cashfree.PGOrderFetchPayment(orderId);
 
-        // if (response && response.data && response.data.order_status === 'PAID') {
+        if (response && response.data && response.data.order_status === 'PAID') {
             const subData = await VerifiedBatchPlaneSchema.findById(green_id);
 
             if (!subData) {
@@ -69,7 +69,8 @@ exports.GreenTickVerifyPayment = async (req, res) => {
                       price:subData?.price,
                       ExpireDate:newExpirationDate,
                       Date:new Date(),
-                      orderId:orderId
+                      orderId:orderId,
+                      paymentMethod:paymentMethod
                 }
 
                 const updatedWorkDetails = await company.findByIdAndUpdate(
@@ -83,9 +84,9 @@ exports.GreenTickVerifyPayment = async (req, res) => {
                 paymentData: response.data,
                 updatedCompanyDetails: updatedWorkDetails
             });
-        // } else {
-        //     return res.status(400).json({ error: "Payment not verified or payment failed" });
-        // }
+        } else {
+            return res.status(400).json({ error: "Payment not verified or payment failed" });
+        }
     } catch (error) {
         return res.status(500).json({ error: "Internal server error" });
     }

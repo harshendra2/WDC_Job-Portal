@@ -63,7 +63,7 @@ const CompanySchema = new Schema({
   },
   status: {
     type: String,
-    default: "Processing",
+    default: "processing",
   },
   message: {
     type: String,
@@ -119,7 +119,10 @@ const CompanySchema = new Schema({
     Date:{
       type:Date,
       default: Date.now,
-    }   
+    },
+    paymentMethod:{
+      type:String
+    }  
   }]
 });
 

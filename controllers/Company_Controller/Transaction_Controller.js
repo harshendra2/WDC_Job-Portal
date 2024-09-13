@@ -1,5 +1,6 @@
 const mongoose=require('mongoose');
 const CompanySubscription=require('../../models/Company_SubscriptionSchema');
+const company=require('../../models/Onboard_Company_Schema');
 
 exports.GetAllTransaction=async(req,res)=>{
     const {compId}=req.params;
@@ -12,7 +13,7 @@ exports.GetAllTransaction=async(req,res)=>{
                     _id: 1,
                     company_id: 1,
                     subscription_plan: {
-                        plan_name: "$plan_name",
+                        plan_name: "$plane_name",
                         price: "$price",
                         search_limit: "$search_limit",
                         available_candidate: "$available_candidate",
@@ -22,7 +23,9 @@ exports.GetAllTransaction=async(req,res)=>{
                         download_cv_limit: "$download_cv_limit",
                         job_posting: "$job_posting",
                         createdDate: "$createdDate",
-                        expiresAt: "$expiresAt"
+                        expiresAt: "$expiresAt",
+                        paymentMethod:"$paymentMethod",
+                        Transaction:"$transaction_Id"
                     }
                 }
             }
@@ -47,15 +50,20 @@ exports.GetAllTransaction=async(req,res)=>{
                         price: "$topUp.plane_price",
                         order_Id: "$topUp.order_Id",
                         date: "$topUp.Date",
-                        ExpireDate:"$topUp.ExpireDate"
+                        ExpireDate:"$topUp.ExpireDate",
+                        paymentMethod:"$topUp.paymentMethods"
                     }
                 }
             }
         ]);
 
-        const combinedResults = [...data, ...topUpPlans];
+        const verifiedBatchPlan = await company.aggregate([
+            { $match: { _id: objectId } },
+            { $project: { verified_batch: 1 } }
+          ]);
+        const combinedResults = [...data, ...topUpPlans,...verifiedBatchPlan];
         if (combinedResults.length > 0) {
-            return res.status(200).send(combinedResults);
+            return res.status(200).send({subscription:data,topupPlane:topUpPlans,BathPlane:verifiedBatchPlan});
         } else {
             return res.status(400).json({ error: "Empty database" });
         }

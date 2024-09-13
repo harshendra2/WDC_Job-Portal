@@ -3,7 +3,7 @@ const candidate=require('../../models/Onboard_Candidate_Schema');
 
 exports.GetAllOnboardCompany = async (req, res) => {
   try {
-      const companies = await company.find({ status: 'Processing' }).sort({ createdAt: -1 });
+      const companies = await company.find({ status: 'processing' }).sort({ createdAt: -1 });
 
       if (companies.length > 0) {
           const baseUrl = `${req.protocol}://${req.get('host')}`;

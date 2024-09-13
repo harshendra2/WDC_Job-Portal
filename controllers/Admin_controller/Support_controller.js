@@ -77,7 +77,7 @@ exports.ResolvedStatus=async(req,res)=>{
             return res.status(400).json({ error: "Company ID is required" });
           }
       
-          const data = await IssueSchema.findByIdAndUpdate(id, { status: "solve" }, { new: true });
+          const data = await IssueSchema.findByIdAndUpdate(id, { status: "solved",solved_date:Date.now()}, { new: true });
       
           if (data) {
             return res.status(200).json({ message: "Status updated successfully", company: data });
