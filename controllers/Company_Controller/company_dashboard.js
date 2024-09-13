@@ -77,8 +77,7 @@ exports.getCompanyDetails = async (req, res) => {
 
 
 exports.OfferVerifier = async (req, res) => {
-  const { companyId } = req.params;
-  const { PAN } = req.body;
+  const { companyId,PAN} = req.params;
   try {
     const objectId = new mongoose.Types.ObjectId(companyId);
 
