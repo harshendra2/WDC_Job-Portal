@@ -45,8 +45,30 @@ exports.GetCompanyProfile=async(req,res)=>{
             ? (isGoogleDriveLink(data.GST_image) ? data.GST_image : `${baseUrl}/${data.GST_image.replace(/\\/g, '/')}`)
             : null,
         };
+   
+        const fields = [
+            'company_name', 'email', 'mobile', 'overView',
+            'industry', 'company_size', 'GST', 'GST_image', 'PAN',
+            'PAN_image', 'website_url', 'location', 'contact_email',
+            'contact_No', 'headQuater_add', 'profile'
+        ];
+        const PanVerifyingField = 'status';
+
+        let filledFields = 0;
+        fields.forEach(field => {
+            if (data[field]) {
+                filledFields++;
+            }
+        });
+        if (data[PanVerifyingField] === 'approve') {
+            filledFields++;
+        }
+        const totalFields = fields.length + 1; 
+        const profileCompletionPercentage = Math.round((filledFields / totalFields) * 100);
+
+
     
-          return res.status(200).json(updatedData);
+          return res.status(200).json({updatedData,profileCompletionPercentage});
         } else {
           return res.status(404).json({ error: "Company not found" });
         }
