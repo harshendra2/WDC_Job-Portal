@@ -11,7 +11,6 @@ const EditCompanyProfile=Joi.object({
   overView: Joi.string().optional(),
   industry: Joi.string().optional(),
   company_size: Joi.number().integer().min(1).max(10000).optional(),
-  GST: Joi.string().pattern(/^[0-9]{15}$/).optional(),
   PAN: Joi.string().pattern(/^[A-Z]{5}[0-9]{4}[A-Z]{1}$/).optional(),
   website_url: Joi.string().uri().optional(),
   location: Joi.string().optional(),
@@ -89,7 +88,7 @@ exports.EditProfile = async (req, res) => {
 
     
   const { error } = EditCompanyProfile.validate({ company_name, email, mobile, overView, industry,
-    company_size, GST, PAN, website_url, location, contact_email,
+    company_size, PAN, website_url, location, contact_email,
     contact_No, headQuater_add});
   if (error) {
     return res.status(400).json({ error: error.details[0].message });
@@ -115,20 +114,20 @@ exports.EditProfile = async (req, res) => {
         const panNumber = extractPAN(panText);
         // const gstNumber = extractGST(gstText);
 
-        if (panNumber != PAN) {
-            return res.status(400).json({ error: "PAN number and PAN image number do not match" });
-        }
+        // if (panNumber != PAN) {
+        //     return res.status(400).json({ error: "PAN number and PAN image number do not match" });
+        // }
         // if (gstNumber !=GST) {
         //     return res.status(400).json({ error: "GST number and GST image number do not match" });
         // }
-         const existedEmail=await company.findOne({email});
-         if(existedEmail){
-          return res.status(400).json({error:"This email Id already existed"});
-         }
-         const existedCompanyName=await company.findOne({company_name});
-         if(existedCompanyName){
-          return res.status(400).json({error:"This Company Name already existed"});
-         }
+        //  const existedEmail=await company.findOne({email});
+        //  if(existedEmail){
+        //   return res.status(400).json({error:"This email Id already existed"});
+        //  }
+        //  const existedCompanyName=await company.findOne({company_name});
+        //  if(existedCompanyName){
+        //   return res.status(400).json({error:"This Company Name already existed"});
+        //  }
 
         const companyData = {
           company_name, email, mobile, overView, industry,

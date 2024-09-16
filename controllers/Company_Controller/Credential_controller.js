@@ -102,7 +102,7 @@ exports.getOTP = async (req, res) => {
     const message = await client.messages.create({
       body: `Dear user, your DI Data Bank verification code is ${OTP}. Please use this code to complete your registration or login process. This code is valid for the next 10 minutes. Do not share this code with anyone for security reasons.`,
       to: mobile,
-      from: "+91 9130408935",
+      from: "+19252755516",
     });
 
     if (message) {

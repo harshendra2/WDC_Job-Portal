@@ -1,13 +1,13 @@
 const crypto=require("crypto");
-const {Cashfree}=require('cashfree-pg');
+const { Cashfree } = require('cashfree-pg');
 const mongoose=require("mongoose");
 const subscription=require("../../models/SubscriptionSchema");
 const CompanySubscription=require("../../models/Company_SubscriptionSchema");
 const TopUpPlane=require("../../models/ToupPlane");
 
 // Configure Cashfree
-Cashfree.XClientId = process.env.CLIENT_ID;
-Cashfree.XClientSecret = process.env.CLIENT_SECRET;
+Cashfree.XClientId = process.env.CASHFREE_CLIENT_ID;
+Cashfree.XClientSecret = process.env.CASHFREE_CLIENT_SECRET;
 Cashfree.XEnviornment = Cashfree.Environment.SANDBOX;
 
 function generateOrderId() {
@@ -565,9 +565,9 @@ exports.EarlySubscriptionplane=async(req,res)=>{
     }
     try{
 
-        const subscription = await subscription.findOne({ _id:sub_id});
+        const subscriptions = await subscription.findOne({ _id:sub_id});
         
-        if (!subscription) {
+        if (!subscriptions) {
             return res.status(404).json({ error: "Subscription plane not found" });
         }
         const orderId = generateOrderId();
@@ -584,9 +584,9 @@ exports.EarlySubscriptionplane=async(req,res)=>{
             }
         };
         const response = await Cashfree.PGCreateOrder(request);
-        return res.json(response.data);
-
+    res.status(200).json(response);
     }catch(error){
+        console.log(error)
         return res.status(500).json({error:"Internal server error"});
     }
 }
