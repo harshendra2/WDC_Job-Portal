@@ -62,12 +62,13 @@ exports.getProfilePercentageStatus = async (req, res) => {
         'name', 'email', 'mobile', 'linkedIn'
       ];
       const educationFields = [
-        'highest_education', 'board_represent', 'articles'
+        'highest_education', 'board_represent'
       ];
+      current_ctc, aspiring_position, work_experience, career_highlight, recognation, skill
       const workFields = [
-        'designation', 'company_name', 'industry', 'current_ctc', 'aspiring_position',
+           'current_ctc', 'aspiring_position',
         'work_experience', 'current_report', 'last_reporting', 'career_highlight',
-        'recognation', 'functions', 'preferred_location', 'current_location', 'resume'
+         'functions', 'preferred_location', 'current_location', 'resume'
       ];
       const personalFields = [
         'gender', 'age', 'marriag_status', 'aadhar_number', 'PAN',
@@ -337,6 +338,174 @@ exports.GetPersonlDetails=async(req,res)=>{
   }
 }
 
+exports.AadharVerification=async(req,res)=>{
+  const {aadhar_number}=req.body;
+  const apiUrl = 'https://sandbox.cashfree.com/verification/offline-aadhaar/otp';
+  const requestData = {
+    aadhaar_number: aadhar_number,
+  };
+
+  const requestOptions = {
+    method: 'POST',
+    headers: {
+      'Accept': 'application/json',
+      'Content-Type': 'application/json',
+      'x-client-id': process.env.CASHFREE_CLIENT_ID,
+      'x-client-secret': process.env.CASHFREE_CLIENT_SECRET,
+    },
+    body: JSON.stringify(requestData),
+  };
+
+  try {
+    const response = await fetch(apiUrl, requestOptions);
+    const responseData = await response.json();
+    if (responseData.status === "SUCCESS") {
+      const output = { status: true, responseData: responseData };
+      res.status(200).json(output);
+    } else {
+      const output = { status: false, responseData: responseData };
+      res.status(400).json(output);
+    }
+  } catch (error) {
+    res.status(500).json({ status: false, error: 'Internal Server Error' });
+  }
+}
+
+exports.aadharOtpVerification = async (req, res) => {
+  const { userId } = req.params;
+  const { otp, ref_id,aadhar_number} = req.body;
+  const apiUrl = 'https://sandbox.cashfree.com/verification/offline-aadhaar/verify';
+  
+  const requestData = {
+    otp: otp,
+    ref_id: ref_id,
+  };
+
+  const requestOptions = {
+    method: 'POST',
+    headers: {
+      'Accept': 'application/json',
+      'Content-Type': 'application/json',
+      'x-client-id': process.env.CASHFREE_CLIENT_ID,
+      'x-client-secret': process.env.CASHFREE_CLIENT_SECRET,
+    },
+    body: JSON.stringify(requestData),
+  };
+
+  try {
+    const response = await fetch(apiUrl, requestOptions);
+
+    if (!response.ok) {
+      if (response.status === 404) {
+        return res.status(404).json({ status: false, error: 'Resource not found' });
+      }
+      return res.status(response.status).json({ status: false, error: 'Failed to verify Aadhaar OTP' });
+    }
+
+    const responseData = await response.json();
+
+    if (responseData.status === 'VALID') {
+      const candidateData = await candidate.findById(userId);
+
+      if (!candidateData) {
+        return res.status(404).json({ status: false, error: 'Candidate not found' });
+      }
+
+      let updatedPersonalDetails;
+      
+      if (!candidateData.personal_details) {
+        const newPersonalDetails = new personal_details({
+          Aadhar_verified_status: true,
+          aadhar_number:aadhar_number
+        });
+        const savedPersonalDetails = await newPersonalDetails.save();
+
+        candidateData.personal_details = savedPersonalDetails._id;
+        await candidateData.save();
+
+        updatedPersonalDetails = savedPersonalDetails;
+      } else {
+        updatedPersonalDetails = await personal_details.findByIdAndUpdate(
+          candidateData.personal_details._id,
+          { $set: { Aadhar_verified_status: true,aadhar_number:aadhar_number} },
+          { new: true }
+        );
+      }
+
+      return res.status(200).json({ status: true, responseData, updatedPersonalDetails });
+    } else {
+      return res.status(200).json({ status: false, responseData });
+    }
+  } catch (error) {
+    return res.status(500).json({ status: false, error: 'Internal server error' });
+  }
+};
+
+exports.PanKYCverification=async(req,res)=>{
+  const {userId}=req.params;
+  const {pan}=req.body;
+  const apiUrl = 'https://sandbox.cashfree.com/verification/pan';
+  const requestData = {
+    pan: pan
+  };
+
+  const requestOptions = {
+    method: 'POST',
+    headers: {
+      'Accept': 'application/json',
+      'Content-Type': 'application/json',
+      'x-client-id': process.env.CASHFREE_CLIENT_ID,
+      'x-client-secret': process.env.CASHFREE_CLIENT_SECRET
+    },
+    body: JSON.stringify(requestData)
+  };
+  try{
+    const response = await fetch(apiUrl, requestOptions);
+    const responseData = await response.json();
+    if (!response.ok) {
+      return res.status(response.status).json({ status: false, error: responseData });
+    }
+
+    const output = { status: true, responseData: responseData };
+
+    if (responseData.valid === true) {
+      const candidateData = await candidate.findById(userId);
+
+      if (!candidateData) {
+        return res.status(404).json({ status: false, error: 'Candidate not found' });
+      }
+
+      let updatedPersonalDetails;
+      
+      if (!candidateData.personal_details) {
+        const newPersonalDetails = new personal_details({
+          Pan_verified_status: true,
+          PAN:pan
+        });
+        const savedPersonalDetails = await newPersonalDetails.save();
+
+        candidateData.personal_details = savedPersonalDetails._id;
+        await candidateData.save();
+
+        updatedPersonalDetails = savedPersonalDetails;
+      } else {
+        updatedPersonalDetails = await personal_details.findByIdAndUpdate(
+          candidateData.personal_details._id,
+          { $set: { Pan_verified_status: true,PAN:pan} },
+          { new: true }
+        );
+      }
+
+      return res.status(200).json({ status: true, responseData, updatedPersonalDetails });
+    } else {
+      res.status(200).json({ status: false, responseData: responseData });
+    }
+  }catch(error){
+    return res.status(500).json({error:"Intrnal server error"});
+  }
+}
+
+
 exports.EditPersonalDetails = async (req, res) => {
   const { user_id } = req.params;
   const { gender, age, marriag_status, aadhar_number, PAN, family_member, father_name, son_name, spouse_profession, disability, disbility_name } = req.body;
@@ -350,58 +519,11 @@ exports.EditPersonalDetails = async (req, res) => {
 
   try {
     let candidateData = await candidate.findById(user_id).populate('personal_details');
-    const panVerificationUrl = 'https://api.cashfree.com/verification/pan';
-    const panRequestData = { pan: PAN };
-    const panRequestOptions = {
-      method: 'POST',
-      headers: {
-        'Accept': 'application/json',
-        'Content-Type': 'application/json',
-        'x-client-id': process.env.CASHFREE_CLIENT_ID,
-        'x-client-secret': process.env.CASHFREE_CLIENT_SECRET
-      },
-      data: panRequestData
-    };
 
-    let panVerified = false;
-
-    try {
-      const panResponse = await axios(panVerificationUrl, panRequestOptions);
-      const panResponseData = panResponse.data;
-      panVerified = panResponse.status === 200 && panResponseData.valid;
-    } catch (panError) {
-      console.error("PAN verification failed:", panError);
-      panVerified = false;
-    }
-
-    let aadharVerified = false;
-    const aadharVerificationUrl = 'https://api.example.com/verification/aadhar';
-    const aadharRequestData = { aadhar: aadhar_number };
-    const aadharRequestOptions = {
-      method: 'POST',
-      headers: {
-        'Accept': 'application/json',
-        'Content-Type': 'application/json',
-        'x-client-id': process.env.AADHAR_CLIENT_ID, // Replace with actual Aadhar API credentials
-        'x-client-secret': process.env.AADHAR_CLIENT_SECRET
-      },
-      data: aadharRequestData
-    };
-
-    try {
-      const aadharResponse = await axios(aadharVerificationUrl, aadharRequestOptions);
-      const aadharResponseData = aadharResponse.data;
-      aadharVerified = aadharResponse.status === 200 && aadharResponseData.valid;
-    } catch (aadharError) {
-      console.error("Aadhar verification failed:", aadharError);
-      aadharVerified = false;
-    }
     if (!candidateData) {
-      // If the candidate does not exist, return an error
       return res.status(404).json({ error: "Candidate not found" });
     }
     if (!candidateData.personal_details) {
-      // Create new personal details if the candidate doesn't exist
       const newPersonalDetails = new personal_details({
         gender,
         age,
@@ -413,9 +535,7 @@ exports.EditPersonalDetails = async (req, res) => {
         son_name,
         spouse_profession,
         disability,
-        disbility_name,
-        Pan_verified_status: panVerified,
-        Aadhar_verified_status: aadharVerified
+        disbility_name
       });
 
       const savedPersonalDetails = await newPersonalDetails.save();
@@ -436,8 +556,6 @@ exports.EditPersonalDetails = async (req, res) => {
       spouse_profession: spouse_profession || candidateData.personal_details.spouse_profession,
       disability: disability || candidateData.personal_details.disability,
       disbility_name: disbility_name || candidateData.personal_details.disbility_name,
-      Pan_verified_status: panVerified,
-      Aadhar_verified_status: aadharVerified
     };
     const updatedPersonalDetails = await personal_details.findByIdAndUpdate(
       candidateData.personal_details._id,
@@ -472,7 +590,7 @@ exports.GetworkDetails=async(req,res)=>{
 
 exports.EditWorkDetails = async (req, res) => {
   const { user_id } = req.params;
-  const { current_ctc, aspiring_position, work_experience, career_highlight, recognation, skill } = req.body;
+  const { current_ctc, aspiring_position, work_experience, career_highlight, recognation, skill} = req.body;
 
   const { error } = OnboardCandidateWorkDetails.validate({
     current_ctc, aspiring_position, work_experience, career_highlight, recognation, skill

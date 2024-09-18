@@ -2,6 +2,7 @@ const express=require("express");
 const router=new express.Router();
 const controller=require('../../controllers/Candidate_Controller/Jobs_controller');
 
+router.get('/candidate/job_search/:userId',controller.KeywordJobSearch);
 router.get('/candidate/getunappliedjob/:id',controller.getUnappliedJob);
 router.get('/candidate/getjobdetails/:id',controller.getJobDetails);
 router.post('/candidate/jobapply/:userId/:jobId',controller.applyToJob);

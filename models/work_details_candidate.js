@@ -2,12 +2,6 @@ const { required } = require("joi");
 const mongoose=require("mongoose");
 
 const work_details_candidate=new mongoose.Schema({
-    designation:{
-        type:String
-    },
-    company_name:{
-     type:String
-    },
      industry:{
         type:String
     },
@@ -16,12 +10,6 @@ const work_details_candidate=new mongoose.Schema({
     },
     work_experience:{
         type:Number
-    },
-    current_report:{
-        type:String
-    },
-    last_reporting:{
-        type:String
     },
     career_highlight:{
      type:String

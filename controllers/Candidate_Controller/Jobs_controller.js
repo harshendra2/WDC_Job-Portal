@@ -2,6 +2,74 @@ const mongoose=require('mongoose');
 const moment = require('moment');
 const CompanyJob=require("../../models/JobSchema");
 
+
+exports.KeywordJobSearch = async (req, res) => {
+    const { search } = req.body;
+    const { userId } = req.params;
+
+    try {
+        const [
+            jobTitle = '',
+            location = '',
+            skills = '',
+            company = ''
+        ] = search.split(',').map(param => param.trim());
+
+        let conditions = [];
+
+        if (jobTitle) {
+            conditions.push({ job_title: { $regex: jobTitle, $options: 'i' } });
+        }
+        if (location) {
+            conditions.push({ location: { $regex: location, $options: 'i' } });
+        }
+        if (skills) {
+            conditions.push({ skills: { $regex: skills, $options: 'i' } });
+        }
+        const query = conditions.length > 0 ? { $match: { $or: conditions } } : {};
+
+        const sortedJobs = await CompanyJob.aggregate([
+            query,{
+                $lookup: {
+                    from: 'companies',
+                    localField: 'company_id',
+                    foreignField: '_id',
+                    as: 'company_details'
+                }
+            },
+            ...(company ? [{
+                $match: {
+                    'company_details.company_name': { $regex: company, $options: 'i' }
+                }
+            }] : [])
+        ])
+
+        // const unappliedJobs = sortedJobs
+        //     .filter(job => 
+        //         job.applied_candidates && // Check if applied_candidates exists
+        //         Array.isArray(job.applied_candidates) && // Ensure it's an array
+        //         !job.applied_candidates.some(candidate => 
+        //             candidate.candidate_id.toString() === userId
+        //         )
+        //     )
+        //     .map(job => {
+        //         const timeSincePosted = moment(job.createdDate).fromNow();
+        //         return {
+        //             ...job._doc,
+        //             timeSincePosted
+        //         };
+        //     });
+        if (sortedJobs.length > 0) {
+            return res.status(200).json(sortedJobs);
+        } else {
+            return res.status(404).json({ message: 'No jobs found' });
+        }
+    } catch (error) {
+        console.error('Search error:', error);
+        return res.status(500).json({ error: 'Internal server error' });
+    }
+};
+
 exports.getUnappliedJob = async (req, res) => {
     const { id } = req.params; 
 

@@ -14,14 +14,44 @@ function generateOrderId() {
     return crypto.randomBytes(6).toString('hex');
 }
 
-exports.getAllSubscriptionPlane=async(req,res)=>{
+exports.GetCurrentSubscriptionPlane=async(req,res)=>{
+    const {companyId}=req.params;
     try{
-        const data=await subscription.find({});
-        if(data){
-            return res.status(200).send(data);
-        }else{
-            return res.status(400).json({error:"Empty database"});
-        }
+        const Id=new mongoose.Types.ObjectId(companyId);
+        const CurrentSubscription=await CompanySubscription.aggregate([{
+            $match: {
+              expiresAt: { $gte: new Date() },
+              company_id: Id
+            }
+          }])
+     if(CurrentSubscription){
+        return res.status(200).send(CurrentSubscription);
+     }else{
+        return res.status(200).send([]);
+     }
+
+    }catch(error){
+        return res.status(500).json({error:"Intrnal server errror"});
+    }
+}
+
+exports.getAllSubscriptionPlane=async(req,res)=>{
+    const {companyId}=req.params;
+    try{
+        const company_id=new mongoose.Types.ObjectId(companyId);
+        const previousPlan = await CompanySubscription.findOne({
+            company_id,
+            plane_name: { $regex: /^Basic\s*$/, $options: 'i' } 
+        });
+         if(previousPlan){
+        const getSubscriptionPlans = await subscription.aggregate([
+            { $match: { _id: { $ne: previousPlan.subscription_id } } }
+        ]);
+        return res.status(200).send({getSubscriptionPlans});
+         }else{
+            const getSubscriptionPlans = await subscription.find({})
+            return res.status(200).send({getSubscriptionPlans});
+         } 
 
     }catch(error){
         return res.status(500).json({error:"Internal Server error"});
@@ -132,22 +162,6 @@ exports.verifyPayment = async (req, res) => {
         res.status(500).json({ error: "Internal Server Error" });
     }
 };
-exports.getCompanyUsingSubscription=async(req,res)=>{
-    const {id}=req.params;
-    try{
-        const objectId = new mongoose.Types.ObjectId(id); 
-        const data=await CompanySubscription.aggregate([{$match:{company_id:objectId}}]);
-        if(data){
-            return res.status(200).send(data);
-        }else{
-         return res.status(400).json({error:"This Company subscription plane not available"});
-        }
-
-    }catch(error){
-     return res.status(500).json({error:"Internal Server Error"});
-    }
-}
-
 
 //extend Subscription Plane
 
@@ -262,14 +276,16 @@ exports.GetReNewSubscriptionPlan = async (req, res) => {
             company_id,
             plane_name: { $regex: /^Basic\s*$/, $options: 'i' } 
         });
+        const objectId=new mongoose.Types.ObjectId(company_id);
+        const previousSubscription=await CompanySubscription.aggregate([{ $match: { company_id: objectId, expiresAt: { $gte: new Date() } } }])
          if(previousPlan){
         const getSubscriptionPlans = await subscription.aggregate([
             { $match: { _id: { $ne: previousPlan.subscription_id } } }
         ]);
-        return res.status(200).send(getSubscriptionPlans);
+        return res.status(200).send({getSubscriptionPlans,previousSubscription});
          }else{
             const getSubscriptionPlans = await subscription.find({})
-            return res.status(200).send(getSubscriptionPlans);
+            return res.status(200).send({getSubscriptionPlans,previousSubscription});
          } 
 
     } catch (error) {
@@ -542,14 +558,17 @@ exports.GetEarySubscriptionplane=async(req,res)=>{
             company_id,
             plane_name: { $regex: /^Basic\s*$/, $options: 'i' } 
         });
+
+        const objectId=new mongoose.Types.ObjectId(company_id);
+        const previousSubscription=await CompanySubscription.aggregate([{ $match: { company_id: objectId, expiresAt: { $gte: new Date() } } }])
          if(previousPlan){
         const getSubscriptionPlans = await subscription.aggregate([
             { $match: { _id: { $ne: previousPlan.subscription_id } } }
         ]);
-        return res.status(200).send(getSubscriptionPlans);
+        return res.status(200).send({getSubscriptionPlans,previousSubscription});
          }else{
             const getSubscriptionPlans = await subscription.find({})
-            return res.status(200).send(getSubscriptionPlans);
+            return res.status(200).send({getSubscriptionPlans,previousSubscription});
          } 
 
     }catch(error){
@@ -583,7 +602,7 @@ exports.EarlySubscriptionplane=async(req,res)=>{
                 "customer_email": email,
             }
         };
-        const response = await Cashfree.PGCreateOrder(request);
+         const response = await Cashfree.PGCreateOrder(request);
     res.status(200).json(response);
     }catch(error){
         console.log(error)
