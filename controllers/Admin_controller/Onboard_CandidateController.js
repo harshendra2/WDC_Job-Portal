@@ -126,7 +126,7 @@ const OnboardCandidate = Joi.object({
 
 
   exports.createWorkDetailsCandidate=async(req,res)=>{
-    const {industry,current_ctc,aspiring_position,work_experience,career_highlight,recognation,functions,preferred_location,current_location,id}=req.body;
+    const {industry,current_ctc,aspiring_position,work_experience,career_highlight,recognation,functions,preferred_location,current_location,skill,id}=req.body;
 
     const { error } = OnboardCandidateWorkDetails.validate({
       industry,current_ctc,aspiring_position,work_experience,career_highlight,recognation,functions,preferred_location,current_location
@@ -141,7 +141,7 @@ const OnboardCandidate = Joi.object({
       if (!req.file) {
         return res.status(400).json({ error: "Please upload a file" });
       }
-      const Candidatedata={industry,current_ctc,aspiring_position,work_experience,career_highlight,recognation,functions,preferred_location,current_location,resume:req.file.path};
+      const Candidatedata={industry,current_ctc,aspiring_position,work_experience,career_highlight,recognation,functions,preferred_location,current_location,resume:req.file.path,skill};
       const newWorkDetails = new work_details(Candidatedata);
       const savedWorkDetails = await newWorkDetails.save();
           
@@ -438,7 +438,7 @@ const OnboardCandidate = Joi.object({
 
   exports.editWorkDetails=async(req,res)=>{
     const {id}=req.params;
-    const {industry,current_ctc,aspiring_position,work_experience,career_highlight,recognation,functions,preferred_location,current_location}=req.body;
+    const {industry,current_ctc,aspiring_position,work_experience,career_highlight,recognation,functions,preferred_location,current_location,skill}=req.body;
     const { error } = OnboardCandidateWorkDetails.validate({
       industry,current_ctc,aspiring_position,work_experience,career_highlight,recognation,functions,preferred_location,current_location
     });
@@ -455,7 +455,7 @@ const OnboardCandidate = Joi.object({
         return res.status(400).json({ error: "Please upload a file" });
       }
       const candidateData = {
-        industry,current_ctc,aspiring_position,work_experience,career_highlight,recognation,functions,preferred_location,current_location,resume:req.file.path
+        industry,current_ctc,aspiring_position,work_experience,career_highlight,recognation,functions,preferred_location,current_location,resume:req.file.path,skill
       };
   
       const updatedData = await work_details.findByIdAndUpdate(id, candidateData, { new: true });

@@ -50,12 +50,37 @@ exports.getSeavedjob=async(req,res)=>{
             };
         });
 
-
         return res.status(200).json(jobDetails);
 
     }catch(error){
-        console.log(error);
         return res.status(500).json({error:"Internal server error"});
     }
 }
 
+exports.GetjobDetailsInFlow=async(req,res)=>{
+    const {jobId}=req.params;
+    try{
+        const jobObjectId = new mongoose.Types.ObjectId(jobId);
+        const jobDescription = await CompanyJob.aggregate([
+            { $match: { _id: jobObjectId } },
+            {
+                $lookup: {
+                    from: 'companies',
+                    localField: 'company_id',
+                    foreignField: '_id', 
+                    as: 'CompanyDetails'
+                }
+            }
+        ]);
+
+        if (jobDescription && jobDescription.length > 0) {
+            return res.status(200).json(jobDescription);
+        } else {
+            return res.status(404).json({ message: "Job not found" });
+        }
+        
+
+    }catch(error){
+        return res.status(500).json({error:"Intrnal server error"});
+    }
+}

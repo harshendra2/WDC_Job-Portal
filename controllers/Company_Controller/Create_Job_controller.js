@@ -192,7 +192,7 @@ exports.RestartJobPosted = async (req, res) => {
     } else {
       updatedStatus = await CompanyJob.findByIdAndUpdate(
         jobId,
-        { status: true, createdDate: new Date() },
+        { status: true},
         { new: true }
       );
     }
@@ -297,11 +297,30 @@ exports.ListOutAllAppliedApplicants = async (req, res) => {
         }
       }
     ]);
+    const isGoogleDriveLink = (url) => {
+      return url && (url.includes('drive.google.com') || url.includes('docs.google.com'));
+    };
 
+    const bindUrlOrPath = (url) => {
+      const baseUrl = `${req.protocol}://${req.get('host')}`;
+      return isGoogleDriveLink(url)
+        ? url
+        : `${baseUrl}/${url.replace(/\\/g, '/')}`;
+    };
     if (candidateDetails && candidateDetails.length > 0) {
-      return res.status(200).json(candidateDetails);
+
+      const updatedData = candidateDetails.map((company) => {
+        return {
+          ...company,
+          resumeUrl: company.WorkDetails?.resume
+            ?bindUrlOrPath(company.WorkDetails?.resume)
+            : null,
+        };
+      });
+
+      return res.status(200).json(updatedData);
     } else {
-      return res.status(404).json({ message: 'No candidates found for this job.' });
+      return res.status(404).json({ message: "No shortlisted applicants found" });
     }
   } catch (error) {
     return res.status(500).json({ error: 'Internal server error' });
@@ -346,11 +365,10 @@ exports.ListOutAllShortlistedApplicent = async (req, res) => {
   const { jobId } = req.params;
   try {
     const jobObjectId = new mongoose.Types.ObjectId(jobId);
-
     const candidateDetails = await CompanyJob.aggregate([
       { $match: { _id: jobObjectId } }, 
       { $unwind: '$Shortlisted' },
-      { $match: { 'Shortlisted.shorted_status': false } },
+      {$match: {'Shortlisted.reject_status': false}},
       {
         $lookup: {
           from: 'candidates',
@@ -391,15 +409,23 @@ exports.ListOutAllShortlistedApplicent = async (req, res) => {
         }
       }
     ]);
+    const isGoogleDriveLink = (url) => {
+      return url && (url.includes('drive.google.com') || url.includes('docs.google.com'));
+    };
 
-    if (candidateDetails && candidateDetails.length > 0) {
+    const bindUrlOrPath = (url) => {
       const baseUrl = `${req.protocol}://${req.get('host')}`;
+      return isGoogleDriveLink(url)
+        ? url
+        : `${baseUrl}/${url.replace(/\\/g, '/')}`;
+    };
+    if (candidateDetails && candidateDetails.length > 0) {
 
       const updatedData = candidateDetails.map((company) => {
         return {
           ...company,
           resumeUrl: company.WorkDetails?.resume
-            ? `${baseUrl}/${company.WorkDetails.resume.replace(/\\/g, '/')}`
+            ?bindUrlOrPath(company.WorkDetails?.resume)
             : null,
         };
       });
@@ -453,20 +479,63 @@ exports.AddUserFeedBack=async(req,res)=>{
   }
 }
 
+exports.RejectApplicent=async(req,res)=>{
+  const {jobId,userId}=req.params;
+  try{
+    const jobObjectId = new mongoose.Types.ObjectId(jobId);
+    const userObjectId = new mongoose.Types.ObjectId(userId);
+    await CompanyJob.updateOne(
+      { _id: jobObjectId,'Shortlisted.candidate_id':userObjectId},
+      {
+        $set: {
+           'Shortlisted.$.reject_status':true   
+        }
+      },
+      { new: true }
+    );
+   
+    return res.status(200).json({ message: 'Candidate rejected successfully' });
+
+
+  }catch(error){
+    return res.status(500).json({error:"Internal server error"});
+  }
+}
+
+exports.HireCandidate=async(req,res)=>{
+  const {userId,jobId}=req.params;
+  try{
+    const jobObjectId = new mongoose.Types.ObjectId(jobId);
+    const userObjectId = new mongoose.Types.ObjectId(userId);
+    const data=await CompanyJob.updateOne(
+      { _id: jobObjectId,'Shortlisted.candidate_id':userObjectId},
+      {
+        $set: {
+           'Shortlisted.$.shorted_status':true   
+        }
+      },
+      { new: true }
+    );
+   
+    return res.status(200).json({ message: 'Candidate hired',data});
+  }catch(error){
+    return res.status(500).json({error:"Internal server error"});
+  }
+}
+
 exports.GetUserDetailsForOffer = async (req, res) => {
   const { userId, jobId } = req.params;
   try {
     const userIds = new mongoose.Types.ObjectId(userId);
     const jobIds = new mongoose.Types.ObjectId(jobId);
-
     const data = await CompanyJob.aggregate([
       { $match: { _id: jobIds } }, 
-      { $unwind: '$Interviewed' },
-      { $match: { 'Interviewed.candidate_id': userIds } },
+      { $unwind: '$Shortlisted' },
+      { $match: { 'Shortlisted.candidate_id': userIds,'Shortlisted.shorted_status':true} },
       {
         $lookup: {
           from: 'candidates',
-          localField: 'Interviewed.candidate_id', // Corrected to match 'Interviewed.candidate_id'
+          localField: 'Shortlisted.candidate_id', // Corrected to match 'Interviewed.candidate_id'
           foreignField: '_id',
           as: 'CandidateDetails'
         }
@@ -491,16 +560,27 @@ exports.GetUserDetailsForOffer = async (req, res) => {
         }
       }
     ]);
+    const isGoogleDriveLink = (url) => {
+      return url && (url.includes('drive.google.com') || url.includes('docs.google.com'));
+    };
 
-    if (data && data.length > 0) {
+    const bindUrlOrPath = (url) => {
       const baseUrl = `${req.protocol}://${req.get('host')}`;
+      return isGoogleDriveLink(url)
+        ? url
+        : `${baseUrl}/${url.replace(/\\/g, '/')}`;
+    };
+    if (data && data.length > 0) {
 
       const updatedData = data.map((company) => {
         return {
           ...company,
           resumeUrl: company.workdetails?.resume
-            ? `${baseUrl}/${company.workdetails.resume.replace(/\\/g, '/')}`
+            ? bindUrlOrPath(company.workdetails?.resume)
             : null,
+          profileUrl:company?.CandidateDetails?.profile
+          ?bindUrlOrPath(company?.CandidateDetails?.profile)
+          :null
         };
       });
 
@@ -574,23 +654,35 @@ exports.GetUserDetailswithofferStatus = async (req, res) => {
       { $unwind: { path: '$workdetails', preserveNullAndEmptyArrays: true } },
       {
         $project: {
-          'Job_offer': 1, // Explicitly include Job_offer
-          'CandidateDetails.name': 1, // Example of included fields
-          'CandidateDetails.email': 1,
-          'workdetails': 1, // Include workdetails
+          'Job_offer': 1, 
+          'CandidateDetails.profile': 1,
+          'workdetails': 1,
         }
       }
     ]);
 
-    if (data && data.length > 0) {
+    const isGoogleDriveLink = (url) => {
+      return url && (url.includes('drive.google.com') || url.includes('docs.google.com'));
+    };
+
+    const bindUrlOrPath = (url) => {
       const baseUrl = `${req.protocol}://${req.get('host')}`;
+      return isGoogleDriveLink(url)
+        ? url
+        : `${baseUrl}/${url.replace(/\\/g, '/')}`;
+    };
+
+    if (data && data.length > 0) {
 
       const updatedData = data.map((company) => {
         return {
           ...company,
           resumeUrl: company.workdetails?.resume
-            ? `${baseUrl}/${company.workdetails.resume.replace(/\\/g, '/')}`
+            ? bindUrlOrPath(company.workdetails?.resume)
             : null,
+            profileUrl:company?.CandidateDetails?.profile
+            ?bindUrlOrPath(company?.CandidateDetails?.profile)
+            :null
         };
       });
 
@@ -600,7 +692,6 @@ exports.GetUserDetailswithofferStatus = async (req, res) => {
     }
 
   } catch (error) {
-    console.error(error);
     return res.status(500).json({ error: "Internal server error" });
   }
 };

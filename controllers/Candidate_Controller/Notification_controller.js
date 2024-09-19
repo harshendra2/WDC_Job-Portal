@@ -25,3 +25,37 @@ exports.ViewDetails=async(arg)=>{
         return res.status(500).json({error:"Internal Server Error"});
     }
 }
+
+
+//Issue notification
+exports.getAllIssueNotificatio=async(userId)=>{
+    try{
+        const CandidateObjectId = new mongoose.Types.ObjectId(userId);
+        const notificationData = await Issue.aggregate([
+          { $match: { candidate_id: CandidateObjectId, isRead: false,status:'solved'} }
+        ]);
+        const formattedData = notificationData.map(notification => ({
+            ...notification,
+            solvedData: moment(notification.solved_date).fromNow()
+          }));
+      
+          return formattedData || [];
+    }catch(error){
+        throw error;
+    }
+}
+
+exports.ViewIssues=async(userId)=>{
+    try{
+        const Id = new mongoose.Types.ObjectId(userId);
+        const updatedNotification = await Issue.updateMany(
+          { candidate_id: Id, isRead: false },
+          { $set: { isRead: true } } 
+        );
+    
+        return updatedNotification || {};
+
+    }catch(error){
+        throw error;
+    }
+}

@@ -34,6 +34,19 @@ const CandidateShema=new mongoose.Schema({
     message:{
         type:String
     },
+    profile_view_company:[
+        {
+            company_id:{
+               type:mongoose.Schema.Types.ObjectId,
+               ref:'company'
+            },
+            is_read:{
+                type:Boolean,
+                default:false
+            }
+        }
+    ],
+
     createdAt:{
         type: Date,
         default: Date.now

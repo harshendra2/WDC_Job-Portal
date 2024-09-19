@@ -1,5 +1,6 @@
 const { getAllnotificatio, ViewDetails } = require('../controllers/Company_Controller/Notification_controller');
 
+//This notification for When new Candidate is Created  time comapny get Notification
 const companyNotification = (io) => {
     io.on("connection", (socket) => {
         console.log("notification connected")

@@ -11,24 +11,11 @@ const CompanySubscription=require('../../models/Company_SubscriptionSchema');
 exports.getAllAppliedCandidate = async (req, res) => {
     const { id } = req.params;
     try {
-        const objectId = new mongoose.Types.ObjectId(id);
-
-        const data = await CompanyJob.aggregate([
-            { $match: { company_id: objectId } },
-            { $unwind: '$applied_candidates' },
-            {
-                $lookup: {
-                    from: 'candidates',
-                    localField: 'applied_candidates.candidate_id',
-                    foreignField: '_id',
-                    as: 'candidateDetails'
-                }
-            },
-            { $unwind: '$candidateDetails' },
+        const data = await candidate.aggregate([
             {
                 $lookup: {
                     from: 'candidate_basic_details',
-                    localField: 'candidateDetails.basic_details',
+                    localField: 'basic_details',
                     foreignField: '_id',
                     as: 'basicDetails'
                 }
@@ -36,7 +23,7 @@ exports.getAllAppliedCandidate = async (req, res) => {
             {
                 $lookup: {
                     from: 'candidate_personal_details',
-                    localField: 'candidateDetails.personal_details',
+                    localField: 'personal_details',
                     foreignField: '_id',
                     as: 'personalDetails'
                 }
@@ -44,7 +31,7 @@ exports.getAllAppliedCandidate = async (req, res) => {
             {
                 $lookup: {
                     from: 'candidate_work_details',
-                    localField: 'candidateDetails.work_details',
+                    localField: 'work_details',
                     foreignField: '_id',
                     as: 'workDetails'
                 }
@@ -52,19 +39,9 @@ exports.getAllAppliedCandidate = async (req, res) => {
             {
                 $lookup: {
                     from: 'candidate_education_details',
-                    localField: 'candidateDetails.education_details',
+                    localField: 'education_details',
                     foreignField: '_id',
                     as: 'educationDetails'
-                }
-            },
-            {
-                $group: {
-                    _id: '$candidateDetails._id',
-                    candidateDetails: { $first: '$candidateDetails' },
-                    basicDetails: { $first: '$basicDetails' },
-                    personalDetails: { $first: '$personalDetails' },
-                    workDetails: { $first: '$workDetails' },
-                    educationDetails: { $first: '$educationDetails' },
                 }
             }
         ]);
@@ -74,23 +51,21 @@ exports.getAllAppliedCandidate = async (req, res) => {
             const isGoogleDriveLink = (url) => url && (url.includes('drive.google.com') || url.includes('docs.google.com'));
 
             const updatedData = data.map(item => {
-                const resumeUrl = item.workDetails?.resume
-                    ? (isGoogleDriveLink(item.workDetails.resume) ? item.workDetails.resume : `${baseUrl}/${item.workDetails.resume.replace(/\\/g, '/')}`)
+                const resumeUrl = item.workDetails[0]?.resume
+                    ? (isGoogleDriveLink(item.workDetails[0]?.resume) ? item.workDetails[0].resume : `${baseUrl}/${item.workDetails.resume.replace(/\\/g, '/')}`)
                     : null;
 
-                const profileUrl = item.candidateDetails?.profile
-                    ? (isGoogleDriveLink(item.candidateDetails.profile) ? item.candidateDetails.profile : `${baseUrl}/${item.candidateDetails.profile.replace(/\\/g, '/')}`)
+                const profileUrl = item?.profile
+                    ? (isGoogleDriveLink(item?.profile) ? item?.profile : `${baseUrl}/${item?.profile.replace(/\\/g, '/')}`)
                     : null;
 
                 return {
                     ...item,
-                    workDetails: {
-                        ...item.workDetails,
-                        resume: resumeUrl
-                    },
+                    
                     candidateDetails: {
                         ...item.candidateDetails,
-                        profile: profileUrl
+                        profile: profileUrl,
+                        resume:resumeUrl
                     }
                 };
             });
@@ -105,107 +80,126 @@ exports.getAllAppliedCandidate = async (req, res) => {
 };
 
 
-
-
-
 exports.getCandidateDetails = async (req, res) => {
-    const { userId } = req.params;
+    const { userId, companyId } = req.params;
+
     try {
-      if (!mongoose.Types.ObjectId.isValid(userId)) {
-        return res.status(400).json({ error: 'Invalid candidate ID' });
-      }
-  
-      const objectId = new mongoose.Types.ObjectId(userId);
-      const data = await candidate.aggregate([
-        { $match: { _id: objectId } },
-        {
-          $lookup: {
-            from: 'candidate_basic_details',
-            localField: 'basic_details',
-            foreignField: '_id',
-            as: 'basicDetails'
-          }
-        },
-        { $unwind: '$basicDetails' },
-        {
-          $lookup: {
-            from: 'candidate_personal_details',
-            localField: 'personal_details',
-            foreignField: '_id',
-            as: 'personalDetails'
-          }
-        },
-        { $unwind: '$personalDetails' },
-        {
-          $lookup: {
-            from: 'candidate_work_details',
-            localField: 'work_details',
-            foreignField: '_id',
-            as: 'workDetails'
-          }
-        },
-        { $unwind: '$workDetails' },
-        {
-          $lookup: {
-            from: 'candidate_education_details',
-            localField: 'education_details',
-            foreignField: '_id',
-            as: 'educationDetails'
-          }
-        },
-        { $unwind: '$educationDetails' }
-      ]);
-  
-      if (data.length > 0) {
+        if (!mongoose.Types.ObjectId.isValid(userId)) {
+            return res.status(400).json({ error: 'Invalid candidate ID' });
+        }
+
+        const objectId = new mongoose.Types.ObjectId(userId);
+        const data = await candidate.aggregate([
+            { $match: { _id: objectId } },
+            {
+                $lookup: {
+                    from: 'candidate_basic_details',
+                    localField: 'basic_details',
+                    foreignField: '_id',
+                    as: 'basicDetails'
+                }
+            },
+            { $unwind: '$basicDetails' },
+            {
+                $lookup: {
+                    from: 'candidate_personal_details',
+                    localField: 'personal_details',
+                    foreignField: '_id',
+                    as: 'personalDetails'
+                }
+            },
+            { $unwind: '$personalDetails' },
+            {
+                $lookup: {
+                    from: 'candidate_work_details',
+                    localField: 'work_details',
+                    foreignField: '_id',
+                    as: 'workDetails'
+                }
+            },
+            { $unwind: '$workDetails' },
+            {
+                $lookup: {
+                    from: 'candidate_education_details',
+                    localField: 'education_details',
+                    foreignField: '_id',
+                    as: 'educationDetails'
+                }
+            },
+            { $unwind: '$educationDetails' }
+        ]);
+
+        if (data.length === 0) {
+            return res.status(404).json({ error: "Candidate not found" });
+        }
+
+        const candidateToUpdate = await candidate.findById(objectId);
+        if (!candidateToUpdate) {
+            return res.status(404).json({ error: "Candidate not found" });
+        }
+
+        candidateToUpdate.profile_view_company.addToSet({ company_id: companyId });
+        await candidateToUpdate.save();
+
+        const comnId = new mongoose.Types.ObjectId(companyId);
+        const existsSubscription = await CompanySubscription.findOne({
+            company_id: comnId,
+            expiresAt: { $gte: new Date() }
+        });
+
+        if (!existsSubscription) {
+            return res.status(404).json({ error: "Subscription not found, please buy a new subscription plan." });
+        }
+
+        existsSubscription.cv_view_limit -= 1;
+        await existsSubscription.save();
+
         const baseUrl = `${req.protocol}://${req.get('host')}`;
         const isGoogleDriveLink = (url) => {
-          return url && (url.includes('drive.google.com') || url.includes('docs.google.com'));
+            return url && (url.includes('drive.google.com') || url.includes('docs.google.com'));
         };
-  
-        const bindUrlOrPath = (url) => {
-          return isGoogleDriveLink(url)
-            ? url
-            : `${baseUrl}/${url.replace(/\\/g, '/')}`;
-        };
-  
-        const updatedData = data.map(candidate => {
-          const resumeUrl = candidate.workDetails.resume
-            ? bindUrlOrPath(candidate.workDetails.resume)
-            : null;
-  
-          const profileUrl = candidate?.profile
-            ? bindUrlOrPath(candidate?.profile)
-            : null;
 
-  
-          const certificates = candidate.educationDetails.certificates.map(cert => ({
-            ...cert,
-            image: bindUrlOrPath(cert.image)
-          }));
-  
-          return {
-            ...candidate,
-            profile: profileUrl,
-            workDetails: {
-              ...candidate.workDetails,
-              resume: resumeUrl
-            },
-           
-            educationDetails: {
-              ...candidate.educationDetails,
-              certificates
-            }
-          };
+        const bindUrlOrPath = (url) => {
+            return isGoogleDriveLink(url)
+                ? url
+                : `${baseUrl}/${url.replace(/\\/g, '/')}`;
+        };
+
+        const updatedData = data.map(candidate => {
+            const resumeUrl = candidate.workDetails.resume
+                ? bindUrlOrPath(candidate.workDetails.resume)
+                : null;
+
+            const profileUrl = candidate?.profile
+                ? bindUrlOrPath(candidate?.profile)
+                : null;
+
+            const certificates = candidate.educationDetails.certificates.map(cert => ({
+                ...cert,
+                image: bindUrlOrPath(cert.image)
+            }));
+
+            return {
+                ...candidate,
+                profile: profileUrl,
+                workDetails: {
+                    ...candidate.workDetails,
+                    resume: resumeUrl
+                },
+                educationDetails: {
+                    ...candidate.educationDetails,
+                    certificates
+                }
+            };
         });
-  
+
         return res.status(200).json(updatedData[0]);
-      } else {
-        return res.status(404).json({ error: "Candidate not found" });
-      }
+
     } catch (error) {
-      return res.status(500).json({ error: "Internal server error" });
+        return res.status(500).json({ error: "Internal server error" });
     }
-  };
+};
+
   
 
 
@@ -313,34 +307,26 @@ const {job_profile,experience,location,skill,qalification}=req.body
 
 exports.DownloadMultipleEmailId = async (req, res) => {
     const { companyId } = req.params;
-    const { selectedCandidates } = req.body;
+     const { selectedCandidates } = req.body;
 
     try {
         const objectId = new mongoose.Types.ObjectId(companyId);
-
-        const data = await CompanyJob.aggregate([
-            { $match: { company_id: objectId } },
-            { $unwind: '$applied_candidates' }, 
-            {
-                $lookup: {
-                    from: 'candidates',
-                    localField: 'applied_candidates.candidate_id',
-                    foreignField: '_id',
-                    as: 'candidateDetails'
-                }
-            },
-            { $match: { 'candidateDetails._id': { $in: selectedCandidates.map(id => new mongoose.Types.ObjectId(id)) } } },
-            { $unwind: '$candidateDetails' },
+        const candidateIds = selectedCandidates.map(id =>new mongoose.Types.ObjectId(id));
+        const data=await candidate.aggregate([{
+            $match: {
+                _id: { $in: candidateIds }
+            }
+        },
             {
                 $lookup: {
                     from: 'candidate_basic_details',
-                    localField: 'candidateDetails.basic_details',
+                    localField: 'basic_details',
                     foreignField: '_id',
                     as: 'basicDetails'
                 }
             },
             { $unwind: '$basicDetails' }
-        ]).exec();
+        ])
 
         if (!data || data.length === 0) {
             return res.status(404).json({ error: 'No candidates found' });
@@ -369,29 +355,22 @@ exports.DownloadMultipleResume = async (req, res) => {
     try {
         const objectId = new mongoose.Types.ObjectId(companyId);
 
-        const data = await CompanyJob.aggregate([
-            { $match: { company_id: objectId } },
-            { $unwind: '$applied_candidates' },
-            {
-                $lookup: {
-                    from: 'candidates',
-                    localField: 'applied_candidates.candidate_id',
-                    foreignField: '_id',
-                    as: 'candidateDetails'
-                }
-            },
-            { $match: { 'candidateDetails._id': { $in: selectedCandidates.map(id => new mongoose.Types.ObjectId(id)) } } },
-            { $unwind: '$candidateDetails' },
+        const candidateIds = selectedCandidates.map(id =>new mongoose.Types.ObjectId(id));
+        const data=await candidate.aggregate([{
+            $match: {
+                _id: { $in: candidateIds }
+            }
+        },
             {
                 $lookup: {
                     from: 'candidate_work_details',
-                    localField: 'candidateDetails.work_details',
+                    localField: 'work_details',
                     foreignField: '_id',
                     as: 'WorkDetails'
                 }
             },
             { $unwind: '$WorkDetails' }
-        ]).exec();
+        ])
 
         if (!data || data.length === 0) {
             return res.status(404).json({ error: 'No candidates found' });

@@ -41,6 +41,10 @@ const CompanyJobSchema = new mongoose.Schema({
       shorted_status:{
         type:Boolean,
         default:false
+      },
+      reject_status:{
+        type:Boolean,
+        default:false
       }
     }
   ],

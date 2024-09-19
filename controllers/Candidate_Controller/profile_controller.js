@@ -36,80 +36,91 @@ const OnboardCandidatePersonalDetails=Joi.object({
 })
 
 const OnboardCandidateWorkDetails=Joi.object({
+  industry:Joi.string(),
   current_ctc: Joi.number(),
   aspiring_position: Joi.string(),
   work_experience:Joi.string().min(1),
   career_highlight: Joi.string().min(5),
   recognation: Joi.string().min(5),
- skill:Joi.string()
+  functions:Joi.string(),
+  preferred_location:Joi.string(),
+  current_location:Joi.string()
 })
 
 
 exports.getProfilePercentageStatus = async (req, res) => {
-    const { id } = req.params;
-    try {
+  const { id } = req.params;
+
+  try {
       const data = await candidate.findById(id)
-        .populate('basic_details')
-        .populate('education_details')
-        .populate('work_details')
-        .populate('personal_details');
-  
+          .populate('basic_details')
+          .populate('education_details')
+          .populate('work_details')
+          .populate('personal_details');
+          
       if (!data) {
-        return res.status(404).json({ error: "Candidate not found" });
+          return res.status(404).json({ error: "Candidate not found" });
       }
-  
+
+      // Fields to be checked
       const basicFields = [
         'name', 'email', 'mobile', 'linkedIn'
       ];
       const educationFields = [
         'highest_education', 'board_represent'
       ];
-      current_ctc, aspiring_position, work_experience, career_highlight, recognation, skill
       const workFields = [
-           'current_ctc', 'aspiring_position',
-        'work_experience', 'current_report', 'last_reporting', 'career_highlight',
-         'functions', 'preferred_location', 'current_location', 'resume'
+           'industry','current_ctc', 'aspiring_position',
+        'work_experience','career_highlight',
+         'functions', 'preferred_location', 'current_location', 'resume','skill'
       ];
       const personalFields = [
         'gender', 'age', 'marriag_status', 'aadhar_number', 'PAN',
-        'family_member', 'father_name', 'son_name', 'spouse_profession'
+        'family_member', 'spouse_profession','Pan_verified_status','Aadhar_verified_status'
       ];
-  
+
       const calculateFilledFields = (details, fields) => {
-        let filled = 0;
-        fields.forEach(field => {
-          if (details && details[field]) {
-            filled++;
-          }
-        });
-        return filled;
+          let filled = 0;
+          if (!details) return filled;
+
+          fields.forEach(field => {
+              if (details[field] !== undefined && details[field] !== null && details[field] !== ''&&details[field] !== false) {
+                  filled++;
+              } else {
+                  console.log(`Field "${field}" is not filled or invalid.`);
+              }
+          });
+          return filled;
       };
+
       const totalBasicFields = basicFields.length;
       const filledBasicFields = calculateFilledFields(data.basic_details, basicFields);
-  
+
       const totalEducationFields = educationFields.length;
       const filledEducationFields = calculateFilledFields(data.education_details, educationFields);
-  
+
       const totalWorkFields = workFields.length;
       const filledWorkFields = calculateFilledFields(data.work_details, workFields);
-  
+
       const totalPersonalFields = personalFields.length;
       const filledPersonalFields = calculateFilledFields(data.personal_details, personalFields);
-  
+
       const totalFields = totalBasicFields + totalEducationFields + totalWorkFields + totalPersonalFields;
       const filledFields = filledBasicFields + filledEducationFields + filledWorkFields + filledPersonalFields;
-  
+
       const profileCompletionPercentage = Math.round((filledFields / totalFields) * 100);
-  
+
       return res.status(200).json({
-        message: "Profile completion status retrieved successfully",
-        profileCompletionPercentage
+          message: "Profile completion status retrieved successfully",
+          profileCompletionPercentage: profileCompletionPercentage >= 0 ? profileCompletionPercentage : 0 
       });
-  
-    } catch (error) {
+
+  } catch (error) {
       return res.status(500).json({ error: "Internal server error" });
-    }
-  };
+  }
+};
+
+
   
 
   exports.AddSomeWorkexperience=async(req,res)=>{
@@ -590,10 +601,10 @@ exports.GetworkDetails=async(req,res)=>{
 
 exports.EditWorkDetails = async (req, res) => {
   const { user_id } = req.params;
-  const { current_ctc, aspiring_position, work_experience, career_highlight, recognation, skill} = req.body;
+  const { industry,current_ctc, aspiring_position, work_experience, career_highlight, recognation,functions,preferred_location,current_location, skill} = req.body;
 
   const { error } = OnboardCandidateWorkDetails.validate({
-    current_ctc, aspiring_position, work_experience, career_highlight, recognation, skill
+    industry,current_ctc, aspiring_position, work_experience, career_highlight, recognation,functions,preferred_location,current_location
   });
 
   if (error) {
@@ -606,18 +617,20 @@ exports.EditWorkDetails = async (req, res) => {
     }
 
     // Check if a resume file is uploaded
-    if (!req.file) {
-      return res.status(400).json({ error: "Please upload a resume file" });
-    }
+    // if (!req.file) {
+    //   return res.status(400).json({ error: "Please upload a resume file" });
+    // }
 
     const workDetailsData = {
+      industry,
       current_ctc,
       aspiring_position,
       work_experience,
       career_highlight,
       recognation,
       skill,
-      resume: req.file.filename
+      resume: req.file?.filename,
+      functions,preferred_location,current_location
     };
 
     const candidates = await candidate.findById(user_id).populate('work_details');
@@ -683,13 +696,22 @@ exports.AddNewAducation = async (req, res) => {
     start_date,
     end_date,
     grade,
-    description
+    description,certificates
   } = req.body;
 
   try {
     if (!mongoose.Types.ObjectId.isValid(user_id)) {
       return res.status(400).json({ error: 'Invalid candidate ID' });
     }
+
+    const certificatesArray = certificates.map((certificate, index) => {
+      const fileFieldName = `certificates[${index}][image]`;
+      const file = req.files[fileFieldName] ? req.files[fileFieldName][0] : null;
+      return {
+          Certificate: certificate.certificateName,
+          image: file ? file.path : null,
+      };
+  });
 
     const candidateData = await candidate.findById(user_id).populate('education_details');
     if (!candidateData) {
@@ -721,6 +743,7 @@ exports.AddNewAducation = async (req, res) => {
         highest_education,
         board_represent,
         articles,
+        certificates:certificatesArray,
         $addToSet: { Education: newEducation }
       },
       { new: true } 

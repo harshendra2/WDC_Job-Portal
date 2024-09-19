@@ -8,6 +8,9 @@ const work_details_candidate=new mongoose.Schema({
     aspiring_position:{
       type:String
     },
+    current_ctc:{
+      type:String
+    },
     work_experience:{
         type:Number
     },
@@ -29,7 +32,7 @@ const work_details_candidate=new mongoose.Schema({
     resume:{
         type:String
     },
-    skills:{
+    skill:{
       type:Array
     },
     Experience:[

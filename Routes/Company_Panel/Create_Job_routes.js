@@ -18,6 +18,9 @@ router.put('/company/sortlist/candidate/:jobId/:userId',controller.ShortlistCand
 //Shortlist Section
 router.get('/company/listout_sortliste/applicent/:jobId',controller.ListOutAllShortlistedApplicent);
 router.put('/company/add_feedback/:jobId/:userId',controller.AddUserFeedBack);
+//Finalize Section
+router.put('/company/reject_applicent/:jobId/:userId',controller.RejectApplicent);
+router.put('/company/hired_applicent/:jobId/:userId',controller.HireCandidate);
 //Job offer 
 router.get('/company/get_user_offer/:jobId/:userId',controller.GetUserDetailsForOffer);
 router.put('/company/job_offer/:jobId/:userId',upload.single("file"),controller.OfferJobToCandidate);

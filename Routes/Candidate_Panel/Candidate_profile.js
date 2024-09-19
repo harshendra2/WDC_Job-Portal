@@ -1,6 +1,7 @@
 const express=require('express');
 const router=new express.Router();
 const {upload}=require("../../middleware/multer")
+const uploads = require("../../middleware/multiple_certificate_multer");
 const controller=require('../../controllers/Candidate_Controller/profile_controller');
 
 router.get('/candidate/profile/:id',controller.getProfilePercentageStatus);
@@ -27,7 +28,7 @@ router.get('/candidate/profile/:id',controller.getProfilePercentageStatus);
 
  //Edit Education details
  router.get('/candidate/profile/get_education/:user_id',controller.GetEducationDetails);
- router.put('/candidate/profile/add_education/:user_id',controller.AddNewAducation);
+ router.put('/candidate/profile/add_education/:user_id',uploads,controller.AddNewAducation);
  router.delete('/candidate/profile/delete_education/:user_id/:education_id',controller.DeleteEducation);
 
  //Reviews
