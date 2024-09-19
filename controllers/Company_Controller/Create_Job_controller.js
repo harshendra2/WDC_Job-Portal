@@ -4,6 +4,7 @@ const Joi=require('joi');
 const CompanyJob=require("../../models/JobSchema");
 const company=require('../../models/Onboard_Company_Schema');
 const companySubscription=require("../../models/Company_SubscriptionSchema");
+const CandidateSubscription=require('../../models/Current_Candidate_SubscriptionSchema');
 
 const EditJobs=Joi.object({
   job_title: Joi.string().required(),
@@ -295,7 +296,11 @@ exports.ListOutAllAppliedApplicants = async (req, res) => {
           'BasicDetails': 1,
           'WorkDetails':1
         }
+      },
+      {
+        $sort: { 'applied_candidates.applied_date': -1} 
       }
+
     ]);
     const isGoogleDriveLink = (url) => {
       return url && (url.includes('drive.google.com') || url.includes('docs.google.com'));
@@ -326,6 +331,8 @@ exports.ListOutAllAppliedApplicants = async (req, res) => {
     return res.status(500).json({ error: 'Internal server error' });
   }
 };
+
+
 
 
 exports.ShortlistCandidate = async (req, res) => {
@@ -407,6 +414,9 @@ exports.ListOutAllShortlistedApplicent = async (req, res) => {
           'BasicDetails': 1,
           'WorkDetails': 1
         }
+      },
+      {
+        $sort: { 'Shortlisted.sortlisted_date': -1} 
       }
     ]);
     const isGoogleDriveLink = (url) => {

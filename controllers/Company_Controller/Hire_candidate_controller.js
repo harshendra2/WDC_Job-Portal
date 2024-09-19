@@ -7,6 +7,7 @@ const axios=require('axios')
 const CompanyJob=require('../../models/JobSchema');
 const candidate=require('../../models/Onboard_Candidate_Schema');
 const CompanySubscription=require('../../models/Company_SubscriptionSchema');
+const CandidateSubscription=require('../../models/Current_Candidate_SubscriptionSchema');
 
 exports.getAllAppliedCandidate = async (req, res) => {
     const { id } = req.params;
@@ -43,6 +44,41 @@ exports.getAllAppliedCandidate = async (req, res) => {
                     foreignField: '_id',
                     as: 'educationDetails'
                 }
+            },
+            {
+                $lookup: {
+                    from: 'currentusersubscriptionplanes',
+                    localField: '_id',
+                    foreignField: 'candidate_id',
+                    as: 'SubscriptionPlan'
+                }
+            },
+            {
+                $unwind: {
+                    path: '$SubscriptionPlan',
+                    preserveNullAndEmptyArrays: true 
+                }
+            },
+            {
+                $project: {
+                    basicDetails: 1,
+                    personalDetails: 1,
+                    workDetails: 1,
+                    educationDetails: 1,
+                    profile: 1,
+                    SubscriptionPlan: 1,
+                    top_candidate: {
+                        $cond: {
+                            if: { $and: [{ $ne: ['$SubscriptionPlan', null] }, { $gt: ['$SubscriptionPlan.expiresAt', new Date()] }] },
+                            then: '$SubscriptionPlan.top_candidate',
+                            else: 40
+                        }
+                    },
+                    createdDate: '$SubscriptionPlan.createdDate'
+                }
+            },
+            {
+                $sort: { top_candidate: 1, createdDate: 1 }
             }
         ]);
 
@@ -52,7 +88,7 @@ exports.getAllAppliedCandidate = async (req, res) => {
 
             const updatedData = data.map(item => {
                 const resumeUrl = item.workDetails[0]?.resume
-                    ? (isGoogleDriveLink(item.workDetails[0]?.resume) ? item.workDetails[0].resume : `${baseUrl}/${item.workDetails.resume.replace(/\\/g, '/')}`)
+                    ? (isGoogleDriveLink(item.workDetails[0]?.resume) ? item.workDetails[0].resume : `${baseUrl}/${item.workDetails[0].resume.replace(/\\/g, '/')}`)
                     : null;
 
                 const profileUrl = item?.profile
@@ -61,11 +97,10 @@ exports.getAllAppliedCandidate = async (req, res) => {
 
                 return {
                     ...item,
-                    
                     candidateDetails: {
                         ...item.candidateDetails,
                         profile: profileUrl,
-                        resume:resumeUrl
+                        resume: resumeUrl
                     }
                 };
             });
@@ -78,6 +113,7 @@ exports.getAllAppliedCandidate = async (req, res) => {
         return res.status(500).json({ error: "Internal server error" });
     }
 };
+
 
 
 exports.getCandidateDetails = async (req, res) => {
@@ -150,9 +186,10 @@ exports.getCandidateDetails = async (req, res) => {
         if (!existsSubscription) {
             return res.status(404).json({ error: "Subscription not found, please buy a new subscription plan." });
         }
-
-        existsSubscription.cv_view_limit -= 1;
-        await existsSubscription.save();
+           if(typeof existsSubscription?.cv_view_limit=='number'){
+             existsSubscription.cv_view_limit -= 1;
+              await existsSubscription.save();
+           }
 
         const baseUrl = `${req.protocol}://${req.get('host')}`;
         const isGoogleDriveLink = (url) => {

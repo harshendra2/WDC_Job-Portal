@@ -35,7 +35,7 @@ const CompanySubscriptionPlaneSchema = new mongoose.Schema({
   },
   cv_view_limit: {
     type: mongoose.Schema.Types.Mixed, // Allows both numbers and strings
-    default:200
+    default:0
   },
   download_email_limit: {
     type: Boolean,
