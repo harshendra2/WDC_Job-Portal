@@ -44,7 +44,8 @@ const OnboardCandidateWorkDetails=Joi.object({
   recognation: Joi.string().min(5),
   functions:Joi.string(),
   preferred_location:Joi.string(),
-  current_location:Joi.string()
+  current_location:Joi.string(),
+  country:Joi.string()
 })
 
 
@@ -601,10 +602,10 @@ exports.GetworkDetails=async(req,res)=>{
 
 exports.EditWorkDetails = async (req, res) => {
   const { user_id } = req.params;
-  const { industry,current_ctc, aspiring_position, work_experience, career_highlight, recognation,functions,preferred_location,current_location, skill} = req.body;
+  const { industry,current_ctc, aspiring_position, work_experience, career_highlight, recognation,functions,preferred_location,current_location,country,skill} = req.body;
 
   const { error } = OnboardCandidateWorkDetails.validate({
-    industry,current_ctc, aspiring_position, work_experience, career_highlight, recognation,functions,preferred_location,current_location
+    industry,current_ctc, aspiring_position, work_experience, career_highlight, recognation,functions,preferred_location,current_location,country
   });
 
   if (error) {
@@ -630,7 +631,7 @@ exports.EditWorkDetails = async (req, res) => {
       recognation,
       skill,
       resume: req.file?.filename,
-      functions,preferred_location,current_location
+      functions,preferred_location,current_location,country
     };
 
     const candidates = await candidate.findById(user_id).populate('work_details');

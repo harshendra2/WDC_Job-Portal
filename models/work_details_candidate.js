@@ -29,6 +29,9 @@ const work_details_candidate=new mongoose.Schema({
     current_location:{
       type:String
     },
+    country:{
+      type:String
+    },
     resume:{
         type:String
     },

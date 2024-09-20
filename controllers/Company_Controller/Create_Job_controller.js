@@ -232,23 +232,55 @@ exports.EditPostedJob=async(req,res)=>{
   }
 }
 
+// View Single Job application
+exports.ViewJobListDetails = async (req, res) => {
+  const { jobId } = req.params;
+  try {
+      const objectId = new mongoose.Types.ObjectId(jobId);
+      const JobDetails = await CompanyJob.aggregate([
+          { $match: { _id: objectId } },
+          {
+              $lookup: {
+                  from: 'companies',
+                  localField: 'company_id',
+                  foreignField: '_id',
+                  as: 'CompanyDetails'
+              }
+          },
+          {
+              $unwind: {
+                  path: '$CompanyDetails',
+                  preserveNullAndEmptyArrays: true
+              }
+          }
+      ]);
 
-//View Single Job application 
-
-exports.ViewJobListDetails=async(req,res)=>{
-  const {jobId}=req.params;
-  try{
-    const objectId = new mongoose.Types.ObjectId(jobId);
-    const JobDetails=await CompanyJob.aggregate([
-      {$match:{_id:objectId}}]);
-      if(JobDetails){
-        return res.status(200).send(JobDetails);
+      if (JobDetails.length === 0) {
+          return res.status(404).json({ error: "Job not found" });
       }
 
-  }catch(error){
-    return res.status(500).json({error:"Internal server error"});
+      const job = JobDetails[0]; 
+
+      const baseUrl = `${req.protocol}://${req.get('host')}`;
+      const isGoogleDriveLink = (url) => {
+          return url && (url.includes('drive.google.com') || url.includes('docs.google.com'));
+      };
+
+      const updatedData = {
+          ...job,
+          profileUrl: job.CompanyDetails?.profile
+              ? (isGoogleDriveLink(job.CompanyDetails?.profile)
+                  ? job.CompanyDetails?.profile
+                  : `${baseUrl}/${job.CompanyDetails?.profile.replace(/\\/g, '/')}`)
+              : null
+      };
+
+      return res.status(200).json(updatedData);
+  } catch (error) {
+      return res.status(500).json({ error: "Internal server error" });
   }
-}
+};
+
 
 exports.ListOutAllAppliedApplicants = async (req, res) => {
   const { jobId } = req.params;
