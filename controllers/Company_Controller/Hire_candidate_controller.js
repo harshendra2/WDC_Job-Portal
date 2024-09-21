@@ -375,21 +375,22 @@ exports.KeywordSearchCandidate = async (req, res) => {
             company_id: comnId,
             expiresAt: { $gte: new Date() }
         });
-
         if (!existsSubscription) {
             return res.status(404).json({ error: "Subscription not found, please purchase a new subscription plan." });
         }
-        const history=new searchhistory({
-            Company_id:companyId,
-            Search:`${search},${experience},${location}`
-        })
-        await history.save();
-
-        if (typeof existsSubscription?.search_limit== 'number'&& existsSubscription?.search_limit>0) {
+        
+        const historyData = new searchhistory({
+            Company_id: companyId,
+            Search: `${search},${experience},${location}`
+        });
+        
+        if (typeof existsSubscription.search_limit=='number' &&existsSubscription.search_limit> 0) {
             existsSubscription.search_limit -= 1;
-            await existsSubscription.save();
-        }else if(typeof existsSubscription?.search_limit== 'number'&& existsSubscription?.search_limit<=0){
+            await Promise.all([historyData.save(), existsSubscription.save()]);
+        } else if(typeof existsSubscription.search_limit=='number' &&existsSubscription.search_limit<0){
             return res.status(404).json({ error: "Please top up your plan." });
+        }else{
+            await historyData.save();
         }
         if (data && data.length > 0) {
             const baseUrl = `${req.protocol}://${req.get('host')}`;
@@ -419,7 +420,6 @@ exports.KeywordSearchCandidate = async (req, res) => {
             return res.status(404).json({ error: "No candidates found for this company" });
         }
     } catch (error) {
-        console.log(error);
         return res.status(500).json({ error: "Internal server error" });
     }
 };
