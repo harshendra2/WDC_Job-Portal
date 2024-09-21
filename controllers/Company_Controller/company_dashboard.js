@@ -4,6 +4,7 @@ const { Cashfree } = require('cashfree-pg');
 const CompanySubscription=require("../../models/Company_SubscriptionSchema");
 const subscription=require("../../models/SubscriptionSchema");
 const CompanyJob=require("../../models/JobSchema");
+const CompanyTransaction=require('../../models/CompanyTransactionSchema');
 
 // Configure Cashfree
 Cashfree.XClientId = process.env.CASHFREE_CLIENT_ID;
@@ -235,8 +236,7 @@ exports.SubscriptionPlaneVerifyPayment = async (req, res) => {
               return res.status(404).json({ error: "Subscription plan not found" });
           }
 
-          const previousPlan = await CompanySubscription.findOne({ company_id: companyId })
-              .sort({ createdDate: -1 });
+          const previousPlan = await CompanySubscription.findOne({ company_id: companyId,expiresAt: { $gte: new Date()},createdDate:{$lte:new Date()}})
 
               const newExpirationDate = previousPlan
               ? new Date(previousPlan.expiresAt)
@@ -261,11 +261,21 @@ exports.SubscriptionPlaneVerifyPayment = async (req, res) => {
               download_cv_limit: subData.download_cv_limit,
               job_posting: subData.job_posting,
               createdDate: new Date(),
-              expiresAt: newExpirationDate,
-              paymentMethod: paymentMethod
+              expiresAt: newExpirationDate
           });
           
           await newSubscription.save();
+          const transaction=new CompanyTransaction({
+            company_id:companyId,
+            type:'Upgrade plane',
+            Plane_name: subData.plane_name,
+            price:subData.price,
+            payment_method:paymentMethod,
+            transaction_Id:orderId,
+            purchesed_data:new Date(),
+            Expire_date:newExpirationDate
+        })
+        await transaction.save();
 
           return res.status(201).json({
               message: "Payment verified and subscription upgraded successfully",

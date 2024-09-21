@@ -57,10 +57,7 @@ const CompanySubscriptionPlaneSchema = new mongoose.Schema({
     type: Date,
     default: Date.now,
     // index: { expires: '30d' }, 
-},
-paymentMethod:{
-  type:String
-},
+}
 // topUp:[
 //   {
 //     plane_name:{

@@ -367,8 +367,7 @@ exports.RenewPlaneVerifyPayment = async (req, res) => {
                     existingSubscription.job_posting = 0;
                     existingSubscription.available_candidate = false;
                     existingSubscription.download_email_limit = false;
-                    existingSubscription.download_cv_limit = false;
-                    existingSubscription.paymentMethod=paymentMethod;
+                    existingSubscription.download_cv_limit = false
                     await existingSubscription.save();
                 }
 
@@ -385,7 +384,6 @@ exports.RenewPlaneVerifyPayment = async (req, res) => {
                     download_email_limit: subscriptionData.download_email_limit,
                     download_cv_limit: subscriptionData.download_cv_limit,
                     job_posting: subscriptionData.job_posting,
-                    paymentMethod:paymentMethod,
                     createdDate: new Date(),
                     expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), 
                 });
@@ -680,8 +678,7 @@ exports.SubscriptionPlaneVerifyPayment = async (req, res) => {
                 download_cv_limit: subData.download_cv_limit,
                 job_posting: subData.job_posting,
                 createdDate: new Date(previousPlan.expiresAt),
-                expiresAt: new Date(newExpirationDate),
-                paymentMethod:paymentMethod
+                expiresAt: new Date(newExpirationDate)
             });
             await newSubscription.save();
             const transaction=new CompanyTransaction({
