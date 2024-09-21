@@ -7,7 +7,7 @@ const axios=require('axios')
 const CompanyJob=require('../../models/JobSchema');
 const candidate=require('../../models/Onboard_Candidate_Schema');
 const CompanySubscription=require('../../models/Company_SubscriptionSchema');
-const CandidateSubscription=require('../../models/Current_Candidate_SubscriptionSchema');
+const searchhistory=require('../../models/Search_historySchema');
 
 exports.getAllAppliedCandidate = async (req, res) => {
     const { id } = req.params;
@@ -120,7 +120,7 @@ exports.getCandidateDetails = async (req, res) => {
     const { userId, companyId } = req.params;
 
     try {
-        if(userId&& companyId){
+        if(!userId&&!companyId){
          return res.status(400).json({error:"All Id is required"});
         }
         if (!mongoose.Types.ObjectId.isValid(userId)) {
@@ -177,9 +177,11 @@ exports.getCandidateDetails = async (req, res) => {
             return res.status(404).json({ error: "Candidate not found" });
         }
 
-        candidateToUpdate.profile_view_company.addToSet({ company_id: companyId });
-        await candidateToUpdate.save();
-
+        const existingCompany = candidateToUpdate.profile_view_company.find(company => company.company_id == companyId);
+        if (!existingCompany) {
+            candidateToUpdate.profile_view_company.push({ company_id: companyId });
+            await candidateToUpdate.save();
+        }
         const comnId = new mongoose.Types.ObjectId(companyId);
         const existsSubscription = await CompanySubscription.findOne({
             company_id: comnId,
@@ -243,7 +245,7 @@ exports.getCandidateDetails = async (req, res) => {
 
 // Key word Search Features
 exports.KeywordSearchCandidate = async (req, res) => {
-    const { search = '', experience, location } = req.body;
+    const { search, experience, location } = req.body;
     const { companyId } = req.params;
 
     try {
@@ -379,6 +381,11 @@ exports.KeywordSearchCandidate = async (req, res) => {
         if (!existsSubscription) {
             return res.status(404).json({ error: "Subscription not found, please purchase a new subscription plan." });
         }
+        const history=new searchhistory({
+            Company_id:companyId,
+            Search:`${search},${experience},${location}`
+        })
+        await history.save();
 
         if (typeof existsSubscription?.search_limit== 'number'&& existsSubscription?.search_limit>0) {
             existsSubscription.search_limit -= 1;
@@ -414,6 +421,7 @@ exports.KeywordSearchCandidate = async (req, res) => {
             return res.status(404).json({ error: "No candidates found for this company" });
         }
     } catch (error) {
+        console.log(error);
         return res.status(500).json({ error: "Internal server error" });
     }
 };
@@ -470,6 +478,9 @@ exports.DownloadMultipleResume = async (req, res) => {
     const { selectedCandidates } = req.body;
 
     try {
+        if(!companyId){
+            return res.status(400).json({error:"Comapny Id is required"});
+        }
         const objectId = new mongoose.Types.ObjectId(companyId);
 
         const candidateIds = selectedCandidates.map(id =>new mongoose.Types.ObjectId(id));
@@ -546,6 +557,9 @@ function extractGoogleDriveFileId(url) {
 exports.getSubscriptionCountStatus=async(req,res)=>{
     const {companyId}=req.params;
     try{
+        if(!companyId){
+            return res.status(400).json({error:"Company Id is required"});
+        }
         const objectId = new mongoose.Types.ObjectId(companyId);
 
         const [subscriptionData, jobData] = await Promise.all([

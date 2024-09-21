@@ -279,6 +279,9 @@ exports.CreatePromotesJob=async(req,res)=>{
 exports.deleteJobPosted=async(req,res)=>{
   const {jobId}=req.params;
   try{
+    if(!jobId){
+      return res.status(400).json({error:"please provide job id"});
+    }
     const deleteJob = await CompanyJob.findByIdAndDelete(jobId);
     
     if (deleteJob) {
@@ -295,6 +298,9 @@ exports.deleteJobPosted=async(req,res)=>{
 exports.RestartJobPosted = async (req, res) => {
   const { jobId } = req.params;
   try {
+    if(!jobId){
+      return res.status(400).json({error:"please provide job id"});
+    }
     const job = await CompanyJob.findById(jobId);
 
     if (!job) {
@@ -355,6 +361,9 @@ exports.EditPostedJob=async(req,res)=>{
 exports.ViewJobListDetails = async (req, res) => {
   const { jobId } = req.params;
   try {
+    if(!jobId){
+      return res.status(400).json({error:"please provide job id"});
+    }
       const objectId = new mongoose.Types.ObjectId(jobId);
       const JobDetails = await CompanyJob.aggregate([
           { $match: { _id: objectId } },
@@ -404,6 +413,9 @@ exports.ViewJobListDetails = async (req, res) => {
 exports.ListOutAllAppliedApplicants = async (req, res) => {
   const { jobId } = req.params;
   try {
+    if(!jobId){
+      return res.status(400).json({error:"Please provide Job Id"})
+    }
     const jobObjectId = new mongoose.Types.ObjectId(jobId);
 
     const candidateDetails = await CompanyJob.aggregate([
@@ -489,6 +501,9 @@ exports.ListOutAllAppliedApplicants = async (req, res) => {
 exports.ShortlistCandidate = async (req, res) => {
   const { jobId, userId } = req.params;
   try {
+    if(!jobId &&!userId){
+      return res.status(400).json({error:"Please provide all ID"});
+    }
     const jobObjectId = new mongoose.Types.ObjectId(jobId);
     const userObjectId = new mongoose.Types.ObjectId(userId);
     const updateCandidate = await CompanyJob.updateOne(
@@ -522,6 +537,9 @@ exports.ShortlistCandidate = async (req, res) => {
 exports.ListOutAllShortlistedApplicent = async (req, res) => {
   const { jobId } = req.params;
   try {
+    if(!jobId){
+      return res.status(400).json({error:"please provide job id"});
+    }
     const jobObjectId = new mongoose.Types.ObjectId(jobId);
     const candidateDetails = await CompanyJob.aggregate([
       { $match: { _id: jobObjectId } }, 
@@ -607,6 +625,9 @@ exports.AddUserFeedBack=async(req,res)=>{
   const {jobId,userId}=req.params;
   const {feedBack,rating}=req.body;
   try{
+    if(!jobId && !userId){
+      return res.status(400).json({error:"please provide job id and user Id"});
+    }
     const jobObjectId = new mongoose.Types.ObjectId(jobId);
     const userObjectId = new mongoose.Types.ObjectId(userId);
     // const updateCandidate = await CompanyJob.updateOne(
@@ -643,6 +664,9 @@ exports.AddUserFeedBack=async(req,res)=>{
 exports.RejectApplicent=async(req,res)=>{
   const {jobId,userId}=req.params;
   try{
+    if(!jobId && !userId){
+      return res.status(400).json({error:"please provide job id and user id"});
+    }
     const jobObjectId = new mongoose.Types.ObjectId(jobId);
     const userObjectId = new mongoose.Types.ObjectId(userId);
     await CompanyJob.updateOne(
@@ -666,6 +690,9 @@ exports.RejectApplicent=async(req,res)=>{
 exports.HireCandidate=async(req,res)=>{
   const {userId,jobId}=req.params;
   try{
+    if(!userId && !jobId){
+      return res.status(400).json({error:"please provide user id and job id"});
+    }
     const jobObjectId = new mongoose.Types.ObjectId(jobId);
     const userObjectId = new mongoose.Types.ObjectId(userId);
     const data=await CompanyJob.updateOne(
@@ -687,6 +714,9 @@ exports.HireCandidate=async(req,res)=>{
 exports.GetUserDetailsForOffer = async (req, res) => {
   const { userId, jobId } = req.params;
   try {
+    if(!userId && !jobId){
+      return res.status(400).json({error:"please provide user id and job id"});
+    }
     const userIds = new mongoose.Types.ObjectId(userId);
     const jobIds = new mongoose.Types.ObjectId(jobId);
     const data = await CompanyJob.aggregate([
@@ -763,6 +793,9 @@ exports.OfferJobToCandidate=async(req,res)=>{
     return res.status(400).json({error:"Please upload offer letter"});
   }
   try{
+    if(!userId&& !jobId){
+      return res.status(400).json({error:"please provide user id and job id"});
+    }
     const userIds=new mongoose.Types.ObjectId(userId);
     const jobIds=new mongoose.Types.ObjectId(jobId);
 
@@ -788,6 +821,9 @@ exports.OfferJobToCandidate=async(req,res)=>{
 exports.GetUserDetailswithofferStatus = async (req, res) => {
   const { userId, jobId } = req.params;
   try {
+    if(!userId && !jobId){
+      return res.status(400).json({error:"please provide user id and job id"});
+    }
     const userIds = new mongoose.Types.ObjectId(userId);
     const jobIds = new mongoose.Types.ObjectId(jobId);
 
