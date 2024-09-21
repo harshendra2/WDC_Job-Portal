@@ -5,7 +5,7 @@ const controller=require('../../controllers/Company_Controller/Hire_candidate_co
 router.get('/company/get_appliedcandidate/:id',controller.getAllAppliedCandidate);
 router.get('/company/get_candidatedetails/:userId/:companyId',controller.getCandidateDetails);
 //search Features
-router.get('/company/get_searchcandiate/:companyId',controller.KeywordSearchCandidate);
+router.post('/company/get_searchcandiate/:companyId/:search/:experience/:location',controller.KeywordSearchCandidate);
 //Download Email
 router.post('/company/download_email/:companyId',controller.DownloadMultipleEmailId);
 //Download Resume

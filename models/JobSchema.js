@@ -48,6 +48,24 @@ const CompanyJobSchema = new mongoose.Schema({
         type: Boolean,
         default: false,
       },
+      short_Candidate:{
+            offer_date: {
+             type: Date,
+          default: Date.now,
+        },
+        offer_letter: {
+          type: String,
+        },
+        offer_accepted_status: {
+          type: String,
+          enum: ["Processing", "accepted", "rejected"],
+          default: "Processing",
+        },
+        hired_date:{
+          type:Date,
+          default:Date.now()
+        }
+    },
     },
   ],
   Interviewed: [
@@ -74,40 +92,7 @@ const CompanyJobSchema = new mongoose.Schema({
       },
     },
   ],
-  Job_offer: [
-    {
-      candidate_id: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "candidate",
-        required: true,
-      },
-      offer_date: {
-        type: Date,
-        default: Date.now,
-      },
-      offer_letter: {
-        type: String,
-      },
-      offer_accepted_status: {
-        type: String,
-        enum: ["pending", "accepted", "rejected"],
-        default: "pending",
-      },
-    },
-  ],
-  hired_candidate: [
-    {
-      candidate: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "candidate",
-        required: true,
-      },
-      hired_date: {
-        type: Date,
-        default: Date.now,
-      },
-    },
-  ],
+  
   apply_status: {
     type: Boolean,
     default: false,
@@ -175,24 +160,24 @@ const CompanyJobSchema = new mongoose.Schema({
     enum: ["pending", "verified", "Unverified"],
     default: "pending",
   },
-  job_reporting: [
-    {
-      candidate_ids: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "candidate",
-      },
-      message: {
-        type: String,
-      },
-      reported_date: {
-        type: Date,
-        default: Date.now,
-      },
-      name: {
-        type: String,
-      },
-    },
-  ],
+  // job_reporting: [
+  //   {
+  //     candidate_ids: {
+  //       type: mongoose.Schema.Types.ObjectId,
+  //       ref: "candidate",
+  //     },
+  //     message: {
+  //       type: String,
+  //     },
+  //     reported_date: {
+  //       type: Date,
+  //       default: Date.now,
+  //     },
+  //     name: {
+  //       type: String,
+  //     },
+  //   },
+  // ],
 });
 
 module.exports = mongoose.model("CompanyJob", CompanyJobSchema);

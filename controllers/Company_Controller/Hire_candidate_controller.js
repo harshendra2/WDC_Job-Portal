@@ -242,8 +242,6 @@ exports.getCandidateDetails = async (req, res) => {
     }
 };
 
-
-// Key word Search Features
 exports.KeywordSearchCandidate = async (req, res) => {
     const { search, experience, location } = req.body;
     const { companyId } = req.params;
@@ -425,8 +423,6 @@ exports.KeywordSearchCandidate = async (req, res) => {
         return res.status(500).json({ error: "Internal server error" });
     }
 };
-
-
 
 
 

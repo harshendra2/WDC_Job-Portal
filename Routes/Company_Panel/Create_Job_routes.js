@@ -28,7 +28,7 @@ router.put('/company/reject_applicent/:jobId/:userId',controller.RejectApplicent
 router.put('/company/hired_applicent/:jobId/:userId',controller.HireCandidate);
 //Job offer 
 router.get('/company/get_user_offer/:jobId/:userId',controller.GetUserDetailsForOffer);
-router.put('/company/job_offer/:jobId/:userId',upload.single("file"),controller.OfferJobToCandidate);
+router.put('/company/job_offer',upload.single('file'),controller.OfferJobToCandidate);
 //hire Candidate
 router.get('/company/get_user_detail/hire/:jobId/:userId',controller.GetUserDetailswithofferStatus); 
 
