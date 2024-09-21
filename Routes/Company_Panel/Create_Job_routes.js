@@ -5,7 +5,12 @@ const {upload}=require('../../middleware/multer');
 
 router.get('/company/job_status/:company_id',controller.GetCreatedJobStatus);
 router.get('/company/job/suggestion_description',controller.GetSuggestionJobDescription);
+//Post new job
 router.post('/company/create_job/:id',controller.CreateNewJob);
+//promoted job 
+router.get('/company/promote_job/payment',controller.PromoteJobPayment);
+router.post('/company/promote_job/verify',controller.CreatePromotesJob);
+
 router.delete('/company/Job_post/:jobId',controller.deleteJobPosted);
 router.put('/company/job_Restart/:jobId',controller.RestartJobPosted);
 router.put('/company/edit_job/:jobId',controller.EditPostedJob);

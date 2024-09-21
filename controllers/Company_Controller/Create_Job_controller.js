@@ -1,10 +1,21 @@
 const mongoose=require("mongoose");
+const crypto=require("crypto");
+const { Cashfree } = require('cashfree-pg');
 const moment = require('moment');
 const Joi=require('joi');
 const CompanyJob=require("../../models/JobSchema");
 const company=require('../../models/Onboard_Company_Schema');
 const companySubscription=require("../../models/Company_SubscriptionSchema");
-const CandidateSubscription=require('../../models/Current_Candidate_SubscriptionSchema');
+const companyTransaction=require('../../models/CompanyTransactionSchema');
+
+// Configure Cashfree
+Cashfree.XClientId = process.env.CASHFREE_CLIENT_ID;
+Cashfree.XClientSecret = process.env.CASHFREE_CLIENT_SECRET;
+Cashfree.XEnviornment = Cashfree.Environment.SANDBOX;
+
+function generateOrderId() {
+    return crypto.randomBytes(6).toString('hex');
+}
 
 const EditJobs=Joi.object({
   job_title: Joi.string().required(),
@@ -22,6 +33,9 @@ const EditJobs=Joi.object({
 exports.GetCreatedJobStatus=async(req,res)=>{
     const {company_id}=req.params;
     try{
+      if(!company_id){
+       return res.status(400).json({error:"Please provide Company Id"});
+      }
         const objectId = new mongoose.Types.ObjectId(company_id);
 const temp = await CompanyJob.aggregate([{$match:{company_id:objectId}},
     {
@@ -32,7 +46,9 @@ const temp = await CompanyJob.aggregate([{$match:{company_id:objectId}},
           $sum: { $cond: [{ $eq: ["$status", true] }, 1, 0] },
         }, 
         inactiveJobCount: {
-          $sum: { $cond: [{ $eq: ["$status", false] }, 1, 0] },
+          $sum: { $cond: [{ $or: [ { $eq: ["$status",false] }, { $gt: ["$job_Expire_Date", new Date()] } ] },
+          1, 
+          0] },
         },
         application_recieved: {
           $sum: { $size: { $ifNull: ["$applied_candidates", []] } },
@@ -73,17 +89,18 @@ const temp = await CompanyJob.aggregate([{$match:{company_id:objectId}},
           timeSincePosted
       };
   });
-
-  const SubscriptionStatus = await companySubscription.aggregate([
-    { $match: { company_id:objectId} },
-    {
-      $lookup: {
-        from: 'subscriptionplanes',
-        localField: 'subscription_id',
-        foreignField: '_id',
-        as: 'CompanySubscription'
-      }
-    }
+  const [SubscriptionStatus] = await Promise.all([
+    companySubscription.aggregate([
+      { $match: { company_id: objectId, expiresAt: { $gte: new Date() } } },
+      {
+        $lookup: {
+          from: "subscriptionplanes",
+          localField: "subscription_id",
+          foreignField: "_id",
+          as: "AdminSubscription",
+        },
+      },
+    ]),
   ]);
 
   if (dataWithJobCounts) {
@@ -113,9 +130,12 @@ exports.GetSuggestionJobDescription=async(req,res)=>{
 
 exports.CreateNewJob = async (req, res) => {
     const { id } = req.params;
-    const {job_title,No_openings,industry,salary,experience,location,job_type,work_type,skills,education,description} = req.body;
+    const {job_title,No_openings,industry,salary,experience,location,country,job_type,work_type,skills,education,description} = req.body;
 
     try {
+      if(!id){
+        return res.status(400).json({error:"Please provide Id"});
+      }
         const objectId = new mongoose.Types.ObjectId(id); 
         const existsSubscription = await companySubscription.findOne({ company_id: objectId, expiresAt: { $gte: new Date() },createdDate:{$lte:new Date()}})
 
@@ -128,6 +148,8 @@ exports.CreateNewJob = async (req, res) => {
         }
 
         // Create a new job
+        const job_Expire_Date = new Date();
+        job_Expire_Date.setMonth(job_Expire_Date.getMonth() + 3);
         const jobCreated = new CompanyJob({
             job_title,
             No_openings,
@@ -135,12 +157,14 @@ exports.CreateNewJob = async (req, res) => {
             salary,
             experience,
             location,
+            country,
             job_type,
             work_type,
             skills,
             education,
             description,
-            company_id: id
+            company_id: id,
+            job_Expire_Date
         });
 
         await jobCreated.save();
@@ -155,6 +179,101 @@ exports.CreateNewJob = async (req, res) => {
         return res.status(500).json({ error: "Internal Server Error" });
     }
 };
+
+exports.PromoteJobPayment=async(req,res)=>{
+  const { company_id, price, mobile, name, email } = req.body;
+
+  if (!price || !mobile || !name || !email) {
+      return res.status(400).json({ error: "All fields are required: price, mobile, name, email" });
+  }
+  try{
+    const orderId = generateOrderId();
+
+    const request = {
+        "order_amount": price,
+        "order_currency": "INR",
+        "order_id": orderId,
+        "customer_details": {
+            "customer_id": company_id, 
+            "customer_phone": mobile,
+            "customer_name": name,
+            "customer_email": email,
+        }
+    };
+    const response = await Cashfree.PGCreateOrder(request);
+    return res.json(response.data);
+  }catch(error){
+    return res.status(500).json({error:"Internal server error"});
+  }
+}
+
+exports.CreatePromotesJob=async(req,res)=>{
+  const { orderId,companyId,paymentMethod,price,job_title,No_openings,industry,salary,experience,location,country,job_type,work_type,skills,education,description} = req.body;
+  try{
+    const response = await Cashfree.PGOrderFetchPayment(orderId);
+
+    if (response && response.data && response.data.order_status === 'PAID') {
+      const objectId = new mongoose.Types.ObjectId(companyId); 
+      const existsSubscription = await companySubscription.findOne({ company_id: objectId, expiresAt: { $gte: new Date() },createdDate:{$lte:new Date()}})
+
+      if (!existsSubscription) {
+          return res.status(404).json({ error: "Subscription not found,Please buy new Subscription plane" });
+      }
+
+      if (existsSubscription.job_posting <= 0) {
+          return res.status(400).json({ error: "This subscription plan does not allow job postings Please upgrade your subscription plane" });
+      }
+
+      // Create a new job
+      const job_Expire_Date = new Date();
+      job_Expire_Date.setMonth(job_Expire_Date.getMonth() + 3);
+      const jobCreated = new CompanyJob({
+          job_title,
+          No_openings,
+          industry,
+          salary,
+          experience,
+          location,
+          country,
+          job_type,
+          work_type,
+          skills,
+          education,
+          description,
+          company_id:companyId,
+          job_Expire_Date,
+          promote_job:true
+      });
+
+      await jobCreated.save();
+
+      // Decrease the job_posting count by 1
+      existsSubscription.job_posting -= 1;
+      await existsSubscription.save();
+
+      const transaction=new companyTransaction({
+        company_id:companyId,
+        type:'Promote job',
+        Plane_name:'Promote job',
+        price:price,
+        payment_method:paymentMethod,
+        transaction_Id:orderId,
+        purchesed_data:new Date(),
+        Expire_date:job_Expire_Date
+    })
+    await transaction.save();
+
+      return res.status(201).json({message: "Job created successfully",jobData: jobCreated});
+
+    } else {
+        return res.status(400).json({ error: "payment failed" });
+    }
+
+  }catch(error){
+    console.log(error);
+    return res.status(500).json({error:"Internal server error"});
+  }
+}
 
 
 exports.deleteJobPosted=async(req,res)=>{

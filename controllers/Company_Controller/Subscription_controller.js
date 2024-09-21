@@ -4,6 +4,7 @@ const mongoose=require("mongoose");
 const subscription=require("../../models/SubscriptionSchema");
 const CompanySubscription=require("../../models/Company_SubscriptionSchema");
 const TopUpPlane=require("../../models/ToupPlane");
+const CompanyTransaction=require("../../models/CompanyTransactionSchema");
 
 // Configure Cashfree
 Cashfree.XClientId = process.env.CASHFREE_CLIENT_ID;
@@ -21,6 +22,7 @@ exports.GetCurrentSubscriptionPlane=async(req,res)=>{
         const CurrentSubscription=await CompanySubscription.aggregate([{
             $match: {
               expiresAt: { $gte: new Date() },
+              createdDate:{$lte:new Date()},
               company_id: Id
             }
           }])
@@ -119,7 +121,7 @@ exports.payment = async (req, res) => {
 };
 
 exports.verifyPayment = async (req, res) => {
-    const { orderId, subscriptionId, companyId } = req.body;
+    const { orderId, subscriptionId, companyId,paymentMethod} = req.body;
 
     try {
         const response = await Cashfree.PGOrderFetchPayment(orderId);
@@ -145,6 +147,19 @@ exports.verifyPayment = async (req, res) => {
                     expiresAt: new Date(Date.now() + 30*24*60*60*1000), // Set expiration date to 30 days from now
                 });
                 await subdata.save();
+                
+            
+                const transaction=new CompanyTransaction({
+                    company_id:companyId,
+                    type:'Subscription',
+                    Plane_name:data.plane_name,
+                    price:data.price,
+                    payment_method:paymentMethod,
+                    transaction_Id:orderId,
+                    purchesed_data:new Date(),
+                    Expire_date: new Date(Date.now() + 30*24*60*60*1000)
+                })
+                await transaction.save();
 
                 return res.status(201).json({
                     message: "Payment verified and subscription created successfully",
@@ -277,7 +292,7 @@ exports.GetReNewSubscriptionPlan = async (req, res) => {
             plane_name: { $regex: /^Basic\s*$/, $options: 'i' } 
         });
         const objectId=new mongoose.Types.ObjectId(company_id);
-        const previousSubscription=await CompanySubscription.aggregate([{ $match: { company_id: objectId, expiresAt: { $gte: new Date() } } }])
+        const previousSubscription=await CompanySubscription.aggregate([{ $match: { company_id: objectId, expiresAt: { $gte: new Date() },createdDate:{$lte:new Date()}} }])
          if(previousPlan){
         const getSubscriptionPlans = await subscription.aggregate([
             { $match: { _id: { $ne: previousPlan.subscription_id } } }
@@ -376,6 +391,18 @@ exports.RenewPlaneVerifyPayment = async (req, res) => {
                 });
                 await newSubscription.save();
 
+                const transaction=new CompanyTransaction({
+                    company_id:companyId,
+                    type:'Renew Plane',
+                    Plane_name:subscriptionData.plane_name,
+                    price:subscriptionData.price,
+                    payment_method:paymentMethod,
+                    transaction_Id:orderId,
+                    purchesed_data:new Date(),
+                    Expire_date: new Date(Date.now() + 30*24*60*60*1000)
+                })
+                await transaction.save();
+
                 return res.status(201).json({
                     message: "Payment verified and Subscription plan is renewed successfully",
                     paymentData: response.data,
@@ -400,9 +427,7 @@ exports.GetAllTopupPlane = async (req, res) => {
     const { company_id } = req.params;
 
     try {
-        const currentPlan = await CompanySubscription.findOne({ company_id })
-            .sort({ createdDate: -1 })
-            .limit(1);
+        const currentPlan = await CompanySubscription.findOne({ company_id,expiresAt: { $gte: new Date() },createdDate:{$lte:new Date()} })
 
         if (!currentPlan) {
             return res.status(404).json({ error: "No subscription plan found for the company." });
@@ -504,8 +529,8 @@ exports.TopUpPlaneVerifyPayment = async (req, res) => {
             }
 
             const existingSubscription = await CompanySubscription.findOne({ 
-                company_id: companyId 
-            }).sort({ createdDate: -1 });
+                company_id: companyId,expiresAt: { $gte: new Date()},createdDate:{$lte:new Date()}
+            })
 
             if (!existingSubscription) {
                 return res.status(404).json({ error: "No subscription found for the company" });
@@ -526,14 +551,26 @@ exports.TopUpPlaneVerifyPayment = async (req, res) => {
                 existingSubscription.download_cv_limit = true;
             }
 
-            existingSubscription.topUp.push({
-                plane_name: TopupData.plane_name,
-                plane_price: TopupData.plane_price,
-                order_Id: orderId,
-                Date: Date.now(),
-                paymentMethods:paymentMethod
-            });
-            await existingSubscription.save();
+            // existingSubscription.topUp.push({
+            //     plane_name: TopupData.plane_name,
+            //     plane_price: TopupData.plane_price,
+            //     order_Id: orderId,
+            //     Date: Date.now(),
+            //     paymentMethods:paymentMethod
+            // });
+            // await existingSubscription.save();
+
+            const transaction=new CompanyTransaction({
+                company_id:companyId,
+                type:'TopUp plane',
+                Plane_name:TopupData.plane_name,
+                price:TopupData.price,
+                payment_method:paymentMethod,
+                transaction_Id:orderId,
+                purchesed_data:new Date(),
+                Expire_date:existingSubscription.expiresAt
+            })
+            await transaction.save();
 
             return res.status(201).json({
                 message: "Payment verified and top-up plan applied successfully",
@@ -560,7 +597,7 @@ exports.GetEarySubscriptionplane=async(req,res)=>{
         });
 
         const objectId=new mongoose.Types.ObjectId(company_id);
-        const previousSubscription=await CompanySubscription.aggregate([{ $match: { company_id: objectId, expiresAt: { $gte: new Date() } } }])
+        const previousSubscription=await CompanySubscription.aggregate([{ $match: { company_id: objectId, expiresAt: { $gte: new Date() },createdDate:{$lte:new Date()}} }])
          if(previousPlan){
         const getSubscriptionPlans = await subscription.aggregate([
             { $match: { _id: { $ne: previousPlan.subscription_id } } }
@@ -623,9 +660,7 @@ exports.SubscriptionPlaneVerifyPayment = async (req, res) => {
                 return res.status(404).json({ error: "Subscription plan not found" });
             }
 
-            const previousPlan = await CompanySubscription.findOne({ company_id: companyId })
-                .sort({ createdDate: -1 })
-                .limit(1);
+            const previousPlan = await CompanySubscription.findOne({ company_id: companyId,expiresAt: { $gte: new Date()},createdDate:{$lte:new Date()}})
 
             const newExpirationDate = previousPlan
                 ? new Date(previousPlan.expiresAt).getTime() + 30 * 24 * 60 * 60 * 1000
@@ -649,6 +684,17 @@ exports.SubscriptionPlaneVerifyPayment = async (req, res) => {
                 paymentMethod:paymentMethod
             });
             await newSubscription.save();
+            const transaction=new CompanyTransaction({
+                company_id:companyId,
+                type:'Early plane',
+                Plane_name:subData.plane_name,
+                price:subData.price,
+                payment_method:paymentMethod,
+                transaction_Id:orderId,
+                purchesed_data:new Date(),
+                Expire_date:new Date(newExpirationDate)
+            })
+            await transaction.save();
 
             return res.status(201).json({
                 message: "Payment verified and subscription created successfully",

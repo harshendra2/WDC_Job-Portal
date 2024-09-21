@@ -74,7 +74,7 @@ exports.getUnappliedJob = async (req, res) => {
     const { id } = req.params; 
 
     try {
-        const jobs = await CompanyJob.find({})
+        const jobs = await CompanyJob.find({job_Expire_Date: { $gte: new Date() }}).sort({ promote_job: -1,createdDate:1});
 
         const unappliedJobs = jobs.filter(job => 
             !job.applied_candidates.some(candidate => 

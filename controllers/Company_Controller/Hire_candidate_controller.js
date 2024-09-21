@@ -120,6 +120,9 @@ exports.getCandidateDetails = async (req, res) => {
     const { userId, companyId } = req.params;
 
     try {
+        if(userId&& companyId){
+         return res.status(400).json({error:"All Id is required"});
+        }
         if (!mongoose.Types.ObjectId.isValid(userId)) {
             return res.status(400).json({ error: 'Invalid candidate ID' });
         }
@@ -287,6 +290,13 @@ exports.KeywordSearchCandidate = async (req, res) => {
                         $and: [
                             { 'educationDetails.highest_education': { $regex: skills, $options: 'i' } }, 
                             { 'educationDetails.highest_education': { $regex: jobTitle, $options: 'i' } },
+                            {'educationDetails.highest_education': { $regex: qualification, $options: 'i' } } 
+                        ]
+                    },
+                    {
+                        $and: [
+                            { 'workDetails.skill': { $regex: skills, $options: 'i' } }, 
+                            { 'workDetails.aspiring_position': { $regex: jobTitle, $options: 'i' } },
                             {'educationDetails.highest_education': { $regex: qualification, $options: 'i' } } 
                         ]
                     }

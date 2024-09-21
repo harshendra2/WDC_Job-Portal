@@ -20,7 +20,7 @@ router.get('/company/get_renewplane/:company_id',controller.GetReNewSubscription
  // topup plane
  router.get('/company/get_topup_plane/:company_id',controller.GetAllTopupPlane);
  router.get('/company/topup_plane/payment',controller.TopUpSubscriptionPlane);
- router.post('/company/renewPlane/verify',controller.TopUpPlaneVerifyPayment);
+ router.post('/company/topup_plane/verify',controller.TopUpPlaneVerifyPayment);
 
  //Eary buying 
  router.get('/company/get_earlysubcription/:company_id',controller.GetEarySubscriptionplane);
