@@ -92,10 +92,16 @@ const CompanySchema = new Schema({
     type:Number,
     default:0
   },
-  isRead:{
-    type:Boolean,
-    default:false
-  },
+  isRead_profile:[{
+    isRead:{
+     type:Boolean,
+     default:false
+    },
+    candidate_id:{
+       type:mongoose.Schema.Types.ObjectId,
+       ref:'candidate'
+    }
+ }],
   createdAt: {
     type: Date,
     default: Date.now,

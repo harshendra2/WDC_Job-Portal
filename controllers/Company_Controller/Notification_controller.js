@@ -5,9 +5,11 @@ const Issue=require('../../models/Issue_Schema');
 
 //Chat Session 
 
-exports.getAllnotificatio=async()=>{
+exports.getAllnotificatio=async(companyId)=>{
     try{
-     const notification=await candidate.find({isRead:false}).populate('basic_details')
+     const notification=await candidate.find({
+        'isRead_profile.company_id': { $ne: companyId },
+      }).populate('basic_details')
      .populate('education_details')
      .populate('work_details')
      .populate('personal_details');
@@ -20,16 +22,21 @@ exports.getAllnotificatio=async()=>{
     }
 }
 
-exports.ViewDetails=async(arg)=>{
-    console.log("controller",arg)
+exports.ViewDetails=async(companyId,arg)=>{
     try{
-       const data=await candidate.findByIdAndUpdate(arg,{isRead:true}).populate('basic_details')
-       .populate('education_details')
-       .populate('work_details')
-       .populate('personal_details');
-      if(data){
-        return data ||[]
-      }
+        const data = await candidate.findOneAndUpdate(
+            { _id: arg, 'isRead_profile.company_id': companyId },
+            { $set: { 'isRead_profile.$.isRead': true } },
+            { new: true }
+          )
+          .populate('basic_details')
+          .populate('education_details')
+          .populate('work_details')
+          .populate('personal_details');
+      
+          if (data) {
+            return data || [];
+          }
     }catch(error){
         throw error;
     }

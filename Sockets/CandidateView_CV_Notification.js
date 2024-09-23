@@ -1,12 +1,12 @@
-const { getAllnotificatio, ViewDetails } = require('../controllers/Candidate_Controller/Notification_controller');
+const {GetAllCVviewedCompany,CandidateViewedCompany} = require('../controllers/Candidate_Controller/Notification_controller');
 
 //This notification for Candidate if new company is created
 const candidateNotification = (io) => {
     io.on("connection", (socket) => {
-    socket.on('newCompannynotification',async(userId)=>{
+    socket.on('getcvviewnotification',async(userId)=>{
             try {
-                const Notification = await getAllnotificatio (userId)
-                socket.emit('companynotification', Notification)
+                const Notification = await GetAllCVviewedCompany (userId)
+                socket.emit('companyViewnotification', Notification)
             } catch (err) {
                 console.log(err)
             }
@@ -15,7 +15,7 @@ const candidateNotification = (io) => {
 
         socket.on('companyviewnotification', async (userId,companyId) => {
             try {
-                const Viewed = await ViewDetails(userId,companyId)
+                const Viewed = await CandidateViewedCompany(userId,companyId)
                 io.emit('companyview', Viewed)
             } catch (err) {
                 console.log(err)

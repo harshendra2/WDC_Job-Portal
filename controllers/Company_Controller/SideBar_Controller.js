@@ -1,13 +1,8 @@
 const mongoose=require("mongoose");
 const crypto=require("crypto");
-const {Cashfree}=require('cashfree-pg');
 const company=require('../../models/Onboard_Company_Schema');
 const VerifiedBatchPlaneSchema=require('../../models/Green_Tick_Schema');
-
-// Configure Cashfree
-Cashfree.XClientId = process.env.CLIENT_ID;
-Cashfree.XClientSecret = process.env.CLIENT_SECRET;
-Cashfree.XEnviornment = Cashfree.Environment.SANDBOX;
+const companyTransaction=require('../../models/CompanyTransactionSchema');
 
 function generateOrderId() {
     return crypto.randomBytes(6).toString('hex');
@@ -15,12 +10,11 @@ function generateOrderId() {
 
 
 exports.CompanyGreenTicks=async(req,res)=>{
-    const { company_id, green_id, mobile, name, email } = req.body;
+    const { company_id, green_id} = req.body;
+    const apiUrl = 'https://sandbox.cashfree.com/pg/orders';
 
-    if (!mobile || !name || !email) {
-        return res.status(400).json({ error: "All fields are required: price, mobile, name, email" });
-    }
     try{
+        const companyData=await company.findOne({_id:company_id});
 
         const subscription = await VerifiedBatchPlaneSchema.findOne({ _id:green_id});
         
@@ -29,19 +23,54 @@ exports.CompanyGreenTicks=async(req,res)=>{
         }
         const orderId = generateOrderId();
 
-        const request = {
-            "order_amount": price,
-            "order_currency": "INR",
-            "order_id": orderId,
-            "customer_details": {
-                "customer_id": company_id, 
-                "customer_phone": mobile,
-                "customer_name": name,
-                "customer_email": email,
-            }
+        const requestData = {
+            customer_details: {
+                customer_id: orderId,
+                customer_email:companyData.email,
+                customer_phone: String(companyData.mobile),
+            },
+            order_meta: {
+                return_url: "https://law-tech.co.in/PaymentSuccessfull?order_id=order_"
+            },
+            order_id:"order_"+orderId,
+            order_amount: 1999,
+            order_currency: "INR",
+            order_note: 'Green Tick Batch',
+            subscriptionid:green_id
         };
-        const response = await Cashfree.PGCreateOrder(request);
-        return res.json(response.data);
+
+        const requestOptions = {
+            method: 'POST',
+            headers: {
+                'Accept': 'application/json',
+                'Content-Type': 'application/json',
+                'x-api-version': '2022-01-01',
+                'x-client-id': process.env.CASHFREE_CLIENT_ID,
+                'x-client-secret': process.env.CASHFREE_CLIENT_SECRET
+            },
+            body: JSON.stringify(requestData)
+        };
+
+        const response = await fetch(apiUrl, requestOptions);
+        const responseData = await response.json();
+        if (response.ok) {
+            const orderData = {
+                order_id: responseData.order_id,
+                payment_methods:responseData.order_meta?.payment_methods || 'Not Provided',
+                order_status: responseData.order_status,
+                order_token: responseData.order_token,
+                refundsurl: responseData.refunds ? responseData.refunds.url : 'N/A',
+                company_id:company_id,
+                subscription_id: green_id,
+                amount: price,
+                customer_email:companyData.email,
+                customer_phone:companyData.mobile,
+            };
+            res.status(200).json(orderData);
+        } else {
+            console.error('Error:', responseData);
+            res.status(500).json({ error: "Internal server error" });
+        }
 
     }catch(error){
         return res.status(500).json({error:"Internal server error"});
@@ -50,11 +79,21 @@ exports.CompanyGreenTicks=async(req,res)=>{
 
 exports.GreenTickVerifyPayment = async (req, res) => {
     const { orderId, green_id, company_id,paymentMethod} = req.body;
-    
+    const apiUrl = `https://api.cashfree.com/pg/orders/${orderId}`;
+    const headers = {
+      'x-client-id': process.env.CASHFREE_CLIENT_ID,
+      'x-client-secret': process.env.CASHFREE_CLIENT_SECRET,
+      'x-api-version': '2021-05-21',
+    };
     try {
-        const response = await Cashfree.PGOrderFetchPayment(orderId);
-
-        if (response && response.data && response.data.order_status === 'PAID') {
+        const response = await fetch(apiUrl, {
+            method: 'GET',
+            headers: headers,
+          });
+      
+          const result = await response.json();
+      
+            if (result.order_status === 'PAID') {
             const subData = await VerifiedBatchPlaneSchema.findById(green_id);
 
             if (!subData) {
@@ -78,6 +117,18 @@ exports.GreenTickVerifyPayment = async (req, res) => {
                     { $push: { verified_batch: verifiedData } }, 
                     { new: true }
                   );
+
+                  const transaction=new companyTransaction({
+                    company_id:company_id,
+                    type:'Green Batch plane',
+                    Plane_name:subData.batch_name,
+                    price:subData.price,
+                    payment_method:paymentMethod,
+                    transaction_Id:orderId,
+                    purchesed_data:new Date(),
+                    Expire_date:newExpirationDate
+                })
+                await transaction.save();
 
             return res.status(201).json({
                 message: "Payment verified and subscription created successfully",

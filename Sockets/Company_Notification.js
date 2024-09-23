@@ -5,19 +5,18 @@ const companyNotification = (io) => {
     io.on("connection", (socket) => {
         console.log("notification connected")
 
-        const loadNotification = async () => {
+        socket.on('newCandidatenotification',async(companyId)=>{
             try {
-                const Notification = await getAllnotificatio ()
+                const Notification = await getAllnotificatio (companyId)
                 socket.emit('notification', Notification)
             } catch (err) {
                 console.log(err)
             }
-        }
-        loadNotification()
-
-        socket.on('viewnotification', async (userId) => {
+        
+    })
+        socket.on('viewnotification', async (companyId,userId) => {
             try {
-                const Viewed = await ViewDetails(userId)
+                const Viewed = await ViewDetails(companyId,userId)
                 io.emit('view', Viewed)
             } catch (err) {
                 console.log(err)

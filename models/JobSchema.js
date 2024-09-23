@@ -48,48 +48,27 @@ const CompanyJobSchema = new mongoose.Schema({
         type: Boolean,
         default: false,
       },
-      short_Candidate:{
+      interviewed_status:{
+       type:Boolean,
+       default:false
+      },
+         short_Candidate:{
             offer_date: {
              type: Date
-        },
-        offer_letter: {
+           },
+           offer_letter: {
           type: String,
-        },
-        offer_accepted_status: {
+           },
+          offer_accepted_status: {
           type: String,
           enum: ["Processing", "accepted", "rejected"]
-        },
-        hired_date:{
+           },
+           hired_date:{
           type:Date
-        }
+          }
     },
     },
   ],
-  Interviewed: [
-    {
-      candidate_id: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "candidate",
-        required: true,
-      },
-      applied_date: {
-        type: Date,
-        default: Date.now,
-      },
-      rating: {
-        type: Number,
-        default: 0,
-      },
-      feedBack: {
-        type: String,
-      },
-      interview_Status: {
-        type: Boolean,
-        default: false,
-      },
-    },
-  ],
-  
   apply_status: {
     type: Boolean,
     default: false,

@@ -438,6 +438,7 @@ const OnboardCandidate = Joi.object({
 
   exports.editWorkDetails=async(req,res)=>{
     const {id}=req.params;
+    console.log(req.file.path)
     const {industry,current_ctc,aspiring_position,work_experience,career_highlight,recognation,functions,preferred_location,current_location,skill}=req.body;
     const { error } = OnboardCandidateWorkDetails.validate({
       industry,current_ctc,aspiring_position,work_experience,career_highlight,recognation,functions,preferred_location,current_location

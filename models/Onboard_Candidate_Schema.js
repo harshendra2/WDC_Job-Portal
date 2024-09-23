@@ -52,7 +52,22 @@ const CandidateShema=new mongoose.Schema({
             }
         }
     ],
-
+     Interviewed: [
+    {
+      company_id: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "company",
+        required: true,
+      },
+      rating: {
+        type: Number,
+        default: 0,
+      },
+      feedBack: {
+        type: String,
+      }
+    }
+  ],
     createdAt:{
         type: Date,
         default: Date.now

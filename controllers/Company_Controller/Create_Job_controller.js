@@ -7,6 +7,7 @@ const CompanyJob=require("../../models/JobSchema");
 const company=require('../../models/Onboard_Company_Schema');
 const companySubscription=require("../../models/Company_SubscriptionSchema");
 const companyTransaction=require('../../models/CompanyTransactionSchema');
+const Candidate=require('../../models/Onboard_Candidate_Schema')
 
 // Configure Cashfree
 Cashfree.XClientId = process.env.CASHFREE_CLIENT_ID;
@@ -574,8 +575,9 @@ exports.ListOutAllShortlistedApplicent = async (req, res) => {
       {
         $project: {
           _id: 1,
-          'Interviewed.interview_Status':1,
           'Shortlisted.sortlisted_date': 1,
+          'Shortlisted.interviewed_status': 1,
+          'Shortlisted.short_Candidate': 1,
           'CandidateDetails._id': 1,
           'CandidateDetails.name': 1,
           'CandidateDetails.email': 1,
@@ -629,25 +631,22 @@ exports.AddUserFeedBack=async(req,res)=>{
     }
     const jobObjectId = new mongoose.Types.ObjectId(jobId);
     const userObjectId = new mongoose.Types.ObjectId(userId);
-    // const updateCandidate = await CompanyJob.updateOne(
-    //   { _id: jobObjectId, 'Shortlisted.candidate_id': userObjectId }
-    //   // { $set: { 'applied_candidates.$.Shortlist_status': true } }
-    // );
+    const companyID=await CompanyJob.updateOne( { _id: jobObjectId,'Shortlisted.candidate_id':userObjectId},
+                {
+            $set: {
+           'Shortlisted.$.interviewed_status':true   
+            }
+            },
+           { new: true })
 
-    // if (updateCandidate.nModified === 0) {
-    //   return res.status(404).json({ error: 'Candidate not found or already shortlisted' });
-    // }
-
-    await CompanyJob.updateOne(
-      { _id: jobObjectId },
+    await Candidate.updateOne(
+      { _id:userObjectId},
       {
         $addToSet: {
           Interviewed: {
-            candidate_id: userObjectId,   
-            sortlisted_date: new Date() ,
+            company_id:companyID?.company_id, 
             rating,
-            feedBack,
-            interview_Status:true
+            feedBack
           }
         }
       }
@@ -733,6 +732,14 @@ exports.GetUserDetailsForOffer = async (req, res) => {
       { $unwind: '$CandidateDetails' },
       {
         $lookup: {
+          from: 'candidate_basic_details',
+          localField: 'CandidateDetails.basic_details',
+          foreignField: '_id',
+          as: 'basicdetails'
+        }
+      },
+      {
+        $lookup: {
           from: 'candidate_work_details',
           localField: 'CandidateDetails.work_details',
           foreignField: '_id',
@@ -785,7 +792,7 @@ exports.GetUserDetailsForOffer = async (req, res) => {
 
 
 exports.OfferJobToCandidate= async(req,res)=>{
-  const {userId,jobId}=req.body;
+  const {userId,jobId}=req.params;
   try{
     if(!userId&& !jobId){
       return res.status(400).json({error:"please provide user id and job id"});
@@ -796,16 +803,17 @@ exports.OfferJobToCandidate= async(req,res)=>{
     const userIds=new mongoose.Types.ObjectId(userId);
     const jobIds=new mongoose.Types.ObjectId(jobId);
     const data=await CompanyJob.updateOne(
-      { _id: jobIds,'Shortlisted.candidate_id':userIds},
+      { _id: jobIds,'Shortlisted.candidate_id':userId},
       {
         $set: {
-          'Shortlisted.$.short_Candidate.offer_letter':req.file.path,
+          'Shortlisted.$.short_Candidate.offer_letter':req.file,
           'Shortlisted.$.short_Candidate.offer_date': new Date(),
           'Shortlisted.$.short_Candidate.offer_accepted_status':"Processing"
         }
       },
       { new: true }
     );
+    console.log(data);
     return res.status(200).json({error:"Offer letter uploaded successfully"});
 
   }catch(error){
@@ -834,6 +842,14 @@ exports.GetUserDetailswithofferStatus = async (req, res) => {
         }
       },
       { $unwind: '$CandidateDetails' },
+      {
+        $lookup: {
+          from: 'candidate_basic_details',
+          localField: 'CandidateDetails.basic_details',
+          foreignField: '_id',
+          as: 'basicdetails'
+        }
+      },
       {
         $lookup: {
           from: 'candidate_work_details',

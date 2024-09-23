@@ -1,9 +1,10 @@
 const mongoose=require("mongoose");
 const company=require('../../models/Onboard_Company_Schema');
+const candidate=require('../../models/Onboard_Candidate_Schema')
 
-exports.getAllnotificatio=async()=>{
+exports.getAllnotificatio=async(userId)=>{
     try{
-     const notification=await company.find({isRead:false})
+     const notification=await company.find({ 'isRead_profile.candidate_id': { $ne:userId }})
 
         return notification || [];
 
@@ -13,9 +14,10 @@ exports.getAllnotificatio=async()=>{
     }
 }
 
-exports.ViewDetails=async(arg)=>{
+exports.ViewDetails=async(userId,companyId)=>{
     try{
-       const data=await company.findByIdAndUpdate(arg,{isRead:true})
+       const data=await company.findByIdAndUpdate({_id:companyId,'isRead_profile.candidate_id':userId }, { $set: { 'isRead_profile.$.isRead': true } },
+        { new: true })
       if(data){
         return data ||[]
       }
@@ -53,6 +55,52 @@ exports.ViewIssues=async(userId)=>{
     
         return updatedNotification || {};
 
+    }catch(error){
+        throw error;
+    }
+}
+
+
+exports.GetAllCVviewedCompany=async(userId)=>{
+    try{
+        const notification = await candidate.aggregate([
+            { $match: { _id: mongoose.Types.ObjectId(userId) } }, 
+            { $unwind: "$profile_view_company" }, 
+            { $match: { "profile_view_company.is_read": false } },
+            { 
+              $project: {
+                _id: 1,
+                "profile_view_company.company_id": 1,
+                "profile_view_company.is_read": 1
+              }
+            }
+          ]);
+      
+          return notification || [];
+    }catch(error){
+        throw error;
+    }
+}
+
+exports.CandidateViewedCompany=async(userId,companyId)=>{
+ try{
+    const userID = new mongoose.Types.ObjectId(userId);
+    const companyID = new mongoose.Types.ObjectId(companyId);
+    const data = await candidate.findOneAndUpdate(
+        { _id: userID, 'profile_view_company.company_id': companyID },
+        { $set: { 'profile_view_company.$.is_read': true } }, 
+        { new: true }
+      );
+  
+      if (data) {
+        await candidate.findOneAndUpdate(
+          { _id: userID },
+          { $pull: { profile_view_company: { company_id: companyID } } },
+          { new: true }
+        );
+      }
+  
+      return data || [];
     }catch(error){
         throw error;
     }
