@@ -50,20 +50,17 @@ const CompanyJobSchema = new mongoose.Schema({
       },
       short_Candidate:{
             offer_date: {
-             type: Date,
-          default: Date.now,
+             type: Date
         },
         offer_letter: {
           type: String,
         },
         offer_accepted_status: {
           type: String,
-          enum: ["Processing", "accepted", "rejected"],
-          default: "Processing",
+          enum: ["Processing", "accepted", "rejected"]
         },
         hired_date:{
-          type:Date,
-          default:Date.now()
+          type:Date
         }
     },
     },

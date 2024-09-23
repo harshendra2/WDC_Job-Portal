@@ -270,7 +270,6 @@ exports.CreatePromotesJob=async(req,res)=>{
     }
 
   }catch(error){
-    console.log(error);
     return res.status(500).json({error:"Internal server error"});
   }
 }
@@ -544,7 +543,7 @@ exports.ListOutAllShortlistedApplicent = async (req, res) => {
     const candidateDetails = await CompanyJob.aggregate([
       { $match: { _id: jobObjectId } }, 
       { $unwind: '$Shortlisted' },
-      {$match: {'Shortlisted.reject_status': false}},
+      {$match: {'Shortlisted.reject_status':false}},
       {
         $lookup: {
           from: 'candidates',

@@ -378,10 +378,14 @@ exports.KeywordSearchCandidate = async (req, res) => {
         if (!existsSubscription) {
             return res.status(404).json({ error: "Subscription not found, please purchase a new subscription plan." });
         }
-        
+        let searchArray = [];
+      if (search) searchArray.push(search);
+      if (experience) searchArray.push(experience);
+      if (location) searchArray.push(location);
+       const searchString = searchArray.join(',');
         const historyData = new searchhistory({
             Company_id: companyId,
-            Search: `${search},${experience},${location}`
+            Search:searchString
         });
         
         if (typeof existsSubscription.search_limit=='number' &&existsSubscription.search_limit> 0) {

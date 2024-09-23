@@ -1,8 +1,6 @@
 const mongoose=require("mongoose");
 const company=require('../../models/Onboard_Company_Schema');
 
-//Chat Session 
-
 exports.getAllnotificatio=async()=>{
     try{
      const notification=await company.find({isRead:false})

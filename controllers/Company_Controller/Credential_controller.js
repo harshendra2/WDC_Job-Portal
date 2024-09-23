@@ -335,7 +335,7 @@ exports.forgotPassword = async (req, res) => {
     ]);
 
     if (existedCompany || existedUser) {
-      const OTP = generateOTP(); // Generate OTP
+      const OTP = generateOTP();
 
       const mailOptions = {
         from: process.env.EMAIL_USER,

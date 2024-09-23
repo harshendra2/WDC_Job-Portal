@@ -1,15 +1,11 @@
 const mongoose = require('mongoose');
 const moment=require('moment')
-const { Cashfree } = require('cashfree-pg');
+const crypto=require('crypto');
 const CompanySubscription=require("../../models/Company_SubscriptionSchema");
 const subscription=require("../../models/SubscriptionSchema");
 const CompanyJob=require("../../models/JobSchema");
 const CompanyTransaction=require('../../models/CompanyTransactionSchema');
-
-// Configure Cashfree
-Cashfree.XClientId = process.env.CASHFREE_CLIENT_ID;
-Cashfree.XClientSecret = process.env.CASHFREE_CLIENT_SECRET;
-Cashfree.XEnviornment = Cashfree.Environment.SANDBOX;
+const Company=require('../../models/Onboard_Company_Schema')
 
 function generateOrderId() {
     return crypto.randomBytes(6).toString('hex');
@@ -166,7 +162,6 @@ exports.GetUpgradeSubscriptionPlane = async (req, res) => {
       const existedSubscription = existedSubscriptions[0];
       const adminSubscriptions = await subscription.find({});
 
-      // Define the hierarchy of subscription plans with their ranks
       const planHierarchy = {
           'Basic': 1,
           'Premium': 2,
@@ -189,48 +184,92 @@ exports.GetUpgradeSubscriptionPlane = async (req, res) => {
   }
 };
 
+exports.CreateOrder = async (req, res) => {
+    const apiUrl = 'https://sandbox.cashfree.com/pg/orders';
+    const { company_id, sub_id, price} = req.body;
 
-
-exports.UpgradeSubscriptionplane=async(req,res)=>{
-  const { company_id, sub_id, price, mobile, name, email } = req.body;
-
-    if (!price || !mobile || !name || !email) {
-        return res.status(400).json({ error: "All fields are required: price, mobile, name, email" });
-    }
-    try{
-
-        const subscriptions = await subscription.findOne({ _id:sub_id});
-        
+    try {
+      const CompanyDate=await Company.findOne({_id:company_id});
+        const subscriptions = await subscription.findOne({ _id: sub_id });
         if (!subscriptions) {
-            return res.status(404).json({ error: "Subscription plane not found" });
+            return res.status(404).json({ error: 'Subscription not found' });
         }
+
         const orderId = generateOrderId();
 
-        const request = {
-            "order_amount": price,
-            "order_currency": "INR",
-            "order_id": orderId,
-            "customer_details": {
-                "customer_id": company_id, 
-                "customer_phone": mobile,
-                "customer_name": name,
-                "customer_email": email,
-            }
+        const requestData = {
+            customer_details: {
+                customer_id: orderId,
+                customer_email:CompanyDate.email,
+                customer_phone: String(CompanyDate.mobile),
+            },
+            order_meta: {
+                return_url: "https://law-tech.co.in/PaymentSuccessfull?order_id=order_"
+            },
+            order_id:"order_"+orderId,
+            order_amount: price,
+            order_currency: "INR",
+            order_note: 'Upgrade Subscription',
+            subscriptionid:sub_id
         };
-         const response = await Cashfree.PGCreateOrder(request);
-    res.status(200).json(response);
-    }catch(error){
-        return res.status(500).json({error:"Internal server error"});
+
+        const requestOptions = {
+            method: 'POST',
+            headers: {
+                'Accept': 'application/json',
+                'Content-Type': 'application/json',
+                'x-api-version': '2022-01-01',
+                'x-client-id': process.env.CASHFREE_CLIENT_ID,
+                'x-client-secret': process.env.CASHFREE_CLIENT_SECRET
+            },
+            body: JSON.stringify(requestData)
+        };
+
+        const response = await fetch(apiUrl, requestOptions);
+        const responseData = await response.json();
+          if (response.ok) {
+            const orderData = {
+                order_id: responseData.order_id,
+                payment_methods:responseData.order_meta?.payment_methods || 'Not Provided',
+                order_status: responseData.order_status,
+                order_token: responseData.order_token,
+                refundsurl: responseData.refunds ? responseData.refunds.url : 'N/A',
+                company_id: company_id,
+                subscription_id: sub_id,
+                amount: price,
+                customer_email:CompanyDate.email,
+                customer_phone:CompanyDate.mobile,
+            };
+            res.status(200).json(orderData);
+        } else {
+            console.error('Error:', responseData);
+            res.status(500).json({ error: "Internal server error" });
+        }
+    } catch (error) {
+        console.error('Request Error:', error.message);
+        res.status(500).json({ error: 'Internal Server Error' });
     }
-}
+};
 
 exports.SubscriptionPlaneVerifyPayment = async (req, res) => {
   const { orderId, sub_id, companyId, paymentMethod } = req.body;
-
+  const apiUrl = `https://api.cashfree.com/pg/orders/${orderId}`;
+  const headers = {
+    'x-client-id': process.env.CASHFREE_CLIENT_ID,
+    'x-client-secret': process.env.CASHFREE_CLIENT_SECRET,
+    'x-api-version': '2021-05-21',
+  };
   try {
-      const response = await Cashfree.PGOrderFetchPayment(orderId);
 
-      if (response && response.data && response.data.order_status === 'PAID') {
+    const response = await fetch(apiUrl, {
+      method: 'GET',
+      headers: headers,
+    });
+
+    const result = await response.json();
+
+      if (result.order_status === 'PAID') {
+        console.log("PAid Successfully");
           const subData = await subscription.findById(sub_id);
           if (!subData) {
               return res.status(404).json({ error: "Subscription plan not found" });

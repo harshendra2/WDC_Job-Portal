@@ -27,10 +27,16 @@ const CandidateShema=new mongoose.Schema({
     summary:{
         type:String
     },
-    isRead:{
+    isRead_profile:[{
+       isRead:{
         type:Boolean,
         default:false
-    },
+       },
+       company_id:{
+          type:mongoose.Schema.Types.ObjectId,
+          ref:'company'
+       }
+    }],
     message:{
         type:String
     },
@@ -50,43 +56,7 @@ const CandidateShema=new mongoose.Schema({
     createdAt:{
         type: Date,
         default: Date.now
-      },
-    //   experience_Details:[{
-    //     designation:{
-    //         type:String
-    //     },
-    //     employee_type:{
-    //         type:String
-    //     },
-    //     companyName:{
-    //         type:String
-    //     },
-    //     location:{
-    //         type:String
-    //     },
-    //     location_type:{
-    //         type:String
-    //     },
-    //     reporting_structure:{
-    //         type:String
-    //     },
-    //     notice_period:{
-    //         type:Number
-    //     },
-    //     negotiation_day:{
-    //         type:Number
-    //     },
-    //     start_date:{
-    //         type:Date
-    //     },
-    //     end_date:{
-    //         type: mongoose.Schema.Types.Mixed
-    //     },
-    //     current_position:{
-    //         type:Boolean
-    //     }
-    //   }]
-    
+      }   
 })
 
 module.exports = mongoose.model("candidate", CandidateShema);

@@ -3,7 +3,6 @@ const { getAllnotificatio, ViewDetails } = require('../controllers/Candidate_Con
 //This notification for Candidate if new company is created
 const candidateNotification = (io) => {
     io.on("connection", (socket) => {
-        console.log("candidate notification is connected")
 
         const loadNotification = async () => {
             try {
