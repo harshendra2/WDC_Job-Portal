@@ -7,6 +7,9 @@ exports.getAppliedJob = async (req, res) => {
     const { userId } = req.params; 
 
     try {
+        if(!userId){
+            return res.status(400).json({error:"Please provide user Id"});
+        }
         const id = new mongoose.Types.ObjectId(userId);
 
         const jobs = await CompanyJob.find({

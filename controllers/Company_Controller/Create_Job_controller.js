@@ -1,6 +1,5 @@
 const mongoose=require("mongoose");
 const crypto=require("crypto");
-const { Cashfree } = require('cashfree-pg');
 const moment = require('moment');
 const Joi=require('joi');
 const CompanyJob=require("../../models/JobSchema");
@@ -9,10 +8,6 @@ const companySubscription=require("../../models/Company_SubscriptionSchema");
 const companyTransaction=require('../../models/CompanyTransactionSchema');
 const Candidate=require('../../models/Onboard_Candidate_Schema')
 
-// Configure Cashfree
-Cashfree.XClientId = process.env.CASHFREE_CLIENT_ID;
-Cashfree.XClientSecret = process.env.CASHFREE_CLIENT_SECRET;
-Cashfree.XEnviornment = Cashfree.Environment.SANDBOX;
 
 function generateOrderId() {
     return crypto.randomBytes(6).toString('hex');
@@ -182,38 +177,88 @@ exports.CreateNewJob = async (req, res) => {
 };
 
 exports.PromoteJobPayment=async(req,res)=>{
-  const { company_id, price, mobile, name, email } = req.body;
-
-  if (!price || !mobile || !name || !email) {
-      return res.status(400).json({ error: "All fields are required: price, mobile, name, email" });
-  }
+   const apiUrl ='https://sandbox.cashfree.com/pg/orders';
+  const { company_id} = req.body;
   try{
+    if(!company_id){
+      return res.status(400).json({error:"Please provide company Id"});
+    }
+    const companyData=await company.findOne({_id:company_id})
     const orderId = generateOrderId();
-
-    const request = {
-        "order_amount": price,
-        "order_currency": "INR",
-        "order_id": orderId,
-        "customer_details": {
-            "customer_id": company_id, 
-            "customer_phone": mobile,
-            "customer_name": name,
-            "customer_email": email,
-        }
+    const requestData = {
+      customer_details: {
+        customer_id:company_id,
+        customer_email: companyData?.email,
+        customer_phone:String(companyData.mobile),
+      },  
+      order_meta: {
+        return_url:"https://didatebank.com/PaymentSuccessfull?order_id=order_"+orderId
+      },
+      order_id: "order_"+orderId,
+      order_amount:999,
+      order_currency: "INR",
+      order_note: 'Promote job payment',
+      subscriptionid:company_id
     };
-    const response = await Cashfree.PGCreateOrder(request);
-    return res.json(response.data);
+    const requestOptions = {
+      method: 'POST',
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+         'x-api-version': '2022-01-01',
+        'x-client-id': process.env.CASHFREE_CLIENT_ID,
+       'x-client-secret': process.env.CASHFREE_CLIENT_SECRET
+      },
+      body: JSON.stringify(requestData)
+    };
+    
+      const response = await fetch(apiUrl, requestOptions);
+      const responseData = await response.json();
+      if (response.ok) {
+        const orderData = {
+          company_id:company_id,
+          cf_order_id:responseData.cf_order_id,
+          customer_id: responseData.customer_details.customer_id,
+          entity : responseData.entity,
+          order_amount : responseData.order_amount,
+          order_currency : responseData.order_currency,
+          order_id : responseData.order_id,
+          payment_methods : responseData.order_meta.payment_methods,
+          paymentLink:responseData?.payment_link,
+          order_status : responseData.order_status,
+          order_token : responseData.order_token,
+          refundsurl : responseData.refunds.url,
+        };
+        return res.status(200).json(orderData);
+      } else {     
+        res.status(500).json({ error:"Internal server error",});
+      }
+  
   }catch(error){
+    console.log(error);
     return res.status(500).json({error:"Internal server error"});
   }
 }
 
 exports.CreatePromotesJob=async(req,res)=>{
   const { orderId,companyId,paymentMethod,price,job_title,No_openings,industry,salary,experience,location,country,job_type,work_type,skills,education,description} = req.body;
-  try{
-    const response = await Cashfree.PGOrderFetchPayment(orderId);
+  const apiUrl = `https://api.cashfree.com/pg/orders/${orderId}`;
+  const headers = {
+    'x-client-id':process.env.CASHFREE_CLIENT_ID,
+    'x-client-secret':process.env.CASHFREE_CLIENT_SECRET,
+    'x-api-version': '2021-05-21',
+  };
 
-    if (response && response.data && response.data.order_status === 'PAID') {
+  try{
+    const response = await fetch(apiUrl, {
+      method: 'GET', 
+      headers: headers
+  });
+
+  const result = await response.json();
+
+  if (result.order_status === 'PAID') {
+
       const objectId = new mongoose.Types.ObjectId(companyId); 
       const existsSubscription = await companySubscription.findOne({ company_id: objectId, expiresAt: { $gte: new Date() },createdDate:{$lte:new Date()}})
 
@@ -488,7 +533,7 @@ exports.ListOutAllAppliedApplicants = async (req, res) => {
 
       return res.status(200).json(updatedData);
     } else {
-      return res.status(404).json({ message: "No shortlisted applicants found" });
+      return res.status(200).json([]);
     }
   } catch (error) {
     return res.status(500).json({ error: 'Internal server error' });
@@ -612,7 +657,7 @@ exports.ListOutAllShortlistedApplicent = async (req, res) => {
 
       return res.status(200).json(updatedData);
     } else {
-      return res.status(404).json({ message: "No shortlisted applicants found" });
+      return res.status(200).json([]);
     }
 
   } catch (error) {
@@ -631,20 +676,21 @@ exports.AddUserFeedBack=async(req,res)=>{
     }
     const jobObjectId = new mongoose.Types.ObjectId(jobId);
     const userObjectId = new mongoose.Types.ObjectId(userId);
-    const companyID=await CompanyJob.updateOne( { _id: jobObjectId,'Shortlisted.candidate_id':userObjectId},
+    await CompanyJob.updateOne( { _id: jobObjectId,'Shortlisted.candidate_id':userObjectId},
                 {
             $set: {
            'Shortlisted.$.interviewed_status':true   
             }
             },
            { new: true })
-
+           
+    const cmpID=await CompanyJob.findById(jobObjectId);
     await Candidate.updateOne(
       { _id:userObjectId},
       {
         $addToSet: {
           Interviewed: {
-            company_id:companyID?.company_id, 
+            company_id:cmpID?.company_id, 
             rating,
             feedBack
           }
@@ -806,14 +852,13 @@ exports.OfferJobToCandidate= async(req,res)=>{
       { _id: jobIds,'Shortlisted.candidate_id':userId},
       {
         $set: {
-          'Shortlisted.$.short_Candidate.offer_letter':req.file,
+          'Shortlisted.$.short_Candidate.offer_letter':req.file.path,
           'Shortlisted.$.short_Candidate.offer_date': new Date(),
           'Shortlisted.$.short_Candidate.offer_accepted_status':"Processing"
         }
       },
       { new: true }
     );
-    console.log(data);
     return res.status(200).json({error:"Offer letter uploaded successfully"});
 
   }catch(error){

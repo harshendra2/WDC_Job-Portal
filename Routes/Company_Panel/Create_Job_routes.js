@@ -8,7 +8,7 @@ router.get('/company/job/suggestion_description',controller.GetSuggestionJobDesc
 //Post new job
 router.post('/company/create_job/:id',controller.CreateNewJob);
 //promoted job 
-router.get('/company/promote_job/payment',controller.PromoteJobPayment);
+router.post('/company/promote_job/payment',controller.PromoteJobPayment);
 router.post('/company/promote_job/verify',controller.CreatePromotesJob);
 
 router.delete('/company/Job_post/:jobId',controller.deleteJobPosted);
@@ -31,6 +31,5 @@ router.get('/company/get_user_offer/:jobId/:userId',controller.GetUserDetailsFor
 router.put('/company/job_offer/:jobId/:userId',upload.single('file'),controller.OfferJobToCandidate);
 //hire Candidate
 router.get('/company/get_user_detail/hire/:jobId/:userId',controller.GetUserDetailswithofferStatus); 
-
 
 module.exports=router;

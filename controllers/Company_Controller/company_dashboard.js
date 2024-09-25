@@ -91,11 +91,12 @@ exports.OfferVerifier = async (req, res) => {
 
     const data = await CompanyJob.aggregate([
       { $match: { company_id: objectId } },
-      { $unwind: '$Job_offer' },
+      { $unwind: '$Shortlisted' },
+      {$match:{'Shortlisted.shorted_status':true}},
       {
         $lookup: {
           from: 'candidates',
-          localField: 'Job_offer.candidate_id',
+          localField: 'Shortlisted.candidate_id',
           foreignField: '_id',
           as: 'candidateDetails'
         }
@@ -185,8 +186,9 @@ exports.GetUpgradeSubscriptionPlane = async (req, res) => {
 };
 
 exports.CreateOrder = async (req, res) => {
-    const apiUrl = 'https://sandbox.cashfree.com/pg/orders';
-    const { company_id, sub_id, price} = req.body;
+  //const apiUrl ='https://api.cashfree.com/pg/orders';
+  const apiUrl = 'https://sandbox.cashfree.com/pg/orders';
+    const { company_id, sub_id} = req.body;
 
     try {
       const CompanyDate=await Company.findOne({_id:company_id});
@@ -204,15 +206,15 @@ exports.CreateOrder = async (req, res) => {
                 customer_phone: String(CompanyDate.mobile),
             },
             order_meta: {
-                return_url: "https://law-tech.co.in/PaymentSuccessfull?order_id=order_"
+
+                return_url: `https://didatabank.com/PaymentSuccessfull?order_id=order_${orderId}`
             },
-            order_id:"order_"+orderId,
-            order_amount: price,
+            order_id: `order_${orderId}`,
+            order_amount:subscriptions.price,
             order_currency: "INR",
             order_note: 'Upgrade Subscription',
             subscriptionid:sub_id
         };
-
         const requestOptions = {
             method: 'POST',
             headers: {
@@ -236,10 +238,12 @@ exports.CreateOrder = async (req, res) => {
                 refundsurl: responseData.refunds ? responseData.refunds.url : 'N/A',
                 company_id: company_id,
                 subscription_id: sub_id,
-                amount: price,
+                amount:subscriptions.price,
+                paymentLink:responseData?.payment_link,
                 customer_email:CompanyDate.email,
                 customer_phone:CompanyDate.mobile,
             };
+            console.log(orderData)
             res.status(200).json(orderData);
         } else {
             console.error('Error:', responseData);
@@ -328,3 +332,4 @@ exports.SubscriptionPlaneVerifyPayment = async (req, res) => {
       return res.status(500).json({ error: "Internal server error" });
   }
 };
+

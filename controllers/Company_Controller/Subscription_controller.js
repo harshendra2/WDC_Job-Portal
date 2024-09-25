@@ -87,8 +87,9 @@ exports.getAllPaymentMethod=async(req,res)=>{
 
 exports.payment = async (req, res) => {
     const apiUrl = 'https://sandbox.cashfree.com/pg/orders';
-    const {price,id,sub_id}=req.body;
+    const {id,sub_id}=req.body;
     try {
+        const subscriptions=await subscription.findOne({_id:sub_id});
         const CompanyDate=await company.findOne({_id:id});
         const orderId = generateOrderId();
         const requestData = {
@@ -98,10 +99,10 @@ exports.payment = async (req, res) => {
                 customer_phone: String(CompanyDate.mobile),
             },
             order_meta: {
-                return_url: "https://law-tech.co.in/PaymentSuccessfull?order_id=order_"
+                return_url: "https://didatabank.com/PaymentSuccessfull?order_id=order_"+orderId
             },
             order_id:"order_"+orderId,
-            order_amount: price,
+            order_amount:subscriptions?.price,
             order_currency: "INR",
             order_note: 'Subscription',
             subscriptionid:sub_id
@@ -130,7 +131,8 @@ exports.payment = async (req, res) => {
                 refundsurl: responseData.refunds ? responseData.refunds.url : 'N/A',
                 company_id:id,
                 subscription_id: sub_id,
-                amount: price,
+                paymentLink:responseData?.payment_link,
+                amount:subscriptions?.price,
                 customer_email:CompanyDate.email,
                 customer_phone:CompanyDate.mobile,
             };
@@ -345,8 +347,9 @@ exports.GetReNewSubscriptionPlan = async (req, res) => {
 
 exports.RenewSubscriptionPlane = async (req, res) => {
     const apiUrl = 'https://sandbox.cashfree.com/pg/orders';
-    const { company_id, subscription_id, price} = req.body;
+    const { company_id, subscription_id} = req.body;
     try {
+        const subscriptions = await subscription.findOne({ _id:subscription_id});
         const CompanyDate=await company.findOne({_id:company_id});
         const orderId = generateOrderId();
         const requestData = {
@@ -356,10 +359,10 @@ exports.RenewSubscriptionPlane = async (req, res) => {
                 customer_phone: String(CompanyDate.mobile),
             },
             order_meta: {
-                return_url: "https://law-tech.co.in/PaymentSuccessfull?order_id=order_"
+                return_url: "https://didatabank.com/PaymentSuccessfull?order_id=order_"+orderId
             },
             order_id:"order_"+orderId,
-            order_amount: price,
+            order_amount:subscriptions?.price,
             order_currency: "INR",
             order_note: 'Subscription',
             subscriptionid:subscription_id
@@ -388,7 +391,8 @@ exports.RenewSubscriptionPlane = async (req, res) => {
                 refundsurl: responseData.refunds ? responseData.refunds.url : 'N/A',
                 company_id:company_id,
                 subscription_id: subscription_id,
-                amount: price,
+                paymentLink:responseData?.payment_link,
+                amount:subscriptions?.price,
                 customer_email:CompanyDate.email,
                 customer_phone:CompanyDate.mobile,
             };
@@ -550,7 +554,7 @@ exports.GetAllTopupPlane = async (req, res) => {
 
 exports.TopUpSubscriptionPlane=async(req,res)=>{
     const apiUrl = 'https://sandbox.cashfree.com/pg/orders';
-    const { company_id, topup_id, price} = req.body;
+    const { company_id, topup_id} = req.body;
     try{
         const subscription = await TopUpPlane.findOne({ _id:topup_id});
         
@@ -566,10 +570,10 @@ exports.TopUpSubscriptionPlane=async(req,res)=>{
                 customer_phone: String(CompanyDate.mobile),
             },
             order_meta: {
-                return_url: "https://law-tech.co.in/PaymentSuccessfull?order_id=order_"
+                return_url: "https://didatabank.com/PaymentSuccessfull?order_id=order_"+orderId
             },
             order_id:"order_"+orderId,
-            order_amount: price,
+            order_amount:subscription?.price,
             order_currency: "INR",
             order_note: 'top Up plane',
             subscriptionid:topup_id
@@ -598,7 +602,8 @@ exports.TopUpSubscriptionPlane=async(req,res)=>{
                 refundsurl: responseData.refunds ? responseData.refunds.url : 'N/A',
                 company_id:company_id,
                 subscription_id: topup_id,
-                amount: price,
+                paymentLink:responseData?.payment_link,
+                amount:subscription?.price,
                 customer_email:CompanyDate.email,
                 customer_phone:CompanyDate.mobile,
             };
@@ -724,7 +729,7 @@ exports.GetEarySubscriptionplane=async(req,res)=>{
 
 exports.EarlySubscriptionplane=async(req,res)=>{
     const apiUrl = 'https://sandbox.cashfree.com/pg/orders';
-    const { company_id, sub_id, price} = req.body;
+    const { company_id, sub_id} = req.body;
     try{
 
         const subscriptions = await subscription.findOne({ _id:sub_id});
@@ -744,7 +749,7 @@ exports.EarlySubscriptionplane=async(req,res)=>{
                 return_url: "https://law-tech.co.in/PaymentSuccessfull?order_id=order_"
             },
             order_id:"order_"+orderId,
-            order_amount: price,
+            order_amount:subscriptions?.price,
             order_currency: "INR",
             order_note: 'top Up plane',
             subscriptionid:sub_id
@@ -773,7 +778,8 @@ exports.EarlySubscriptionplane=async(req,res)=>{
                 refundsurl: responseData.refunds ? responseData.refunds.url : 'N/A',
                 company_id:company_id,
                 subscription_id: sub_id,
-                amount: price,
+                paymentLink:responseData?.payment_link,
+                amount:subscriptions?.price,
                 customer_email:CompanyDate.email,
                 customer_phone:CompanyDate.mobile,
             };

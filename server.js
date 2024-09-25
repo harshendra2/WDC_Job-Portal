@@ -11,6 +11,7 @@ const chatSocket = require('./Sockets/chatSockets');
 const companyNotification=require('./Sockets/Company_Notification');
 const candidateNotification=require('./Sockets/Candidate_Notification');
 const IssueNotification=require('./Sockets/Issue_Notification');
+const candidateViewNotification=require('./Sockets/CandidateView_CV_Notification');
 
 
 const router = require("./Routes/Admin_Panel/admin_routes");
@@ -88,5 +89,6 @@ chatSocket(io);
 companyNotification(io);
 candidateNotification(io)
 IssueNotification(io);
+candidateViewNotification(io);
 
 

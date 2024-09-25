@@ -5,6 +5,7 @@ const uploads = require("../../middleware/multiple_certificate_multer");
 const controller=require('../../controllers/Candidate_Controller/profile_controller');
 
 router.get('/candidate/profile/:id',controller.getProfilePercentageStatus);
+router.put('/candidate/profile/add_summary/:userId',upload.single('file'),controller.AddSummaryToCandidate);
 //add some work experience
  router.put('/candidate/profile/experience/:userId',controller.AddSomeWorkexperience);
  router.get('/candidate/profile/get_single/exp/:user_id/:exp_id',controller.getSingleWorkExp);
@@ -17,7 +18,7 @@ router.get('/candidate/profile/:id',controller.getProfilePercentageStatus);
 
  //Edit personal details
  router.get('/candidate/profile/get_personal/:user_id',controller.GetPersonlDetails);
- router.get('/candidate/profile/aadhar_verification',controller.AadharVerification);
+ router.get('/candidate/profile/aadhar_verification/verify',controller.AadharVerification);
  router.get('/candidate/aadhar_otp/:userId',controller.aadharOtpVerification);
  router.get('/candidate/pan_verification/:userId',controller.PanKYCverification);
  router.put('/candidate/profile/edit_personal/:user_id',controller.EditPersonalDetails);
@@ -30,8 +31,8 @@ router.get('/candidate/profile/:id',controller.getProfilePercentageStatus);
  router.get('/candidate/profile/get_education/:user_id',controller.GetEducationDetails);
  router.put('/candidate/profile/add_education/:user_id',uploads,controller.AddNewAducation);
  router.delete('/candidate/profile/delete_education/:user_id/:education_id',controller.DeleteEducation);
-
  //Reviews
+ router.get('/candidate/profile/get_rating/:user_id',controller.GetAllCompanyReview);
 
 
 

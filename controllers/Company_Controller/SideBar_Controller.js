@@ -30,7 +30,7 @@ exports.CompanyGreenTicks=async(req,res)=>{
                 customer_phone: String(companyData.mobile),
             },
             order_meta: {
-                return_url: "https://law-tech.co.in/PaymentSuccessfull?order_id=order_"
+                return_url: "https://law-tech.co.in/PaymentSuccessfull?order_id=order_"+orderId
             },
             order_id:"order_"+orderId,
             order_amount: 1999,
@@ -62,6 +62,7 @@ exports.CompanyGreenTicks=async(req,res)=>{
                 refundsurl: responseData.refunds ? responseData.refunds.url : 'N/A',
                 company_id:company_id,
                 subscription_id: green_id,
+                paymentLink:responseData?.payment_link,
                 amount: price,
                 customer_email:companyData.email,
                 customer_phone:companyData.mobile,

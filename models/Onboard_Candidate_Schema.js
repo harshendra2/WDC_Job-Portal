@@ -56,8 +56,7 @@ const CandidateShema=new mongoose.Schema({
     {
       company_id: {
         type: mongoose.Schema.Types.ObjectId,
-        ref: "company",
-        required: true,
+        ref: "company"
       },
       rating: {
         type: Number,

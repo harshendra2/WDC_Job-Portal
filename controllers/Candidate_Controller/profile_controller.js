@@ -110,10 +110,17 @@ exports.getProfilePercentageStatus = async (req, res) => {
       const filledFields = filledBasicFields + filledEducationFields + filledWorkFields + filledPersonalFields;
 
       const profileCompletionPercentage = Math.round((filledFields / totalFields) * 100);
-
+      const starRating = data.Interviewed.map((temp) => temp.rating);
+      const totalRating = starRating.reduce((acc, rating) => acc + rating, 0);
+      const averageRating = starRating.length > 0 ? totalRating / starRating.length : 0;
+        const baseUrl = `${req.protocol}://${req.get('host')}`;
+        const isGoogleDriveLink = (url) => url && (url.includes('drive.google.com') || url.includes('docs.google.com'));
+            const profileUrl = data?.profile
+                ? (isGoogleDriveLink(data?.profile) ? data?.profile : `${baseUrl}/${data?.profile.replace(/\\/g, '/')}`)
+                : null;
       return res.status(200).json({
           message: "Profile completion status retrieved successfully",
-          profileCompletionPercentage: profileCompletionPercentage >= 0 ? profileCompletionPercentage : 0 
+          profileCompletionPercentage: profileCompletionPercentage >= 0 ? profileCompletionPercentage : 0,data,averageRating,profileUrl
       });
 
   } catch (error) {
@@ -121,8 +128,22 @@ exports.getProfilePercentageStatus = async (req, res) => {
   }
 };
 
-
-  
+exports.AddSummaryToCandidate=async(req,res)=>{
+  const {userId}=req.params;
+  try{
+    if(!req.file){
+      return res.status(400).json({error:"Please upload profile image"}); 
+    }
+    const data=await candidate.findByIdAndUpdate(userId,{profile:req.file?.path,summary})
+    if(data){
+      return res.status(200).json({message:"Profile updated"});
+    }else{
+      return res.status(400).json({error:"profile is not updated"});
+    }
+  }catch(error){
+    return res.status(500).json({error:"Internal server error"});
+  }
+}
 
   exports.AddSomeWorkexperience=async(req,res)=>{
     const {userId}=req.params;
@@ -379,6 +400,7 @@ exports.AadharVerification=async(req,res)=>{
       res.status(400).json(output);
     }
   } catch (error) {
+    console.log(error);
     res.status(500).json({ status: false, error: 'Internal Server Error' });
   }
 }
@@ -789,3 +811,71 @@ exports.DeleteEducation=async(req,res)=>{
     return res.status(500).json({error:"Iternal server error"});
   }
 }
+
+
+exports.GetAllCompanyReview = async (req, res) => {
+  const { user_id } = req.params;
+  try {
+    if(!user_id){
+      return res.status(400).json({error:"Please provide user id"});
+    }
+      const Id = new mongoose.Types.ObjectId(user_id);
+      const currentDate = new Date(); 
+      const data = await candidate.aggregate([
+          { $match: { _id: Id } },
+          { $unwind: '$Interviewed' },
+          {
+              $lookup: {
+                  from: 'companies',
+                  localField: 'Interviewed.company_id',
+                  foreignField: '_id',
+                  as: 'CompanyDetails'
+              }
+          },
+          {
+              $unwind: {
+                  path: '$CompanyDetails',
+                  preserveNullAndEmptyArrays: true
+              }
+          },
+          {
+              $project: {
+                  'Interviewed.feedBack': 1,
+                  'CompanyDetails.company_name': 1,
+                  'CompanyDetails.profile': 1,
+                  'CompanyDetails.verified_batch': {
+                      $filter: {
+                          input: '$CompanyDetails.verified_batch',
+                          as: 'batch',
+                          cond: { $gt: ['$$batch.ExpireDate', currentDate] } 
+                      }
+                  }
+              }
+          },
+      ]);
+
+      const baseUrl = `${req.protocol}://${req.get('host')}`;
+    const isGoogleDriveLink = (url) => {
+      return url && (url.includes('drive.google.com') || url.includes('docs.google.com'));
+    };
+
+    const formattedData = data.map((item) => {
+      return {
+        ...item,
+        profileUrl: item.CompanyDetails?.profile
+          ? (isGoogleDriveLink(item.CompanyDetails.profile)
+              ? item.CompanyDetails.profile
+              : `${baseUrl}/${item.CompanyDetails.profile.replace(/\\/g, '/')}`)
+          : null
+      };
+    });
+
+    if (formattedData.length > 0) {
+      return res.status(200).send(formattedData);
+    } else {
+      return res.status(404).json({ message: "No reviews found for this user." });
+    }
+  } catch (error) {
+      return res.status(500).json({ error: "Internal server error" });
+  }
+};
