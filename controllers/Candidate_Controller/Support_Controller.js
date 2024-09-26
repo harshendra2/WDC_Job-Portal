@@ -2,6 +2,7 @@ const Joi=require("joi");
 const mongoose=require("mongoose");
 const IssueSchema=require("../../models/Issue_Schema");
 const messageModel=require("../../models/messageModel");
+const CandidateTransaction=require('../../models/CandidateTransactionSchema');
 
 const IssueValidation=Joi.object({
     Issue_type:Joi.string().min(5).required(),
@@ -49,5 +50,21 @@ exports.getAllIssuesClaim=async(req,res)=>{
 
     }catch(error){
         return res.status(500).json({error:"Internal Server Error"});
+    }
+}
+
+exports.getTransaction=async(req,res)=>{
+    const {userId}=req.params;
+    try{
+        if(!userId){
+            return res.status(400).json({error:"Please provide user ID"});
+        }
+        const userID=new mongoose.Types.ObjectId(userId);
+    const data=await CandidateTransaction.aggregate([{$match:{candidate_id:userID}}])
+    if(data){
+        return res.status(200).send(data);
+    }
+    }catch(error){
+        return res.status(500).json({error:"Intrnal server error"});
     }
 }

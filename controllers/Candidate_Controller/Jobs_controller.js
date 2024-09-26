@@ -168,53 +168,18 @@ exports.getUnappliedJob = async (req, res) => {
     const { id } = req.params; 
 
     try {
-      const sortedJobs = await CompanyJob.aggregate([
-        {
-          $match: { job_Expire_Date: { $gte: new Date() } }
-        },
-        {
-          $lookup: {
-            from: "companies",
-            localField: "company_id",
-            foreignField: "_id",
-            as: "company_details"
-          }
-        },
-        {
-          $unwind: "$company_details"
-        },
-        {
-          $project: {
-            promote_job: 1,
-            job_title: 1,
-            industry: 1,
-            salary: 1,
-            experience: 1,
-            location: 1,
-            job_type: 1,
-            work_type: 1,
-            skills: 1,
-            education: 1,
-            description: 1,
-            createdDate: 1,
-            company_details: 1,
-            Shortlisted: {
-              $filter: {
-                input: "$Shortlisted", // The Shortlisted array
-                as: "shortlist", // Alias for each array element
-                cond: { $eq: ["$$shortlist.candidate_id", userId] } // Filter condition: candidate_id matches userId
-              }
-            }
-          }
-        },
-        {
-          $sort: {
-            promote_job: -1,
-            createdDate: 1
-          }
-        }
-      ]);
-      
+        const sortedJobs = await CompanyJob.aggregate([
+          { $match: { job_Expire_Date: { $gte: new Date() } } },
+          {
+            $lookup: {
+              from: "companies",
+              localField: "company_id",
+              foreignField: "_id",
+              as: "company_details",
+            },
+          },
+          { $unwind: "$company_details" },
+        ]).sort({ promote_job: -1, createdDate: 1 });
     
         const baseUrl = `${req.protocol}://${req.get("host")}`;
         const isGoogleDriveLink = (url) => {

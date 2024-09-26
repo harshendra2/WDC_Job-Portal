@@ -40,14 +40,22 @@ exports.getAllSubscriptionPlane=async(req,res)=>{
             company_id,
             plane_name: { $regex: /^Basic\s*$/, $options: 'i' } 
         });
+        const CurrentSubscription=await CompanySubscription.aggregate([{
+            $match: {
+              expiresAt: { $gte: new Date() },
+              createdDate:{$lte:new Date()},
+              company_id:company_id
+            }
+          }])
+
          if(previousPlan){
         const getSubscriptionPlans = await subscription.aggregate([
             { $match: { _id: { $ne: previousPlan.subscription_id } } }
         ]);
-        return res.status(200).send({getSubscriptionPlans});
+        return res.status(200).send({getSubscriptionPlans,CurrentSubscription});
          }else{
             const getSubscriptionPlans = await subscription.find({})
-            return res.status(200).send({getSubscriptionPlans});
+            return res.status(200).send({getSubscriptionPlans,CurrentSubscription});
          } 
 
     }catch(error){

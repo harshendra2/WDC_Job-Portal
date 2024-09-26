@@ -52,6 +52,10 @@ const CompanyJobSchema = new mongoose.Schema({
        type:Boolean,
        default:false
       },
+      feed_back_status:{
+        type:Boolean,
+        default:false
+      },
          short_Candidate:{
             offer_date: {
              type: Date
@@ -61,7 +65,7 @@ const CompanyJobSchema = new mongoose.Schema({
            },
           offer_accepted_status: {
           type: String,
-          enum: ["Processing", "accepted", "rejected"]
+          enum: ["Processing", "Accepted", "Rejected"]
            },
            hired_date:{
           type:Date
@@ -89,6 +93,10 @@ const CompanyJobSchema = new mongoose.Schema({
   },
   No_openings: {
     type: Number,
+  },
+  hired_Candidate:{
+    type:Number,
+    default:0
   },
   location: {
     type: String,

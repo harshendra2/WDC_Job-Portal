@@ -129,7 +129,21 @@ const CompanySchema = new Schema({
     paymentMethod:{
       type:String
     }  
-  }]
+  }],
+  Candidate_Feed_Back:[
+    {
+     candidate_id:{
+ type:mongoose.Schema.Types.ObjectId,
+       ref:'candidate'
+     },
+     rating:{
+      type:Number
+     },
+     Feedback:{
+      type:String
+     }
+    }
+  ]
 });
 
 // Method to generate auth token
