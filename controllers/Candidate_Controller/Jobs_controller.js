@@ -126,6 +126,22 @@ exports.KeywordJobSearch = async (req, res) => {
       },
       { $unwind: "$company_details" },
       { $match: query },
+      {$project:{
+        Shortlisted:0,
+        'company_details.email':0,
+        'company_details.mobile':0,
+        'company_details.password':0,
+        'company_details.GST':0,
+        'company_details.PAN':0,
+        'company_details.GST_image':0,
+        'company_details.PAN_image':0,
+        'company_details.contact_No':0,
+        'company_details.contact_email':0,
+        'company_details.overView':0,
+        'company_details.website_url':0,
+        'company_details.Logged_In_count':0,
+        'company_details.Candidate_Feed_Back':0
+      }}
     ]).sort({ promote_job: -1, createdDate: 1 });
 
     const baseUrl = `${req.protocol}://${req.get("host")}`;
@@ -159,6 +175,7 @@ exports.KeywordJobSearch = async (req, res) => {
       });
     return res.status(200).send(unappliedJobs);
   } catch (error) {
+    console.log(error);
     return res.status(500).json({ error: "Internal server error" });
   }
 };
@@ -179,6 +196,13 @@ exports.getUnappliedJob = async (req, res) => {
             },
           },
           { $unwind: "$company_details" },
+          {$project:{
+            'company_details.Candidate_Feed_Back':0,
+            'company_details.password':0,
+            'company_details.GST':0,
+            'company_details.PAN':0,
+            'company_details.Logged_In_count':0,
+          }}
         ]).sort({ promote_job: -1, createdDate: 1 });
     
         const baseUrl = `${req.protocol}://${req.get("host")}`;

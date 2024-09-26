@@ -20,7 +20,7 @@ const CandidateTransactionSchema = new mongoose.Schema({
         required: true
     },
     transaction_Id: {
-      type:Number
+      type:String
     },
     purchesed_data:{
         type:Date

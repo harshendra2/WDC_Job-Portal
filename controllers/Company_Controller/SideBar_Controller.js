@@ -80,7 +80,8 @@ exports.CompanyGreenTicks=async(req,res)=>{
 
 exports.GreenTickVerifyPayment = async (req, res) => {
     const { orderId, green_id, company_id,paymentMethod} = req.body;
-    const apiUrl = `https://api.cashfree.com/pg/orders/${orderId}`;
+    //const apiUrl = `https://api.cashfree.com/pg/orders/${orderId}`;
+    const apiUrl = `https://sandbox.cashfree.com/pg/orders/${orderId}`
     const headers = {
       'x-client-id': process.env.CASHFREE_CLIENT_ID,
       'x-client-secret': process.env.CASHFREE_CLIENT_SECRET,

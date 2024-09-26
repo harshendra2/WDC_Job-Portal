@@ -61,12 +61,33 @@ const temp = await CompanyJob.aggregate([{$match:{company_id:objectId}},
 
   const companyIds = temp.map((item) => item._id);
 
-  const data = await company.find({ _id: { $in: companyIds } });
+  //const data = await company.find({ _id: { $in: companyIds } });
+  const data =await company.aggregate([{$match:{_id:{$in:companyIds}}},
+    {$project:{
+      verified_batch:0,
+      Candidate_Feed_Back:0,
+      password:0,
+      email:0,
+      mobile:0,
+      GST:0,
+      PAN:0,
+      GST_image:0,
+      PAN_image:0,
+      contact_No:0,
+      website_url:0,
+      contact_email:0,
+      overView:0,
+      company_access_count:0,
+      profile:0
+    }
+
+  }])
 
   const dataWithJobCounts = data.map((company) => {
     const jobInfo = temp.find((job) => job._id.equals(company._id));
     return {
-      ...company.toObject(),
+      //...company.toObject(),
+      ...company,
       jobCount: jobInfo ? jobInfo.jobCount : 0,
       activeJobCount: jobInfo ? jobInfo.activeJobCount : 0, 
       inactiveJobCount: jobInfo ? jobInfo.inactiveJobCount : 0, 
@@ -76,12 +97,20 @@ const temp = await CompanyJob.aggregate([{$match:{company_id:objectId}},
     };
   });
 
-  const jobs = await CompanyJob.find({company_id: objectId });
+  //const jobs = await CompanyJob.find({company_id: objectId });
+  const jobs=await CompanyJob.aggregate([{$match:{company_id:objectId}},
+    {$project:{
+      skills:0,
+      Save_id:0,
+      description:0
+    }}
+
+  ])
 
   const PostedJobList = jobs.map(job => {
       const timeSincePosted = moment(job.createdDate).fromNow();
       return {
-          ...job._doc,
+          ...job,
           timeSincePosted
       };
   });
@@ -242,7 +271,8 @@ exports.PromoteJobPayment=async(req,res)=>{
 
 exports.CreatePromotesJob=async(req,res)=>{
   const { orderId,companyId,paymentMethod,price,job_title,No_openings,industry,salary,experience,location,country,job_type,work_type,skills,education,description} = req.body;
-  const apiUrl = `https://api.cashfree.com/pg/orders/${orderId}`;
+  //const apiUrl = `https://api.cashfree.com/pg/orders/${orderId}`;
+  const apiUrl = `https://sandbox.cashfree.com/pg/orders/${orderId}`
   const headers = {
     'x-client-id':process.env.CASHFREE_CLIENT_ID,
     'x-client-secret':process.env.CASHFREE_CLIENT_SECRET,
@@ -425,7 +455,21 @@ exports.ViewJobListDetails = async (req, res) => {
                   path: '$CompanyDetails',
                   preserveNullAndEmptyArrays: true
               }
-          }
+          },
+          {$project:{
+            applied_candidates:0,
+            Shortlisted:0,
+            'CompanyDetails.password':0,
+            'CompanyDetails.email':0,
+            'CompanyDetails.GST':0,
+            'CompanyDetails.PAN':0,
+            'CompanyDetails.PAN_image':0,
+            'CompanyDetails.GST_image':0,
+            'CompanyDetails.overView':0,
+            'CompanyDetails.contact_email':0,
+            'CompanyDetails.verified_batch':0,
+            'CompanyDetails.Candidate_Feed_Back':0
+          }}
       ]);
 
       if (JobDetails.length === 0) {

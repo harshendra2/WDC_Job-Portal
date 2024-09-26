@@ -257,7 +257,8 @@ exports.CreateOrder = async (req, res) => {
 
 exports.SubscriptionPlaneVerifyPayment = async (req, res) => {
   const { orderId, sub_id, companyId, paymentMethod } = req.body;
-  const apiUrl = `https://api.cashfree.com/pg/orders/${orderId}`;
+   const apiUrl = `https://sandbox.cashfree.com/pg/orders/${orderId}`
+  //const apiUrl = `https://api.cashfree.com/pg/orders/${orderId}`;
   const headers = {
     'x-client-id': process.env.CASHFREE_CLIENT_ID,
     'x-client-secret': process.env.CASHFREE_CLIENT_SECRET,

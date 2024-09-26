@@ -107,7 +107,8 @@ exports.payment = async (req, res) => {
                 customer_phone: String(CompanyDate.mobile),
             },
             order_meta: {
-                return_url: "https://didatabank.com/PaymentSuccessfull?order_id=order_"+orderId
+                // return_url: "https://didatabank.com/PaymentSuccessfull?order_id=order_"+orderId\
+                return_url:"https://law-tech.co.in/PaymentSuccessfull?order_id=order"
             },
             order_id:"order_"+orderId,
             order_amount:subscriptions?.price,
@@ -157,7 +158,8 @@ exports.payment = async (req, res) => {
 
 exports.verifyPayment = async (req, res) => {
     const { orderId, subscriptionId, companyId,paymentMethod} = req.body;
-    const apiUrl = `https://api.cashfree.com/pg/orders/${orderId}`;
+    //const apiUrl = `https://api.cashfree.com/pg/orders/${orderId}`;
+    const apiUrl = `https://sandbox.cashfree.com/pg/orders/${orderId}`
     const headers = {
       'x-client-id': process.env.CASHFREE_CLIENT_ID,
       'x-client-secret': process.env.CASHFREE_CLIENT_SECRET,
@@ -219,6 +221,7 @@ exports.verifyPayment = async (req, res) => {
         }
 
     } catch (error) {
+        console.log(error);
         res.status(500).json({ error: "Internal Server Error" });
     }
 };
@@ -418,7 +421,8 @@ exports.RenewSubscriptionPlane = async (req, res) => {
 
 exports.RenewPlaneVerifyPayment = async (req, res) => {
     const { orderId, subscriptionId, companyId,paymentMethod} = req.body;
-    const apiUrl = `https://api.cashfree.com/pg/orders/${orderId}`;
+    //const apiUrl = `https://api.cashfree.com/pg/orders/${orderId}`;
+    const apiUrl = `https://sandbox.cashfree.com/pg/orders/${orderId}`
     const headers = {
       'x-client-id': process.env.CASHFREE_CLIENT_ID,
       'x-client-secret': process.env.CASHFREE_CLIENT_SECRET,
@@ -501,25 +505,26 @@ exports.RenewPlaneVerifyPayment = async (req, res) => {
 };
 
 
-
 //TopUp Plane
 exports.GetAllTopupPlane = async (req, res) => {
     const { company_id } = req.params;
-
     try {
         const currentPlan = await CompanySubscription.findOne({ company_id,expiresAt: { $gte: new Date() },createdDate:{$lte:new Date()} })
 
         if (!currentPlan) {
             return res.status(404).json({ error: "No subscription plan found for the company." });
         }
+        const subscriptions=await subscription.findOne({plane_name:currentPlan?.plane_name})
         async function getTopUpPlane(fieldName) {
-            const fieldValue = currentPlan[fieldName];
+            const fieldValue = subscriptions[fieldName];
             if (typeof fieldValue === 'string' && fieldValue === 'Unlimited') {
                 return await TopUpPlane.findOne({ [fieldName]: 'Unlimited' });
-            } else if (typeof fieldValue === 'boolean') {
+            } else if (typeof fieldValue === 'boolean'&& fieldValue==true) {
                 return await TopUpPlane.findOne({ [fieldName]: true });
             } else if (typeof fieldValue === 'number' && fieldValue!=0) {
-                return await TopUpPlane.findOne({ [fieldName]: { $ne: fieldValue } });
+                return await TopUpPlane.findOne({
+                    [fieldName]: { $exists: true, $ne: 0, $type: 'number' }
+                  });
             }
 
             return null;
@@ -530,12 +535,6 @@ exports.GetAllTopupPlane = async (req, res) => {
         function isDuplicate(data) {
             return topupArray.some(item => item.plane_name == data.plane_name);
         }
-        for (const topUp of currentPlan.topUp) {
-            const data = await TopUpPlane.findOne({ plane_name: topUp.plane_name });
-            if (data && !isDuplicate(data)) {
-                topupArray.push(data);
-            }
-        }
         const fieldNames = [
             'search_limit',
             'cv_view_limit',
@@ -545,13 +544,13 @@ exports.GetAllTopupPlane = async (req, res) => {
             'download_email_limit',
             'download_cv_limit'
         ];
-
         for (const fieldName of fieldNames) {
             const data = await getTopUpPlane(fieldName);
             if (data && !isDuplicate(data)) {
                 topupArray.push(data);
             }
         }
+    
         return res.status(200).json(topupArray);
 
     } catch (error) {
@@ -629,7 +628,8 @@ exports.TopUpSubscriptionPlane=async(req,res)=>{
 
 exports.TopUpPlaneVerifyPayment = async (req, res) => {
     const { orderId, topupId, companyId,paymentMethod} = req.body;
-    const apiUrl = `https://api.cashfree.com/pg/orders/${orderId}`;
+    //const apiUrl = `https://api.cashfree.com/pg/orders/${orderId}`;
+    const apiUrl = `https://sandbox.cashfree.com/pg/orders/${orderId}`
     const headers = {
       'x-client-id': process.env.CASHFREE_CLIENT_ID,
       'x-client-secret': process.env.CASHFREE_CLIENT_SECRET,
@@ -805,7 +805,8 @@ exports.EarlySubscriptionplane=async(req,res)=>{
 
 exports.SubscriptionPlaneVerifyPayment = async (req, res) => {
     const { orderId, sub_id, companyId,paymentMethod} = req.body;
-    const apiUrl = `https://api.cashfree.com/pg/orders/${orderId}`;
+    //const apiUrl = `https://api.cashfree.com/pg/orders/${orderId}`;
+    const apiUrl = `https://sandbox.cashfree.com/pg/orders/${orderId}`
     const headers = {
       'x-client-id': process.env.CASHFREE_CLIENT_ID,
       'x-client-secret': process.env.CASHFREE_CLIENT_SECRET,

@@ -32,7 +32,7 @@ router.put('/candidate/profile/add_summary/:userId',upload.single('file'),contro
  router.put('/candidate/profile/add_education/:user_id',uploads,controller.AddNewAducation);
  router.delete('/candidate/profile/delete_education/:user_id/:education_id',controller.DeleteEducation);
  //Reviews
- router.get('/candidate/profile/get_rating/:user_id',controller.GetAllCompanyReview);
+ router.get(' ',controller.GetAllCompanyReview);
 
 
 

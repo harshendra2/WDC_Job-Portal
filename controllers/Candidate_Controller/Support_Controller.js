@@ -45,7 +45,7 @@ exports.getAllIssuesClaim=async(req,res)=>{
         if(data){
             return res.status(200).send(data);
         }else{
-            return res.status(400).json({message:"No Issues Claimed"});
+           return res.status(200).send([]);
         }
 
     }catch(error){
