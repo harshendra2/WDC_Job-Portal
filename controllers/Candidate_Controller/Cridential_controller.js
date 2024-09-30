@@ -8,6 +8,7 @@ const basic_details = require("../../models/Basic_details_CandidateSchema");
 const personal_details = require("../../models/Personal_details_candidateSchema");
 const work_details = require("../../models/work_details_candidate");
 const education_details = require("../../models/education_details_candidateSchema");
+const Counter=require('../../models/CounterSchema');
 
 const OnboardRegistration = Joi.object({
   email: Joi.string().email().required(),
@@ -44,6 +45,16 @@ const forgotPasswordConfirmation=Joi.object({
     .valid(Joi.ref('password')).messages({ 'any.only': 'Password and confirm password do not match' })
 })
 
+async function getNextCustomId() {
+  const result = await Counter.findOneAndUpdate(
+    {_id:'collection'},
+      { $inc: { sequence_value: 1 } },
+      { new: true, upsert: true }
+  );
+
+  return result.sequence_value;
+}
+
 exports.Registration = async (req, res) => {
   const { email, password, setpassword } = req.body;
   const { error } = OnboardRegistration.validate({
@@ -60,18 +71,21 @@ exports.Registration = async (req, res) => {
     if (existingAdmin) {
       return res.status(400).json({ error: "Email already registered" });
     }
+    const customId = await getNextCustomId('customers');
     const hashedPassword = await bcrypt.hash(setpassword, 12);
 
     const newCandidate = new basic_details({
+      custom_id:customId,
       email,
       password: hashedPassword,
     });
 
     const storeData = await newCandidate.save();
-    const NewCandidate = new candidate({ basic_details: storeData._id });
+    const NewCandidate = new candidate({ basic_details: storeData._id,custom_id:customId});
     const savedCandidate = await NewCandidate.save();
     return res.status(201).json({ message: "Registration Successfully" });
   } catch (error) {
+    console.log(error);
     return res.status(500).json({ error: "Internal server error" });
   }
 };

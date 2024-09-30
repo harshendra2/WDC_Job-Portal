@@ -66,7 +66,9 @@ exports.getCompanyDetails = async (req, res) => {
       let HiredCount = 0;
       for (const temp of jobData) {
         ApplicationCount += temp?.applied_candidates?.length || 0;
-        HiredCount += temp?.hired_candidate?.length || 0;
+        for(const count of temp?.Shortlisted){
+        HiredCount += count?.short_Candidate?.offer_accepted_status=='Accepted';
+        }
       }
 
       return res.status(200).json({

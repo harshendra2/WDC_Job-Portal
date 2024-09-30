@@ -19,145 +19,311 @@ const EditCompanyProfile=Joi.object({
   headQuater_add: Joi.string().optional()
 })
 
-exports.GetCompanyProfile=async(req,res)=>{
-    const {id}=req.params;
-    try{
-        const objectId = new mongoose.Types.ObjectId(id); 
-        const data=await company.findById({_id:objectId});
-        if (data) {
-          const baseUrl = `${req.protocol}://${req.get('host')}`;
-    
-        // Helper function to check if a URL is a Google Drive link
-        const isGoogleDriveLink = (url) => {
-          return url && (url.includes('drive.google.com') || url.includes('docs.google.com'));
-        };
-    
-        const updatedData = {
-          ...data._doc,
-          profileUrl: data.profile 
-            ? (isGoogleDriveLink(data.profile) ? data.profile : `${baseUrl}/${data.profile.replace(/\\/g, '/')}`)
-            : null,
-          PANImageUrl: data.PAN_image 
-            ? (isGoogleDriveLink(data.PAN_image) ? data.PAN_image : `${baseUrl}/${data.PAN_image.replace(/\\/g, '/')}`)
-            : null,
-          GSTImageUrl: data.GST_image 
-            ? (isGoogleDriveLink(data.GST_image) ? data.GST_image : `${baseUrl}/${data.GST_image.replace(/\\/g, '/')}`)
-            : null,
-        };
-   
-        const fields = [
-            'company_name', 'email', 'mobile', 'overView',
-            'industry', 'company_size', 'GST', 'GST_image', 'PAN',
-            'PAN_image', 'website_url', 'location', 'contact_email',
-            'contact_No', 'headQuater_add', 'profile'
-        ];
-        const PanVerifyingField = 'status';
+exports.GetCompanyProfile = async (req, res) => {
+  const { id } = req.params;
+  try {
+    const baseUrl = `${req.protocol}://${req.get('host')}`;
+    const objectId = new mongoose.Types.ObjectId(id); 
+    const data = await company.findById({ _id: objectId })
+      .populate({
+        path: 'Candidate_Feed_Back.candidate_id', 
+       select: 'profile basic_details',
+       populate: {
+        path: 'basic_details',
+        select: 'name'
+      }
+      })
 
-        let filledFields = 0;
-        fields.forEach(field => {
-            if (data[field]) {
-                filledFields++;
-            }
-        });
-        if (data[PanVerifyingField] === 'approve') {
-            filledFields++;
-        }
-        const totalFields = fields.length + 1; 
-        const profileCompletionPercentage = Math.round((filledFields / totalFields) * 100);
-
-
-    
-          return res.status(200).json({updatedData,profileCompletionPercentage});
-        } else {
-          return res.status(404).json({ error: "Company not found" });
-        }
-
-    }catch(error){
-        console.log(error);
-     return res.status(500).json({error:"Internal server error"});
-    }
-}
-
-exports.EditProfile = async (req, res) => {
-    const { id } = req.params;
-    const {
-        company_name, email, mobile, overView, industry,
-        company_size, GST, PAN, website_url, location, contact_email,
-        contact_No, headQuater_add
-    } = req.body;
-
-    
-  const { error } = EditCompanyProfile.validate({ company_name, email, mobile, overView, industry,
-    company_size, PAN, website_url, location, contact_email,
-    contact_No, headQuater_add});
-  if (error) {
-    return res.status(400).json({ error: error.details[0].message });
-  }
-
-    const panImage = req.files['panImage'] ? req.files['panImage'][0].path : null;
-    const gstImage = req.files['gstImage'] ? req.files['gstImage'][0].path : null;
-    const profile=req.files['profile'] ? req.files['profile'][0].path:null;
-
-    try {
-        let panText = '';
-        let gstText = '';
-
-        if (panImage) {
-            const panResult = await tesseract.recognize(panImage, 'eng');
-            panText = panResult.data.text;
-        }
-
-        // if (gstImage) {
-        //     const gstResult = await tesseract.recognize(gstImage, 'eng');
-        //     gstText = gstResult.data.text;
-        // }
-        const panNumber = extractPAN(panText);
-        // const gstNumber = extractGST(gstText);
-
-        // if (panNumber != PAN) {
-        //     return res.status(400).json({ error: "PAN number and PAN image number do not match" });
-        // }
-        // if (gstNumber !=GST) {
-        //     return res.status(400).json({ error: "GST number and GST image number do not match" });
-        // }
-        //  const existedEmail=await company.findOne({email});
-        //  if(existedEmail){
-        //   return res.status(400).json({error:"This email Id already existed"});
-        //  }
-        //  const existedCompanyName=await company.findOne({company_name});
-        //  if(existedCompanyName){
-        //   return res.status(400).json({error:"This Company Name already existed"});
-        //  }
-
-        const companyData = {
-          company_name, email, mobile, overView, industry,
-          company_size, GST, PAN, website_url, location, contact_email,
-          contact_No, headQuater_add,GST_verify:false,PAN_verify:false,status:'processing',message:""
+    if (data) {
+      const isGoogleDriveLink = (url) => {
+        return url && (url.includes('drive.google.com') || url.includes('docs.google.com'));
       };
-        if (panImage) {
-            companyData.PAN_image = panImage
-        }
-        if (gstImage) {
-            companyData.GST_image = gstImage
-        }
-        if (profile){
-            companyData.profile=profile
-        }
 
-        const updatedData = await company.findByIdAndUpdate(id, companyData, { new: true });
+      const starRating = data?.Candidate_Feed_Back.map((temp) => temp.rating);
+      const totalRating = starRating.reduce((acc, rating) => acc + rating, 0);
+      const averageRating = starRating.length > 0 ? totalRating / starRating.length : 0;
+      const updatedData = {
+        ...data._doc,
+        averageRating,
+        profileUrl: data.profile
+          ? (isGoogleDriveLink(data.profile) ? data.profile : `${baseUrl}/${data.profile.replace(/\\/g, '/')}`)
+          : null,
+        PANImageUrl: data.PAN_image
+          ? (isGoogleDriveLink(data.PAN_image) ? data.PAN_image : `${baseUrl}/${data.PAN_image.replace(/\\/g, '/')}`)
+          : null,
+        GSTImageUrl: data.GST_image
+          ? (isGoogleDriveLink(data.GST_image) ? data.GST_image : `${baseUrl}/${data.GST_image.replace(/\\/g, '/')}`)
+          : null,
+      };
 
-        if (updatedData) {
-            return res.status(200).json({ message: "Profile updated successfully", company: updatedData });
-        } else {
-            return res.status(404).json({ error: "Profile not found" });
+      const fields = [
+        'company_name', 'email', 'mobile', 'overView',
+        'industry', 'company_size', 'GST', 'GST_image', 'PAN',
+        'PAN_image', 'website_url', 'location', 'contact_email',
+        'contact_No', 'headQuater_add', 'profile'
+      ];
+      const PanVerifyingField = 'status';
+
+      let filledFields = 0;
+      fields.forEach(field => {
+        if (data[field]) {
+          filledFields++;
         }
+      });
+      if (data[PanVerifyingField] === 'approve') {
+        filledFields++;
+      }
+      const totalFields = fields.length + 1;
+      const profileCompletionPercentage = Math.round((filledFields / totalFields) * 100);
 
-    } catch (error) {
-        return res.status(500).json({ error: "Internal server error" });
+      return res.status(200).json({ updatedData, profileCompletionPercentage });
+    } else {
+      return res.status(404).json({ error: "Company not found" });
     }
+  } catch (error) {
+    console.log(error);
+    return res.status(500).json({ error: "Internal server error" });
+  }
 };
 
+exports.GetSavedProfileData=async(req,res)=>{
+  const {id}=req.params;
+  try{
+    const baseUrl = `${req.protocol}://${req.get('host')}`;
+    const objectId = new mongoose.Types.ObjectId(id); 
+    const data = await company.findById({ _id: objectId })
+
+    if (data) {
+      const isGoogleDriveLink = (url) => {
+        return url && (url.includes('drive.google.com') || url.includes('docs.google.com'));
+      };
+
+
+      const updatedData = {
+        ...data._doc,
+        profileUrl: data.profile
+          ? (isGoogleDriveLink(data.profile) ? data.profile : `${baseUrl}/${data.profile.replace(/\\/g, '/')}`)
+          : null,
+        PANImageUrl: data.PAN_image
+          ? (isGoogleDriveLink(data.PAN_image) ? data.PAN_image : `${baseUrl}/${data.PAN_image.replace(/\\/g, '/')}`)
+          : null,
+        GSTImageUrl: data.GST_image
+          ? (isGoogleDriveLink(data.GST_image) ? data.GST_image : `${baseUrl}/${data.GST_image.replace(/\\/g, '/')}`)
+          : null,
+      };
+
+      return res.status(200).send(updatedData)
+    } else {
+      return res.status(404).json({ error: "Company not found" });
+    }
+  }catch(error){
+    return res.status(500).json({error:"Internal server error"});
+  }
+}
+
+
+// exports.EditProfile = async (req, res) => {
+//     const { id } = req.params;
+//     const {
+//         company_name, email, mobile, overView, industry,
+//         company_size, GST, PAN, website_url, location, contact_email,
+//         contact_No, headQuater_add
+//     } = req.body;
+
+    
+//   const { error } = EditCompanyProfile.validate({ company_name, email, mobile, overView, industry,
+//     company_size, PAN, website_url, location, contact_email,
+//     contact_No, headQuater_add});
+//   if (error) {
+//     return res.status(400).json({ error: error.details[0].message });
+//   }
+
+//     const panImage = req.files['panImage'] ? req.files['panImage'][0].path : null;
+//     const gstImage = req.files['gstImage'] ? req.files['gstImage'][0].path : null;
+//     const profile=req.files['profile'] ? req.files['profile'][0].path:null;
+
+//     try {
+//         let panText = '';
+//         let gstText = '';
+
+//         if (panImage) {
+//             const panResult = await tesseract.recognize(panImage, 'eng');
+//             panText = panResult.data.text;
+//         }
+//         const panNumber = extractPAN(panText);
+       
+//         const previouseDetails=await company.findById(id);
+//         if(previouseDetails?.status=='processing'){
+//           const companyData = {
+//             company_name, email, mobile, overView, industry,
+//             company_size, GST, PAN, website_url, location, contact_email,
+//             contact_No, headQuater_add,GST_verify:false,PAN_verify:false,status:'processing',message:""
+//         };
+//           if (panImage) {
+//               companyData.PAN_image = panImage
+//           }
+//           if (gstImage) {
+//               companyData.GST_image = gstImage
+//           }
+//           if (profile){
+//               companyData.profile=profile
+//           }
+  
+//           const updatedData = await company.findByIdAndUpdate(id, companyData, { new: true });
+  
+//           if (updatedData) {
+//               return res.status(200).json({ message: "Profile updated successfully", company: updatedData });
+//           } else {
+//               return res.status(404).json({ error: "Profile not found" });
+//           }
+//         }else if(previouseDetails.status=='approve'){
+//           const companyData = {
+//             company_name, email, mobile, overView, industry,
+//             company_size, website_url, location, contact_email,
+//             contact_No, headQuater_add,GST_verify:false,PAN_verify:false,status:'approve',message:""
+//         };
+//           if (profile){
+//               companyData.profile=profile
+//           }
+  
+//           const updatedData = await company.findByIdAndUpdate(id, companyData, { new: true });
+  
+//           if (updatedData) {
+//               return res.status(200).json({ message: "Profile updated successfully", company: updatedData });
+//           } else {
+//               return res.status(404).json({ error: "Profile not found" });
+//           }
+//         }else if(previouseDetails.status=='reject'){
+//           const companyData = {
+//             company_name, email, mobile, overView, industry,
+//             company_size, GST, PAN, website_url, location, contact_email,
+//             contact_No, headQuater_add,GST_verify:false,PAN_verify:false,status:'processing',message:""
+//         };
+//           if (panImage) {
+//               companyData.PAN_image = panImage
+//           }
+//           if (gstImage) {
+//               companyData.GST_image = gstImage
+//           }
+//           if (profile){
+//               companyData.profile=profile
+//           }
+  
+//           const updatedData = await company.findByIdAndUpdate(id, companyData, { new: true });
+  
+//           if (updatedData) {
+//               return res.status(200).json({ message: "Profile updated successfully", company: updatedData });
+//           } else {
+//               return res.status(404).json({ error: "Profile not found" });
+//           }
+//         }
+
+//     } catch (error) {
+//         return res.status(500).json({ error: "Internal server error" });
+//     }
+// };
+
 // Function to extract PAN number from text using regex
+exports.EditProfile = async (req, res) => {
+  const { id } = req.params;
+  const {
+      company_name, email, mobile, overView, industry,
+      company_size, GST, PAN, website_url, location, contact_email,
+      contact_No, headQuater_add
+  } = req.body;
+  const { error } = EditCompanyProfile.validate({
+      company_name, email, mobile, overView, industry,
+      company_size, PAN, website_url, location, contact_email,
+      contact_No, headQuater_add
+  });
+  if (error) {
+      return res.status(400).json({ error: error.details[0].message });
+  }
+
+  // Image paths
+  const panImage = req?.files['panImage'] ? req?.files['panImage'][0]?.path : null;
+  const gstImage = req?.files['gstImage'] ? req?.files['gstImage'][0]?.path : null;
+  const profile = req?.files['profile'] ? req?.files['profile'][0]?.path : null;
+
+  try {
+      // Fetch the previous company details
+      const previousDetails = await company.findById(id);
+      if (!previousDetails) {
+          return res.status(404).json({ error: "Company profile not found" });
+      }
+
+      // Helper function to process PAN image if needed
+      // const processPanImage = async () => {
+      //     let panText = '';
+      //     let panNumber = '';
+
+      //     if (panImage) {
+      //         const panResult = await tesseract.recognize(panImage, 'eng');
+      //         panText = panResult.data.text;
+      //         panNumber = extractPAN(panText);
+      //     }
+
+      //     return { panText, panNumber };
+      // };
+
+      // Prepare the company data for update based on status
+      let companyData = {
+          company_name, email, mobile, overView, industry,
+          company_size, website_url, location, contact_email,
+          contact_No, headQuater_add,
+          GST_verify: false, PAN_verify: false, message: ""
+      };
+
+      // Depending on status, process the relevant fields
+      switch (previousDetails.status) {
+          case 'processing':
+              companyData = {
+                  ...companyData,
+                  GST, PAN, status: 'processing'
+              };
+              if (panImage) companyData.PAN_image = panImage;
+              if (gstImage) companyData.GST_image = gstImage;
+              if (profile) companyData.profile = profile;
+              break;
+
+          case 'approve':
+              companyData.status = 'approve';
+              if (profile) companyData.profile = profile;
+              break;
+
+          case 'reject':
+              companyData = {
+                  ...companyData,
+                  GST, PAN, status: 'processing'
+              };
+              if (panImage) companyData.PAN_image = panImage;
+              if (gstImage) companyData.GST_image = gstImage;
+              if (profile) companyData.profile = profile;
+              break;
+
+          default:
+              return res.status(400).json({ error: "Invalid company status" });
+      }
+
+      if (previousDetails.status === 'processing' || previousDetails.status === 'reject') {
+          const { panText, panNumber } = await processPanImage();
+          companyData.PAN = panNumber || PAN; 
+      }
+      const updatedData = await company.findByIdAndUpdate(id, companyData, { new: true });
+
+      if (updatedData) {
+          return res.status(200).json({ message: "Profile updated successfully", company: updatedData });
+      } else {
+          return res.status(404).json({ error: "Profile not found" });
+      }
+
+  } catch (error) {
+      console.error(error);
+      return res.status(500).json({ error: "Internal server error" });
+  }
+};
+
+
 const extractPAN = (text) => {
     const panRegex = /[A-Z]{5}[0-9]{4}[A-Z]{1}/;
     const match = text.match(panRegex);

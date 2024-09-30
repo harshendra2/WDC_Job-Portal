@@ -3,6 +3,7 @@ const jwt = require("jsonwebtoken");
 const SECRET_KEY = process.env.CANDIDATESECRET_KEY;
 
 const basic_details_candidate=new mongoose.Schema({
+    custom_id: { type: Number},
     name:{
         type:String
     },

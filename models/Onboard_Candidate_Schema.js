@@ -1,6 +1,7 @@
 const { isDate } = require("moment");
 const mongoose=require("mongoose");
 const CandidateShema=new mongoose.Schema({
+    custom_id: { type: Number},
     basic_details:{
         type: mongoose.Schema.Types.ObjectId,
         ref:'candidate_basic_details'

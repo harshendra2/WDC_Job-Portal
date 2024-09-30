@@ -10,7 +10,8 @@ function generateOrderId() {
 
 
 exports.CompanyGreenTicks=async(req,res)=>{
-    const { company_id, green_id} = req.body;
+    const { company_id} = req.body;
+    const green_id='66fa96672cecb7576cce9e2f'
     const apiUrl = 'https://sandbox.cashfree.com/pg/orders';
 
     try{
@@ -33,7 +34,7 @@ exports.CompanyGreenTicks=async(req,res)=>{
                 return_url: "https://law-tech.co.in/PaymentSuccessfull?order_id=order_"+orderId
             },
             order_id:"order_"+orderId,
-            order_amount: 1999,
+            order_amount:subscription?.price,
             order_currency: "INR",
             order_note: 'Green Tick Batch',
             subscriptionid:green_id
@@ -61,9 +62,9 @@ exports.CompanyGreenTicks=async(req,res)=>{
                 order_token: responseData.order_token,
                 refundsurl: responseData.refunds ? responseData.refunds.url : 'N/A',
                 company_id:company_id,
-                subscription_id: green_id,
+                green_id: green_id,
                 paymentLink:responseData?.payment_link,
-                amount: price,
+                amount:subscription?.price,
                 customer_email:companyData.email,
                 customer_phone:companyData.mobile,
             };

@@ -5,6 +5,7 @@ const CompanySubscription=require("../../models/Company_SubscriptionSchema");
 const TopUpPlane=require("../../models/ToupPlane");
 const CompanyTransaction=require("../../models/CompanyTransactionSchema");
 const company=require('../../models/Onboard_Company_Schema');
+const { resolveSoa } = require("dns");
 
 function generateOrderId() {
     return crypto.randomBytes(6).toString('hex');
@@ -36,10 +37,10 @@ exports.getAllSubscriptionPlane=async(req,res)=>{
     const {companyId}=req.params;
     try{
         const company_id=new mongoose.Types.ObjectId(companyId);
-        const previousPlan = await CompanySubscription.findOne({
-            company_id,
-            plane_name: { $regex: /^Basic\s*$/, $options: 'i' } 
-        });
+        // const previousPlan = await CompanySubscription.findOne({
+        //     company_id,
+        //     plane_name: { $regex: /^Basic\s*$/, $options: 'i' } 
+        // });
         const CurrentSubscription=await CompanySubscription.aggregate([{
             $match: {
               expiresAt: { $gte: new Date() },
@@ -48,15 +49,15 @@ exports.getAllSubscriptionPlane=async(req,res)=>{
             }
           }])
 
-         if(previousPlan){
-        const getSubscriptionPlans = await subscription.aggregate([
-            { $match: { _id: { $ne: previousPlan.subscription_id } } }
-        ]);
-        return res.status(200).send({getSubscriptionPlans,CurrentSubscription});
-         }else{
+        //  if(previousPlan){
+        // const getSubscriptionPlans = await subscription.aggregate([
+        //     { $match: { _id: { $ne: previousPlan.subscription_id } } }
+        // ]);
+        // return res.status(200).send({getSubscriptionPlans,CurrentSubscription});
+        //  }else{
             const getSubscriptionPlans = await subscription.find({})
             return res.status(200).send({getSubscriptionPlans,CurrentSubscription});
-         } 
+        //  } 
 
     }catch(error){
         return res.status(500).json({error:"Internal Server error"});
@@ -97,6 +98,18 @@ exports.payment = async (req, res) => {
     const apiUrl = 'https://sandbox.cashfree.com/pg/orders';
     const {id,sub_id}=req.body;
     try {
+         if(!id&&!sub_id){
+            return res.status(400).json({error:"Please provide ID"})
+         }
+        const previousPlan = await CompanySubscription.findOne({
+            company_id:id,
+            subscription_id:sub_id,
+            plane_name: { $regex: /^Basic\s*$/, $options: 'i' } 
+        });
+        if(previousPlan){
+            return res.status(400).json({error:"Basic Plane buy only one time"});
+        }
+
         const subscriptions=await subscription.findOne({_id:sub_id});
         const CompanyDate=await company.findOne({_id:id});
         const orderId = generateOrderId();
@@ -340,15 +353,15 @@ exports.GetReNewSubscriptionPlan = async (req, res) => {
             plane_name: { $regex: /^Basic\s*$/, $options: 'i' } 
         });
         const objectId=new mongoose.Types.ObjectId(company_id);
-        const previousSubscription=await CompanySubscription.aggregate([{ $match: { company_id: objectId, expiresAt: { $gte: new Date() },createdDate:{$lte:new Date()}} }])
+       // const previousSubscription=await CompanySubscription.aggregate([{ $match: { company_id: objectId, expiresAt: { $gte: new Date() },createdDate:{$lte:new Date()}} }])
          if(previousPlan){
         const getSubscriptionPlans = await subscription.aggregate([
             { $match: { _id: { $ne: previousPlan.subscription_id } } }
         ]);
-        return res.status(200).send({getSubscriptionPlans,previousSubscription});
+        return res.status(200).send({getSubscriptionPlans});
          }else{
             const getSubscriptionPlans = await subscription.find({})
-            return res.status(200).send({getSubscriptionPlans,previousSubscription});
+            return res.status(200).send({getSubscriptionPlans});
          } 
 
     } catch (error) {
@@ -420,7 +433,7 @@ exports.RenewSubscriptionPlane = async (req, res) => {
 
 
 exports.RenewPlaneVerifyPayment = async (req, res) => {
-    const { orderId, subscriptionId, companyId,paymentMethod} = req.body;
+    const { orderId, subscription_id,company_id,paymentMethod} = req.body;
     //const apiUrl = `https://api.cashfree.com/pg/orders/${orderId}`;
     const apiUrl = `https://sandbox.cashfree.com/pg/orders/${orderId}`
     const headers = {
@@ -437,11 +450,11 @@ exports.RenewPlaneVerifyPayment = async (req, res) => {
           const result = await response.json();
       
             if (result.order_status === 'PAID') {
-            const subscriptionData = await subscription.findById(subscriptionId);
+            const subscriptionData = await subscription.findById(subscription_id);
 
             if (subscriptionData) {
                 const existingSubscriptions = await CompanySubscription.find({ 
-                    company_id: companyId 
+                    company_id: company_id 
                 }).sort({ createdDate: -1 }).limit(1);
 
                 if (existingSubscriptions.length > 0) {
@@ -459,8 +472,8 @@ exports.RenewPlaneVerifyPayment = async (req, res) => {
 
                 // Create a new subscription for the company
                 const newSubscription = new CompanySubscription({
-                    company_id: companyId,
-                    subscription_id: subscriptionId,
+                    company_id: company_id,
+                    subscription_id: subscription_id,
                     plane_name: subscriptionData.plane_name,
                     price: subscriptionData.price,
                     search_limit: subscriptionData.search_limit,
@@ -476,7 +489,7 @@ exports.RenewPlaneVerifyPayment = async (req, res) => {
                 await newSubscription.save();
 
                 const transaction=new CompanyTransaction({
-                    company_id:companyId,
+                    company_id:company_id,
                     type:'Renew Plane',
                     Plane_name:subscriptionData.plane_name,
                     price:subscriptionData.price,
@@ -559,37 +572,42 @@ exports.GetAllTopupPlane = async (req, res) => {
 };
 
 
-exports.TopUpSubscriptionPlane=async(req,res)=>{
+exports.TopUpSubscriptionPlane = async (req, res) => {
     const apiUrl = 'https://sandbox.cashfree.com/pg/orders';
-    const { company_id, topup_id} = req.body;
-    try{
-        const subscription = await TopUpPlane.findOne({ _id:topup_id});
-        
-        if (!subscription) {
-            return res.status(404).json({ error: "TopUp plane not found" });
+    const { company_id, topup_id } = req.body;
+    try {
+        if (!company_id && !topup_id) {
+            return res.status(400).json({ error: 'Please provide Id' });
         }
-        const CompanyDate=await company.findOne({_id:company_id});
+        const subscription = await TopUpPlane.findOne({ _id: topup_id });
+
+        if (!subscription) {
+            return res.status(404).json({ error: 'TopUp plane not found' });
+        }
+        const CompanyDate = await company.findOne({ _id: company_id });
         const orderId = generateOrderId();
         const requestData = {
             customer_details: {
                 customer_id: orderId,
-                customer_email:CompanyDate.email,
-                customer_phone: String(CompanyDate.mobile),
+                customer_email: CompanyDate.email,
+                customer_phone: String(CompanyDate.mobile)
             },
             order_meta: {
-                return_url: "https://didatabank.com/PaymentSuccessfull?order_id=order_"+orderId
+                // return_url: "https://didatabank.com/PaymentSuccessfull?order_id=order_"+orderId\
+                return_url:
+                    'https://law-tech.co.in/PaymentSuccessfull?order_id=order'
             },
-            order_id:"order_"+orderId,
-            order_amount:subscription?.price,
-            order_currency: "INR",
+            order_id: 'order_' + orderId,
+            order_amount: subscription?.price,
+            order_currency: 'INR',
             order_note: 'top Up plane',
-            subscriptionid:topup_id
+            subscriptionid: topup_id
         };
 
         const requestOptions = {
             method: 'POST',
             headers: {
-                'Accept': 'application/json',
+                Accept: 'application/json',
                 'Content-Type': 'application/json',
                 'x-api-version': '2022-01-01',
                 'x-client-id': process.env.CASHFREE_CLIENT_ID,
@@ -600,69 +618,73 @@ exports.TopUpSubscriptionPlane=async(req,res)=>{
 
         const response = await fetch(apiUrl, requestOptions);
         const responseData = await response.json();
-          if (response.ok) {
+        if (response.ok) {
             const orderData = {
                 order_id: responseData.order_id,
-                payment_methods:responseData.order_meta?.payment_methods || 'Not Provided',
+                payment_methods:
+                    responseData.order_meta?.payment_methods || 'Not Provided',
                 order_status: responseData.order_status,
                 order_token: responseData.order_token,
-                refundsurl: responseData.refunds ? responseData.refunds.url : 'N/A',
-                company_id:company_id,
-                subscription_id: topup_id,
-                paymentLink:responseData?.payment_link,
-                amount:subscription?.price,
-                customer_email:CompanyDate.email,
-                customer_phone:CompanyDate.mobile,
+                refundsurl: responseData.refunds
+                    ? responseData.refunds.url
+                    : 'N/A',
+                company_id: company_id,
+                topupId: topup_id,
+                paymentLink: responseData?.payment_link,
+                amount: subscription?.price,
+                customer_email: CompanyDate.email,
+                customer_phone: CompanyDate.mobile
             };
             res.status(200).json(orderData);
         } else {
             console.error('Error:', responseData);
-            res.status(500).json({ error: "Internal server error" });
+            res.status(500).json({ error: 'Internal server error' });
         }
-
-    }catch(error){
-        return res.status(500).json({error:"Internal server error"});
+    } catch (error) {
+        return res.status(500).json({ error: 'Internal server error' });
     }
-}
-
+};
 
 exports.TopUpPlaneVerifyPayment = async (req, res) => {
-    const { orderId, topupId, companyId,paymentMethod} = req.body;
+    const { orderId, topupId, companyId, paymentMethod } = req.body;
     //const apiUrl = `https://api.cashfree.com/pg/orders/${orderId}`;
-    const apiUrl = `https://sandbox.cashfree.com/pg/orders/${orderId}`
+    const apiUrl = `https://sandbox.cashfree.com/pg/orders/${orderId}`;
     const headers = {
-      'x-client-id': process.env.CASHFREE_CLIENT_ID,
-      'x-client-secret': process.env.CASHFREE_CLIENT_SECRET,
-      'x-api-version': '2021-05-21',
+        'x-client-id': process.env.CASHFREE_CLIENT_ID,
+        'x-client-secret': process.env.CASHFREE_CLIENT_SECRET,
+        'x-api-version': '2021-05-21'
     };
     try {
         const response = await fetch(apiUrl, {
             method: 'GET',
-            headers: headers,
-          });
-      
-          const result = await response.json();
-      
-            if (result.order_status === 'PAID') {
+            headers: headers
+        });
+
+        const result = await response.json();
+        if (result.order_status === 'PAID') {
             const TopupData = await TopUpPlane.findById(topupId);
 
             if (!TopupData) {
-                return res.status(404).json({ error: "Top-up plan not found" });
+                return res.status(404).json({ error: 'Top-up plan not found' });
             }
 
-            const existingSubscription = await CompanySubscription.findOne({ 
-                company_id: companyId,expiresAt: { $gte: new Date()},createdDate:{$lte:new Date()}
-            })
+            const existingSubscription = await CompanySubscription.findOne({
+                company_id: companyId,
+                expiresAt: { $gte: new Date() },
+                createdDate: { $lte: new Date() }
+            });
 
             if (!existingSubscription) {
-                return res.status(404).json({ error: "No subscription found for the company" });
+                return res
+                    .status(404)
+                    .json({ error: 'No subscription found for the company' });
             }
 
             existingSubscription.search_limit += TopupData.search_limit || 0;
             existingSubscription.user_access += TopupData.user_access || 0;
             existingSubscription.cv_view_limit += TopupData.cv_view_limit || 0;
             existingSubscription.job_posting += TopupData.job_posting || 0;
-            
+
             if (TopupData.available_candidate) {
                 existingSubscription.available_candidate = true;
             }
@@ -682,28 +704,28 @@ exports.TopUpPlaneVerifyPayment = async (req, res) => {
             // });
             // await existingSubscription.save();
 
-            const transaction=new CompanyTransaction({
-                company_id:companyId,
-                type:'TopUp plane',
-                Plane_name:TopupData.plane_name,
-                price:TopupData.price,
-                payment_method:paymentMethod,
-                transaction_Id:orderId,
-                purchesed_data:new Date(),
-                Expire_date:existingSubscription.expiresAt
-            })
+            const transaction = new CompanyTransaction({
+                company_id: companyId,
+                type: 'TopUp plane',
+                Plane_name: TopupData.plane_name,
+                price: TopupData.price,
+                payment_method: paymentMethod,
+                transaction_Id: orderId,
+                purchesed_data: new Date(),
+                Expire_date: existingSubscription.expiresAt
+            });
             await transaction.save();
 
             return res.status(201).json({
-                message: "Payment verified and top-up plan applied successfully",
+                message:
+                    'Payment verified and top-up plan applied successfully',
                 paymentData: response.data
             });
         } else {
-            return res.status(400).json({ error: "payment failed" });
+            return res.status(400).json({ error: 'payment failed' });
         }
-
     } catch (error) {
-        return res.status(500).json({ error: "Internal server error" });
+        return res.status(500).json({ error: 'Internal server error' });
     }
 };
 
@@ -719,15 +741,15 @@ exports.GetEarySubscriptionplane=async(req,res)=>{
         });
 
         const objectId=new mongoose.Types.ObjectId(company_id);
-        const previousSubscription=await CompanySubscription.aggregate([{ $match: { company_id: objectId, expiresAt: { $gte: new Date() },createdDate:{$lte:new Date()}} }])
+        //const previousSubscription=await CompanySubscription.aggregate([{ $match: { company_id: objectId, expiresAt: { $gte: new Date() },createdDate:{$lte:new Date()}} }])
          if(previousPlan){
         const getSubscriptionPlans = await subscription.aggregate([
             { $match: { _id: { $ne: previousPlan.subscription_id } } }
         ]);
-        return res.status(200).send({getSubscriptionPlans,previousSubscription});
+        return res.status(200).send({getSubscriptionPlans});
          }else{
             const getSubscriptionPlans = await subscription.find({})
-            return res.status(200).send({getSubscriptionPlans,previousSubscription});
+            return res.status(200).send({getSubscriptionPlans});
          } 
 
     }catch(error){
@@ -785,7 +807,7 @@ exports.EarlySubscriptionplane=async(req,res)=>{
                 order_token: responseData.order_token,
                 refundsurl: responseData.refunds ? responseData.refunds.url : 'N/A',
                 company_id:company_id,
-                subscription_id: sub_id,
+                sub_id: sub_id,
                 paymentLink:responseData?.payment_link,
                 amount:subscriptions?.price,
                 customer_email:CompanyDate.email,
@@ -804,7 +826,7 @@ exports.EarlySubscriptionplane=async(req,res)=>{
 }
 
 exports.SubscriptionPlaneVerifyPayment = async (req, res) => {
-    const { orderId, sub_id, companyId,paymentMethod} = req.body;
+    const { orderId, sub_id, company_id,paymentMethod} = req.body;
     //const apiUrl = `https://api.cashfree.com/pg/orders/${orderId}`;
     const apiUrl = `https://sandbox.cashfree.com/pg/orders/${orderId}`
     const headers = {
@@ -826,7 +848,7 @@ exports.SubscriptionPlaneVerifyPayment = async (req, res) => {
             if (!subData) {
                 return res.status(404).json({ error: "Subscription plan not found" });
             }
-
+            const companyId=new mongoose.Types.ObjectId(company_id)
             const previousPlan = await CompanySubscription.findOne({ company_id: companyId,expiresAt: { $gte: new Date()},createdDate:{$lte:new Date()}})
 
             const newExpirationDate = previousPlan
@@ -834,7 +856,7 @@ exports.SubscriptionPlaneVerifyPayment = async (req, res) => {
                 : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
 
             const newSubscription = new CompanySubscription({
-                company_id: companyId,
+                company_id: company_id,
                 subscription_id: sub_id,
                 plane_name: subData.plane_name,
                 transaction_Id: orderId,

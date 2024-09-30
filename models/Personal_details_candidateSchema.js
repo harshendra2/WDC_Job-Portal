@@ -2,6 +2,7 @@ const { required } = require("joi");
 const mongoose=require("mongoose");
 
 const personal_details_candidate=new mongoose.Schema({
+    custom_id: { type: Number},
     gender:{
         type:String
     },

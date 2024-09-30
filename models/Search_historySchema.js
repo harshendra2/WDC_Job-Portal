@@ -5,7 +5,7 @@ const SearchHistory = new mongoose.Schema({
        type: mongoose.Schema.Types.ObjectId,
   ref:'company'
     },
-  Search: {
+    Search_text: {
     type: String,
     required: true
   },

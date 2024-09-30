@@ -26,91 +26,159 @@ const EditJobs=Joi.object({
   description: Joi.string().min(100).required()
 })
 
-exports.GetCreatedJobStatus=async(req,res)=>{
-    const {company_id}=req.params;
-    try{
-      if(!company_id){
-       return res.status(400).json({error:"Please provide Company Id"});
+exports.GetCreatedJobStatus = async (req, res) => {
+  const { company_id } = req.params;
+  try {
+      if (!company_id) {
+          return res.status(400).json({ error: 'Please provide Company Id' });
       }
-        const objectId = new mongoose.Types.ObjectId(company_id);
-const temp = await CompanyJob.aggregate([{$match:{company_id:objectId}},
-    {
-      $group: {
-        _id: "$company_id",
-        jobCount: { $sum: 1 },
-        activeJobCount: {
-          $sum: { $cond: [{ $eq: ["$status", true] }, 1, 0] },
-        }, 
-        inactiveJobCount: {
-          $sum: { $cond: [{ $or: [ { $eq: ["$status",false] }, { $gt: ["$job_Expire_Date", new Date()] } ] },
-          1, 
-          0] },
-        },
-        application_recieved: {
-          $sum: { $size: { $ifNull: ["$applied_candidates", []] } },
-        },
-        candidate_hired: {
-          $sum: { $size: { $ifNull: ["$hired_candidate", []] } },
-        },
-        candidate_pipeline:{
-          $sum:{$size:{$ifNull:["$Interviewed",[]]}}
-        }       
-      },
-    },
-  ]);
+      const objectId = new mongoose.Types.ObjectId(company_id);
+      const temp = await CompanyJob.aggregate([
+          { $match: { company_id: objectId } },
+          {
+              $group: {
+                  _id: '$company_id',
+                  jobCount: { $sum: 1 },
+                  activeJobCount: {
+                      $sum: { $cond: [{ $eq: ['$status', true] }, 1, 0] }
+                  },
+                  inactiveJobCount: {
+                      $sum: {
+                          $cond: [
+                              {
+                                  $or: [
+                                      { $eq: ['$status', false] },
+                                      {
+                                          $gt: [
+                                              '$job_Expire_Date',
+                                              new Date()
+                                          ]
+                                      }
+                                  ]
+                              },
+                              1,
+                              0
+                          ]
+                      }
+                  },
+                  application_recieved: {
+                      $sum: {
+                          $size: { $ifNull: ['$applied_candidates', []] }
+                      }
+                  },
+                  candidate_hired: {
+                      $sum: {
+                          $sum: {
+                              $size: {
+                                  $filter: {
+                                      input: {
+                                          $ifNull: ['$Shortlisted', []]
+                                      },
+                                      as: 'shortlistedCandidate',
+                                      cond: {
+                                          $or: [
+                                              {
+                                                  $eq: [
+                                                      '$$shortlistedCandidate.short_Candidate.offer_accepted_status',
+                                                      'Accepted'
+                                                  ]
+                                              }
+                                          ]
+                                      }
+                                  }
+                              }
+                          }
+                      }
+                  },
+                  candidate_pipeline: {
+                      $sum: {
+                          $size: {
+                              $filter: {
+                                  input: { $ifNull: ['$Shortlisted', []] },
+                                  as: 'shortlistedCandidate',
+                                  cond: {
+                                      $or: [
+                                          {
+                                              $eq: [
+                                                  '$$shortlistedCandidate.interviewed_status',
+                                                  false
+                                              ]
+                                          },
+                                          {
+                                              $eq: [
+                                                  '$$shortlistedCandidate.shorted_status',
+                                                  false
+                                              ]
+                                          }
+                                      ]
+                                  }
+                              }
+                          }
+                      }
+                  }
+              }
+          }
+      ]);
 
-  const companyIds = temp.map((item) => item._id);
+      const companyIds = temp.map(item => item._id);
 
-  const data = await company.find({ _id: { $in: companyIds } });
+      const data = await company.find({ _id: { $in: companyIds } });
 
-  const dataWithJobCounts = data.map((company) => {
-    const jobInfo = temp.find((job) => job._id.equals(company._id));
-    return {
-      ...company.toObject(),
-      jobCount: jobInfo ? jobInfo.jobCount : 0,
-      activeJobCount: jobInfo ? jobInfo.activeJobCount : 0, 
-      inactiveJobCount: jobInfo ? jobInfo.inactiveJobCount : 0, 
-      application_recieved:jobInfo?jobInfo.application_recieved:0,
-      candidate_hired:jobInfo?jobInfo.candidate_hired:0,
-      candidate_pipeline:jobInfo?jobInfo.candidate_pipeline:0
-    };
-  });
+      const dataWithJobCounts = data.map(company => {
+          const jobInfo = temp.find(job => job._id.equals(company._id));
+          return {
+              ...company.toObject(),
+              jobCount: jobInfo ? jobInfo.jobCount : 0,
+              activeJobCount: jobInfo ? jobInfo.activeJobCount : 0,
+              inactiveJobCount: jobInfo ? jobInfo.inactiveJobCount : 0,
+              application_recieved: jobInfo
+                  ? jobInfo.application_recieved
+                  : 0,
+              candidate_hired: jobInfo ? jobInfo.candidate_hired : 0,
+              candidate_pipeline: jobInfo ? jobInfo.candidate_pipeline : 0
+          };
+      });
 
-  const jobs = await CompanyJob.find({company_id: objectId });
+      const jobs = await CompanyJob.find({ company_id: objectId });
 
-  const PostedJobList = jobs.map(job => {
-      const timeSincePosted = moment(job.createdDate).fromNow();
-      return {
-          ...job._doc,
-          timeSincePosted
-      };
-  });
-  const [SubscriptionStatus] = await Promise.all([
-    companySubscription.aggregate([
-      { $match: { company_id: objectId, expiresAt: { $gte: new Date() } } },
-      {
-        $lookup: {
-          from: "subscriptionplanes",
-          localField: "subscription_id",
-          foreignField: "_id",
-          as: "AdminSubscription",
-        },
-      },
-    ]),
-  ]);
+      const PostedJobList = jobs.map(job => {
+          const timeSincePosted = moment(job.createdDate).fromNow();
+          return {
+              ...job._doc,
+              timeSincePosted
+          };
+      });
+      const [SubscriptionStatus] = await Promise.all([
+          companySubscription.aggregate([
+              {
+                  $match: {
+                      company_id: objectId,
+                      expiresAt: { $gte: new Date() }
+                  }
+              },
+              {
+                  $lookup: {
+                      from: 'subscriptionplanes',
+                      localField: 'subscription_id',
+                      foreignField: '_id',
+                      as: 'AdminSubscription'
+                  }
+              }
+          ])
+      ]);
 
-  if (dataWithJobCounts) {
-    return res.status(200).send({dataWithJobCounts,PostedJobList,SubscriptionStatus});
-  } else {
-    return res.status(404).json({ error: "No companies found" });
+      if (dataWithJobCounts) {
+          return res
+              .status(200)
+              .send({ dataWithJobCounts, PostedJobList, SubscriptionStatus });
+      } else {
+          return res.status(404).json({ error: 'No companies found' });
+      }
+  } catch (error) {
+      console.log(error);
+      return res.status(500).json({ error: 'Internal server error' });
   }
-
-
-    }catch(error){
-        console.log(error);
-        return res.status(500).json({error:"Internal server error"});
-    }
-}
+};
 
 exports.GetSuggestionJobDescription=async(req,res)=>{
   try{
@@ -183,6 +251,16 @@ exports.PromoteJobPayment=async(req,res)=>{
     if(!company_id){
       return res.status(400).json({error:"Please provide company Id"});
     }
+    const objectId = new mongoose.Types.ObjectId(company_id); 
+    const existsSubscription = await companySubscription.findOne({ company_id: objectId, expiresAt: { $gte: new Date() },createdDate:{$lte:new Date()}})
+
+    if (!existsSubscription) {
+        return res.status(404).json({ error: "Subscription not found,Please buy new Subscription plane" });
+    }
+
+    if (existsSubscription.job_posting <= 0) {
+        return res.status(400).json({ error: "This subscription plan does not allow job postings Please upgrade your subscription plane" });
+    }
     const companyData=await company.findOne({_id:company_id})
     const orderId = generateOrderId();
     const requestData = {
@@ -192,7 +270,8 @@ exports.PromoteJobPayment=async(req,res)=>{
         customer_phone:String(companyData.mobile),
       },  
       order_meta: {
-        return_url:"https://didatebank.com/PaymentSuccessfull?order_id=order_"+orderId
+        return_url:
+                    'https://law-tech.co.in/PaymentSuccessfull?order_id=order'
       },
       order_id: "order_"+orderId,
       order_amount:999,
@@ -241,8 +320,9 @@ exports.PromoteJobPayment=async(req,res)=>{
 }
 
 exports.CreatePromotesJob=async(req,res)=>{
-  const { orderId,companyId,paymentMethod,price,job_title,No_openings,industry,salary,experience,location,country,job_type,work_type,skills,education,description} = req.body;
-  const apiUrl = `https://api.cashfree.com/pg/orders/${orderId}`;
+  const { orderId,company_id,paymentMethod,price,job_title,No_openings,industry,salary,experience,location,country,job_type,work_type,skills,education,description} = req.body;
+  //const apiUrl = `https://api.cashfree.com/pg/orders/${orderId}`;
+  const apiUrl = `https://sandbox.cashfree.com/pg/orders/${orderId}`;
   const headers = {
     'x-client-id':process.env.CASHFREE_CLIENT_ID,
     'x-client-secret':process.env.CASHFREE_CLIENT_SECRET,
@@ -259,7 +339,7 @@ exports.CreatePromotesJob=async(req,res)=>{
 
   if (result.order_status === 'PAID') {
 
-      const objectId = new mongoose.Types.ObjectId(companyId); 
+      const objectId = new mongoose.Types.ObjectId(company_id); 
       const existsSubscription = await companySubscription.findOne({ company_id: objectId, expiresAt: { $gte: new Date() },createdDate:{$lte:new Date()}})
 
       if (!existsSubscription) {
@@ -286,7 +366,7 @@ exports.CreatePromotesJob=async(req,res)=>{
           skills,
           education,
           description,
-          company_id:companyId,
+          company_id:company_id,
           job_Expire_Date,
           promote_job:true
       });
@@ -298,7 +378,7 @@ exports.CreatePromotesJob=async(req,res)=>{
       await existsSubscription.save();
 
       const transaction=new companyTransaction({
-        company_id:companyId,
+        company_id:company_id,
         type:'Promote job',
         Plane_name:'Promote job',
         price:price,
