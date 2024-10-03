@@ -454,8 +454,10 @@ exports.RenewPlaneVerifyPayment = async (req, res) => {
 
             if (subscriptionData) {
                 const existingSubscriptions = await CompanySubscription.find({ 
-                    company_id: company_id 
-                }).sort({ createdDate: -1 }).limit(1);
+                    company_id: company_id ,
+                    expiresAt: { $gte: new Date() },
+                    createdDate:{$lte:new Date()}
+                })
 
                 if (existingSubscriptions.length > 0) {
                     const existingSubscription = existingSubscriptions[0];
@@ -467,6 +469,7 @@ exports.RenewPlaneVerifyPayment = async (req, res) => {
                     existingSubscription.available_candidate = false;
                     existingSubscription.download_email_limit = false;
                     existingSubscription.download_cv_limit = false
+                    existingSubscription.expiresAt=new Date(new Date().setDate(new Date().getDate() - 1));
                     await existingSubscription.save();
                 }
 

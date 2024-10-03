@@ -16,10 +16,9 @@ exports.getCompanyDetails = async (req, res) => {
   const { id } = req.params;
   try {
     const objectId = new mongoose.Types.ObjectId(id);
-
     const [subscriptionData, jobData] = await Promise.all([
       CompanySubscription.aggregate([
-        { $match: { company_id: objectId, expiresAt: { $gte: new Date() } } },
+        { $match: { company_id: objectId, expiresAt: { $gte: new Date() },createdDate:{$lte:new Date()}} },
         {
           $lookup: {
             from: "subscriptionplanes",

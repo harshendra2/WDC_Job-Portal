@@ -122,156 +122,74 @@ exports.GetSavedProfileData=async(req,res)=>{
 }
 
 
-// exports.EditProfile = async (req, res) => {
-//     const { id } = req.params;
-//     const {
-//         company_name, email, mobile, overView, industry,
-//         company_size, GST, PAN, website_url, location, contact_email,
-//         contact_No, headQuater_add
-//     } = req.body;
-
-    
-//   const { error } = EditCompanyProfile.validate({ company_name, email, mobile, overView, industry,
-//     company_size, PAN, website_url, location, contact_email,
-//     contact_No, headQuater_add});
-//   if (error) {
-//     return res.status(400).json({ error: error.details[0].message });
-//   }
-
-//     const panImage = req.files['panImage'] ? req.files['panImage'][0].path : null;
-//     const gstImage = req.files['gstImage'] ? req.files['gstImage'][0].path : null;
-//     const profile=req.files['profile'] ? req.files['profile'][0].path:null;
-
-//     try {
-//         let panText = '';
-//         let gstText = '';
-
-//         if (panImage) {
-//             const panResult = await tesseract.recognize(panImage, 'eng');
-//             panText = panResult.data.text;
-//         }
-//         const panNumber = extractPAN(panText);
-       
-//         const previouseDetails=await company.findById(id);
-//         if(previouseDetails?.status=='processing'){
-//           const companyData = {
-//             company_name, email, mobile, overView, industry,
-//             company_size, GST, PAN, website_url, location, contact_email,
-//             contact_No, headQuater_add,GST_verify:false,PAN_verify:false,status:'processing',message:""
-//         };
-//           if (panImage) {
-//               companyData.PAN_image = panImage
-//           }
-//           if (gstImage) {
-//               companyData.GST_image = gstImage
-//           }
-//           if (profile){
-//               companyData.profile=profile
-//           }
-  
-//           const updatedData = await company.findByIdAndUpdate(id, companyData, { new: true });
-  
-//           if (updatedData) {
-//               return res.status(200).json({ message: "Profile updated successfully", company: updatedData });
-//           } else {
-//               return res.status(404).json({ error: "Profile not found" });
-//           }
-//         }else if(previouseDetails.status=='approve'){
-//           const companyData = {
-//             company_name, email, mobile, overView, industry,
-//             company_size, website_url, location, contact_email,
-//             contact_No, headQuater_add,GST_verify:false,PAN_verify:false,status:'approve',message:""
-//         };
-//           if (profile){
-//               companyData.profile=profile
-//           }
-  
-//           const updatedData = await company.findByIdAndUpdate(id, companyData, { new: true });
-  
-//           if (updatedData) {
-//               return res.status(200).json({ message: "Profile updated successfully", company: updatedData });
-//           } else {
-//               return res.status(404).json({ error: "Profile not found" });
-//           }
-//         }else if(previouseDetails.status=='reject'){
-//           const companyData = {
-//             company_name, email, mobile, overView, industry,
-//             company_size, GST, PAN, website_url, location, contact_email,
-//             contact_No, headQuater_add,GST_verify:false,PAN_verify:false,status:'processing',message:""
-//         };
-//           if (panImage) {
-//               companyData.PAN_image = panImage
-//           }
-//           if (gstImage) {
-//               companyData.GST_image = gstImage
-//           }
-//           if (profile){
-//               companyData.profile=profile
-//           }
-  
-//           const updatedData = await company.findByIdAndUpdate(id, companyData, { new: true });
-  
-//           if (updatedData) {
-//               return res.status(200).json({ message: "Profile updated successfully", company: updatedData });
-//           } else {
-//               return res.status(404).json({ error: "Profile not found" });
-//           }
-//         }
-
-//     } catch (error) {
-//         return res.status(500).json({ error: "Internal server error" });
-//     }
-// };
-
 // Function to extract PAN number from text using regex
 exports.EditProfile = async (req, res) => {
   const { id } = req.params;
   const {
-      company_name, email, mobile, overView, industry,
-      company_size, GST, PAN, website_url, location, contact_email,
-      contact_No, headQuater_add
+      company_name,
+      email,
+      mobile,
+      overView,
+      industry,
+      company_size,
+      GST,
+      PAN,
+      website_url,
+      location,
+      contact_email,
+      contact_No,
+      headQuater_add
   } = req.body;
   const { error } = EditCompanyProfile.validate({
-      company_name, email, mobile, overView, industry,
-      company_size, PAN, website_url, location, contact_email,
-      contact_No, headQuater_add
+      company_name,
+      email,
+      mobile,
+      overView,
+      industry,
+      company_size,
+      PAN,
+      website_url,
+      location,
+      contact_email,
+      contact_No,
+      headQuater_add
   });
   if (error) {
       return res.status(400).json({ error: error.details[0].message });
   }
 
   // Image paths
-  const panImage = req?.files['panImage'] ? req?.files['panImage'][0]?.path : null;
-  const gstImage = req?.files['gstImage'] ? req?.files['gstImage'][0]?.path : null;
-  const profile = req?.files['profile'] ? req?.files['profile'][0]?.path : null;
+  const panImage = req?.files['panImage']
+      ? req?.files['panImage'][0]?.path
+      : null;
+  const gstImage = req?.files['gstImage']
+      ? req?.files['gstImage'][0]?.path
+      : null;
+  const profile = req?.files['profile']
+      ? req?.files['profile'][0]?.path
+      : null;
 
   try {
-      // Fetch the previous company details
       const previousDetails = await company.findById(id);
       if (!previousDetails) {
-          return res.status(404).json({ error: "Company profile not found" });
+          return res.status(404).json({ error: 'Company profile not found' });
       }
 
-      // Helper function to process PAN image if needed
-      // const processPanImage = async () => {
-      //     let panText = '';
-      //     let panNumber = '';
-
-      //     if (panImage) {
-      //         const panResult = await tesseract.recognize(panImage, 'eng');
-      //         panText = panResult.data.text;
-      //         panNumber = extractPAN(panText);
-      //     }
-
-      //     return { panText, panNumber };
-      // };
-
-      // Prepare the company data for update based on status
       let companyData = {
-          company_name, email, mobile, overView, industry,
-          company_size, website_url, location, contact_email,
-          contact_No, headQuater_add,
-          GST_verify: false, PAN_verify: false, message: ""
+          company_name,
+          email,
+          mobile,
+          overView,
+          industry,
+          company_size,
+          website_url,
+          location,
+          contact_email,
+          contact_No,
+          headQuater_add,
+          GST_verify: false,
+          PAN_verify: false,
+          message: ''
       };
 
       // Depending on status, process the relevant fields
@@ -279,7 +197,9 @@ exports.EditProfile = async (req, res) => {
           case 'processing':
               companyData = {
                   ...companyData,
-                  GST, PAN, status: 'processing'
+                  GST,
+                  PAN,
+                  status: 'processing'
               };
               if (panImage) companyData.PAN_image = panImage;
               if (gstImage) companyData.GST_image = gstImage;
@@ -294,7 +214,9 @@ exports.EditProfile = async (req, res) => {
           case 'reject':
               companyData = {
                   ...companyData,
-                  GST, PAN, status: 'processing'
+                  GST,
+                  PAN,
+                  status: 'processing'
               };
               if (panImage) companyData.PAN_image = panImage;
               if (gstImage) companyData.GST_image = gstImage;
@@ -302,24 +224,26 @@ exports.EditProfile = async (req, res) => {
               break;
 
           default:
-              return res.status(400).json({ error: "Invalid company status" });
+              return res
+                  .status(400)
+                  .json({ error: 'Invalid company status' });
       }
 
-      if (previousDetails.status === 'processing' || previousDetails.status === 'reject') {
-          const { panText, panNumber } = await processPanImage();
-          companyData.PAN = panNumber || PAN; 
-      }
-      const updatedData = await company.findByIdAndUpdate(id, companyData, { new: true });
+      const updatedData = await company.findByIdAndUpdate(id, companyData, {
+          new: true
+      });
 
       if (updatedData) {
-          return res.status(200).json({ message: "Profile updated successfully", company: updatedData });
+          return res.status(200).json({
+              message: 'Profile updated successfully',
+              company: updatedData
+          });
       } else {
-          return res.status(404).json({ error: "Profile not found" });
+          return res.status(404).json({ error: 'Profile not found' });
       }
-
   } catch (error) {
       console.error(error);
-      return res.status(500).json({ error: "Internal server error" });
+      return res.status(500).json({ error: 'Internal server error' });
   }
 };
 

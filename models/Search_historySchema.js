@@ -6,8 +6,7 @@ const SearchHistory = new mongoose.Schema({
   ref:'company'
     },
     Search_text: {
-    type: String,
-    required: true
+    type: String
   },
   createdAt: {
     type: Date,

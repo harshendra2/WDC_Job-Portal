@@ -4,52 +4,120 @@ const messageModel=require("../../models/messageModel");
 
 exports.getAllIssuesClaim=async(req,res)=>{
     try{
-        const data=await IssueSchema.aggregate([
-            {$lookup: {
-                from: 'companies',
-                localField: 'company_id',
-                foreignField: '_id',
-                as: 'details'
-                }
-              },
-        ]);
-
-        const temp = await IssueSchema.aggregate([
+        const baseUrl = `${req.protocol}://${req.get('host')}`;
+        const data = await IssueSchema.aggregate([
             {
                 $lookup: {
-                    from: 'candidates', 
-                    localField: 'candidate_id',
+                    from: 'companies',
+                    localField: 'company_id',
                     foreignField: '_id',
                     as: 'details'
-                }
-            },
-            {
-                $unwind: {
-                    path: '$details',
-                    preserveNullAndEmptyArrays: true
-                }
-            },
-            {
-                $lookup: {
-                    from: 'candidate_basic_details', 
-                    localField: 'details.basic_details',
-                    foreignField: '_id',
-                    as: 'details' 
                 }
             }
         ]);
         
-    let arr=[...temp,...data];
-
-        if(temp){
-            return res.status(200).send(arr)
+        if (data && data.length > 0) {
+            const isGoogleDriveLink = (url) => {
+                return url && (url.includes('drive.google.com') || url.includes('docs.google.com'));
+            };
+    
+            const updatedData = data.map((item) => {
+                return {
+                    ...item,  
+                    IssueUrl: item?.file
+                        ? (isGoogleDriveLink(item.file) ? item.file : `${baseUrl}/${item.file.replace(/\\/g, '/')}`)
+                        : null
+                };
+            });
+        
+            return res.status(200).send(updatedData);
+        } else {
+            return res.status(404).json({ message: 'No data found' });
         }
+        
+
+    //     const temp = await IssueSchema.aggregate([
+    //         {
+    //             $lookup: {
+    //                 from: 'candidates', 
+    //                 localField: 'candidate_id',
+    //                 foreignField: '_id',
+    //                 as: 'details'
+    //             }
+    //         },
+    //         {
+    //             $unwind: {
+    //                 path: '$details',
+    //                 preserveNullAndEmptyArrays: true
+    //             }
+    //         },
+    //         {
+    //             $lookup: {
+    //                 from: 'candidate_basic_details', 
+    //                 localField: 'details.basic_details',
+    //                 foreignField: '_id',
+    //                 as: 'details' 
+    //             }
+    //         }
+    //     ]);
+        
+    // let arr=[...temp,...data];
+
+        // if(temp){
+        //     return res.status(200).send(data)
+        // }
     }catch(error){
         return res.status(500).json({error:"Internal server error"});
     }
 }
 
-//Action Status
+// exports.getAllIssuesClaim = async (req, res) => {
+//     try {
+//         const data = await IssueSchema.aggregate([
+//             // Lookup company details
+//             {
+//                 $lookup: {
+//                     from: 'companies',
+//                     localField: 'company_id',
+//                     foreignField: '_id',
+//                     as: 'company_details'
+//                 }
+//             },
+//             // Lookup candidate details
+//             {
+//                 $lookup: {
+//                     from: 'candidates',
+//                     localField: 'candidate_id',
+//                     foreignField: '_id',
+//                     as: 'candidate_details'
+//                 }
+//             },
+//             {
+//                 $unwind: {
+//                     path: '$candidate_details',
+//                     preserveNullAndEmptyArrays: true
+//                 }
+//             },
+//             // Lookup candidate basic details from 'candidate_basic_details' collection
+//             {
+//                 $lookup: {
+//                     from: 'candidate_basic_details',
+//                     localField: 'candidate_details.basic_details',
+//                     foreignField: '_id',
+//                     as: 'candidate_basic_details'
+//                 }
+//             }
+//         ]);
+
+//         if (data) {
+//             return res.status(200).send(data);
+//         } else {
+//             return res.status(404).json({ message: "No issues found" });
+//         }
+//     } catch (error) {
+//         return res.status(500).json({ error: "Internal server error" });
+//     }
+// };
 
 exports.RejectionStatus=async(req,res)=>{
     const {id}=req.params

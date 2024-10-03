@@ -296,6 +296,145 @@ exports.KeywordSearchCandidate = async (req, res) => {
     const { companyId } = req.params;
 
     try {
+       if(!search&&!experience&&!location){
+        const data = await candidate.aggregate([
+            {
+                $lookup: {
+                    from: 'candidate_basic_details',
+                    localField: 'basic_details',
+                    foreignField: '_id',
+                    as: 'basicDetails'
+                }
+            },
+            {
+                $lookup: {
+                    from: 'candidate_personal_details',
+                    localField: 'personal_details',
+                    foreignField: '_id',
+                    as: 'personalDetails'
+                }
+            },
+            {
+                $lookup: {
+                    from: 'candidate_work_details',
+                    localField: 'work_details',
+                    foreignField: '_id',
+                    as: 'workDetails'
+                }
+            },
+            // {
+            //     $lookup: {
+            //         from: 'candidate_education_details',
+            //         localField: 'education_details',
+            //         foreignField: '_id',
+            //         as: 'educationDetails'
+            //     }
+            // },
+            {
+                $lookup: {
+                    from: 'currentusersubscriptionplanes',
+                    localField: '_id',
+                    foreignField: 'candidate_id',
+                    as: 'SubscriptionPlan'
+                }
+            },
+            {
+                $unwind: {
+                    path: '$SubscriptionPlan',
+                    preserveNullAndEmptyArrays: true
+                }
+            },
+            {
+                $project: {
+                    basicDetails: 1,
+                    personalDetails: 1,
+                    workDetails: 1,
+                    // educationDetails: 1,
+                    profile: 1,
+                    SubscriptionPlan: 1,
+                    top_candidate: {
+                        $cond: {
+                            if: {
+                                $and: [
+                                    { $ne: ['$SubscriptionPlan', null] },
+                                    {
+                                        $gt: [
+                                            '$SubscriptionPlan.expiresAt',
+                                            new Date()
+                                        ]
+                                    }
+                                ]
+                            },
+                            then: '$SubscriptionPlan.top_candidate',
+                            else: 40
+                        }
+                    },
+                    createdDate: '$SubscriptionPlan.createdDate'
+                }
+            },
+            {
+                $sort: { top_candidate: 1, createdDate: 1 }
+            },
+            {
+                $project: {
+                    'basicDetails.linkedIn': 0,
+                    'basicDetails.email': 0,
+                    'basicDetails.mobile': 0,
+                    ' personalDetails.gender': 0,
+                    'personalDetails.age': 0,
+                    'personalDetails.marriag_status': 0,
+                    'personalDetails.PAN': 0,
+                    'personalDetails.aadhar_number': 0,
+                    'personalDetails.father_name': 0,
+                    'personalDetails.son_name': 0,
+                    'workDetails.current_ctc': 0,
+                    'workDetails.work_experience': 0,
+                    'workDetails.skill': 0,
+                    'workDetails.Experience': 0
+                }
+            }
+        ]);
+        if (data && data.length > 0) {
+            const baseUrl = `${req.protocol}://${req.get('host')}`;
+            const isGoogleDriveLink = url =>
+                url &&
+                (url.includes('drive.google.com') ||
+                    url.includes('docs.google.com'));
+
+            const updatedData = data.map(item => {
+                const resumeUrl = item.workDetails[0]?.resume
+                    ? isGoogleDriveLink(item.workDetails[0]?.resume)
+                        ? item.workDetails[0].resume
+                        : `${baseUrl}/${item.workDetails[0].resume.replace(
+                              /\\/g,
+                              '/'
+                          )}`
+                    : null;
+
+                const profileUrl = item?.profile
+                    ? isGoogleDriveLink(item?.profile)
+                        ? item?.profile
+                        : `${baseUrl}/${item?.profile.replace(/\\/g, '/')}`
+                    : null;
+
+                return {
+                    ...item,
+                    candidateDetails: {
+                        ...item.candidateDetails,
+                        profile: profileUrl,
+                        resume: resumeUrl
+                    }
+                };
+            });
+
+            return res.status(200).json(updatedData);
+        } else {
+            return res
+                .status(404)
+                .json({ error: 'No candidates found for this company' });
+        }
+       }
+
         if (search) {
             var [jobTitle = '', skills = '', qualification = ''] = search
                 .split(',')
@@ -579,7 +718,7 @@ exports.KeywordSearchCandidate = async (req, res) => {
                     url.includes('docs.google.com'));
 
             const updatedData = data.map(item => {
-                const resumeUrl = item.workDetails[0]?.resume
+                 const resumeUrl = item?.workDetails[0]?.resume
                     ? isGoogleDriveLink(item.workDetails[0]?.resume)
                         ? item.workDetails[0].resume
                         : `${baseUrl}/${item.workDetails[0].resume.replace(
@@ -587,7 +726,6 @@ exports.KeywordSearchCandidate = async (req, res) => {
                               '/'
                           )}`
                     : null;
-
                 const profileUrl = item?.profile
                     ? isGoogleDriveLink(item?.profile)
                         ? item?.profile
