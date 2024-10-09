@@ -1,4 +1,6 @@
-const Company = require("../../models/Onboard_Company_Schema");
+const Company = require('../../models/Onboard_Company_Schema');
+const companySubscription = require('../../models/Company_SubscriptionSchema');
+const CompanyJob = require('../../models/JobSchema');
 const Joi = require("joi");
 const XLSX = require('xlsx');
 const axios=require('axios');
@@ -173,26 +175,73 @@ exports.getSingleCompany = async (req, res) => {
   }
 };
 
-
 exports.getAllOnboardCompany = async (req, res) => {
   try {
-    const data = await Company.find({}).sort({ createdAt: -1 });
-    if (data) {
-      const baseUrl = `${req.protocol}://${req.get('host')}`;
-      
-      const updatedData = data.map(company => {
-        return {
-          ...company._doc, // Spread the existing company data
-          panImageUrl: company.PAN_image ? `${baseUrl}/${company.PAN_image.replace(/\\/g, '/')}` : null, // Replace backslashes with forward slashes
-          gstImageUrl: company.GST_image ? `${baseUrl}/${company.GST_image.replace(/\\/g, '/')}` : null, // Replace backslashes with forward slashes
-        };
-      });
-      
-      return res.status(200).send(updatedData);
-    }
+      const data = await Company.find({})
+          .sort({ createdAt: -1 })
+          .select({ company_name: 1, location: 1, email: 1 });
 
+      if (data && data.length > 0) {
+          const updatedData = await Promise.all(
+              data.map(async company => {
+                  const subscription = await companySubscription
+                      .findOne({
+                          company_id: company._id,
+                          expiresAt: { $gte: new Date() },
+                          createdDate: { $lte: new Date() }
+                      })
+                      .select({ plane_name: 1 });
+                  const objectId = new mongoose.Types.ObjectId(company._id);
+                  const hiresCount = await CompanyJob.aggregate([
+                      { $match: { company_id: objectId } },
+                      {
+                          $group: {
+                              _id: '$company_id',
+                              candidate_hired: {
+                                  $sum: {
+                                      $sum: {
+                                          $size: {
+                                              $filter: {
+                                                  input: {
+                                                      $ifNull: [
+                                                          '$Shortlisted',
+                                                          []
+                                                      ]
+                                                  },
+                                                  as: 'shortlistedCandidate',
+                                                  cond: {
+                                                      $or: [
+                                                          {
+                                                              $eq: [
+                                                                  '$$shortlistedCandidate.short_Candidate.offer_accepted_status',
+                                                                  'Accepted'
+                                                              ]
+                                                          }
+                                                      ]
+                                                  }
+                                              }
+                                          }
+                                      }
+                                  }
+                              }
+                          }
+                      }
+                  ]);
+
+                  return {
+                      ...company._doc,
+                      subscription,
+                      hiresCount
+                  };
+              })
+          );
+
+          return res.status(200).send(updatedData);
+      }
+      return res.status(200).send([]);
   } catch (error) {
-    return res.status(500).json({ error: "Internal Server Error" });
+      console.error(error); // Log the error for debugging
+      return res.status(500).json({ error: 'Internal Server Error' });
   }
 };
 

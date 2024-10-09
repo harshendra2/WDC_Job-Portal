@@ -8,6 +8,7 @@ router.get('/company/job/suggestion_description',controller.GetSuggestionJobDesc
 //Post new job
 router.post('/company/create_job/:id',controller.CreateNewJob);
 //promoted job 
+router.get('/company/get_promoted/details',controller.GetPromotedJobDetails);
 router.post('/company/promote_job/payment',controller.PromoteJobPayment);
 router.post('/company/promote_job/verify',controller.CreatePromotesJob);
 

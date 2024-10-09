@@ -1,6 +1,7 @@
 const mongoose=require('mongoose');
 const moment = require('moment');
 const CompanyJob=require("../../models/JobSchema");
+const Company=require('../../models/Onboard_Company_Schema');
 
 
 exports.KeywordJobSearch = async (req, res) => {
@@ -261,6 +262,115 @@ exports.getJobDetails=async(req,res)=>{
         console.log(error);
         return res.status(500).json({error:"Internal server error"});
     }
+}
+
+exports.GetCompanyDetails=async(req,res)=>{
+  const {companyId}=req.params;
+  try{
+    if(!companyId){
+      return res.status(400).json({error:"Plese provide company ID"});
+    }
+    const Object=new mongoose.Types.ObjectId(companyId);
+    const data=await Company.aggregate([{$match:{_id:Object}},
+      {$project:{
+        company_name:1,
+        industry:1,
+        overView:1,
+        profile:1,
+        Candidate_Feed_Back:1
+      }}
+    ]);
+    const starRating = data[0]?.Candidate_Feed_Back.map((temp) => temp.rating);
+    const totalRating = starRating.reduce((acc, rating) => acc + rating, 0);
+    const averageRating = starRating.length > 0 ? totalRating / starRating.length : 0;
+    const baseUrl = `${req.protocol}://${req.get('host')}`;
+    const isGoogleDriveLink = (url) => {
+      return url && (url.includes('drive.google.com') || url.includes('docs.google.com'));
+    };
+    const updatedData={
+      ...data,
+      profileUrl: data[0].profile
+          ? (isGoogleDriveLink(data[0].profile) ? data[0].profile : `${baseUrl}/${data[0].profile.replace(/\\/g, '/')}`)
+          : null,
+    }
+  return res.status(200).send({updatedData,averageRating});
+
+  }catch(error){
+    return res.status(500).json({error:"Internal server error"});
+  }
+}
+
+exports.GetCompanyBasicDetails=async(req,res)=>{
+  const {companyId}=req.params;
+  try{
+    if(!companyId){
+      return res.status(400).json({error:"Please provide company ID"});
+    }
+    const object=new mongoose.Types.ObjectId(companyId)
+    const data=await Company.aggregate([{$match:{_id:object}},
+      {$project:{
+        email:1,
+        mobile:1,
+        headQuater_add:1,
+        location:1,
+        website_url:1,
+        company_size:1
+      }}
+    ])
+    if(data){
+      return res.status(200).send(data);
+    }
+  }catch(error){
+    return res.status(500).json({error:"Internal server error"});
+  }
+}
+
+exports.GetAllJobpostedByCompany=async(req,res)=>{
+  const {companyId}=req.params;
+  try{
+    if(!companyId){
+      return res.status(400).json({error:"Please provide company Id"});
+    }
+    const objectId=new mongoose.Types.ObjectId(companyId);
+    const jobs = await CompanyJob.find({ company_id: objectId });
+
+    const PostedJobList = jobs.map(job => {
+        const timeSincePosted = moment(job.createdDate).fromNow();
+        return {
+            ...job._doc,
+            timeSincePosted
+        };
+    });
+    if(PostedJobList){
+      return res.status(200).send(PostedJobList);
+    }
+
+  }catch(error){
+    return res.status(500).json({error:"Intrnal server error"});
+  }
+}
+
+exports.GetAllCompanyReveiw=async(req,res)=>{
+  const {companyId}=req.params;
+  try{
+    if(!companyId){
+      return res.status(400).json({error:"Please provide Company Id"});
+    }
+    const objectId=new mongoose.Types.ObjectId(companyId)
+    const data = await Company.findById(objectId, { Candidate_Feed_Back: 1, _id: 0 })
+    .populate({
+      path: 'Candidate_Feed_Back.candidate_id',
+      select: 'profile basic_details',
+      populate: {
+        path: 'basic_details',
+        select: 'name'
+      }
+    });
+    return res.status(200).send(data);
+
+  }catch(error){
+    return res.status(500).json({error:"Internal server error"});
+  }
 }
 
 

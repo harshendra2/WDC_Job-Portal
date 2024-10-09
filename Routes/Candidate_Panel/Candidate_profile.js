@@ -29,10 +29,11 @@ router.put('/candidate/profile/add_summary/:userId',upload.single('file'),contro
 
  //Edit Education details
  router.get('/candidate/profile/get_education/:user_id',controller.GetEducationDetails);
- router.put('/candidate/profile/add_education/:user_id',uploads,controller.AddNewAducation);
+ router.put('/candidate/profile/add_education/:user_id',upload.single('file'),controller.AddNewAducation);
+ router.put('/candidate/profile/edit_education/:user_id',uploads,controller.EditEducationDetails);
  router.delete('/candidate/profile/delete_education/:user_id/:education_id',controller.DeleteEducation);
  //Reviews
- router.get(' ',controller.GetAllCompanyReview);
+ router.get('/candidate/review/:user_id',controller.GetAllCompanyReview);
 
 
 

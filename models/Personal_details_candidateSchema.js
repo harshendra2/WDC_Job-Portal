@@ -37,8 +37,20 @@ const personal_details_candidate=new mongoose.Schema({
     Aadhar_verified_status:{
         type:Boolean,
         default:false
+    },
+    disability:{
+        type:Boolean
+    },
+    disbility_name:{
+        type:String
+    },
+    location:{
+        type:String
+    },
+    country:{
+        type:String
     }
-
+ 
 })
 
 module.exports = mongoose.model("candidate_personal_details", personal_details_candidate);

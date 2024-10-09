@@ -37,12 +37,15 @@ const education_details_candidate=new mongoose.Schema({
             type:Date
            } ,
            end_date:{
-            type:String
+            type:Date
            },
            grade:{
             type:String
            },
            description:{
+            type:String
+           },
+           certificate:{
             type:String
            }
         }

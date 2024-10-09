@@ -16,6 +16,7 @@ exports.GetCurrentSubscriptionPlane=async(req,res)=>{
         const CurrentSubscription=await UserSubscription.aggregate([{
             $match: {
               expiresAt: { $gte: new Date() },
+              createdDate:{$lte:new Date()},
               candidate_id: Id
             }
           }])
@@ -175,11 +176,13 @@ exports.verifyPayment = async (req, res) => {
           const result = await response.json();
       
             if (result.order_status === 'PAID') {
+                const candidate=await candidate.findById(userId)
             const data = await subscription.findById(subscriptionId);
 
             if (data) {
                 const subdata = new UserSubscription({
                     candidate_id: userId,
+                    custom_id:candidate?.custom_id,
                     subscription_id:subscriptionId,
                     plane_name: data.plane_name,
                     transaction_Id:orderId,
@@ -191,8 +194,8 @@ exports.verifyPayment = async (req, res) => {
                 await subdata.save();
 
                 const transaction=new CandidateTransaction({
-                    company_id:companyId,
-                    type:'Subscription plane',
+                    candidate_id:userId,
+                    type:'Subscription',
                     Plane_name: data.plane_name,
                     price:data.price,
                     payment_method:paymentMethod,

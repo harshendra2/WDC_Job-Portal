@@ -2,7 +2,7 @@ const mongoose = require('mongoose');
 const CandidateTransactionSchema = new mongoose.Schema({
     candidate_id: {
         type: mongoose.Schema.Types.ObjectId,
-        ref: 'Company',
+        ref: 'candidate',
         required: true
     },
     type:{

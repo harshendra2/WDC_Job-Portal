@@ -56,31 +56,8 @@ const CompanySubscriptionPlaneSchema = new mongoose.Schema({
   expiresAt: {
     type: Date,
     default: Date.now,
-    // index: { expires: '30d' }, 
+     index: { expires: '30d' }, 
 }
-// topUp:[
-//   {
-//     plane_name:{
-//       type:String
-//     },
-//     plane_price:{
-//       type:Number
-//     },
-//     order_Id:{    //order_Id and transaction_id is same it will get when payment time
-//       type:Number
-//     },
-//     ExpireDate:{
-//       type: Date
-//     },
-//     Date:{
-//       type:Date,
-//       default: Date.now,
-//     },
-//     paymentMethods:{
-//       type:String
-//     }
-//   }
-// ]
 });
 
 module.exports = mongoose.model("CompanySubscriptionPlane", CompanySubscriptionPlaneSchema);

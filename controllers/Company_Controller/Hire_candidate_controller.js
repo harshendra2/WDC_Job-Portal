@@ -394,6 +394,19 @@ exports.KeywordSearchCandidate = async (req, res) => {
                 }
             }
         ]);
+
+        const comnId = new mongoose.Types.ObjectId(companyId);
+        const existsSubscription = await CompanySubscription.findOne({
+            company_id: comnId,
+            expiresAt: { $gte: new Date() },
+            createdDate:{$lte:new Date()}
+        });
+        if (!existsSubscription) {
+            return res.status(404).json({
+                error: 'Subscription not found, please purchase a new subscription plan.'
+            });
+        }
+
         if (data && data.length > 0) {
             const baseUrl = `${req.protocol}://${req.get('host')}`;
             const isGoogleDriveLink = url =>
@@ -431,7 +444,7 @@ exports.KeywordSearchCandidate = async (req, res) => {
         } else {
             return res
                 .status(404)
-                .json({ error: 'No candidates found for this company' });
+                .json({ error: 'No candidates found' });
         }
        }
 
@@ -679,7 +692,8 @@ exports.KeywordSearchCandidate = async (req, res) => {
         const comnId = new mongoose.Types.ObjectId(companyId);
         const existsSubscription = await CompanySubscription.findOne({
             company_id: comnId,
-            expiresAt: { $gte: new Date() }
+            expiresAt: { $gte: new Date() },
+            createdDate:{$lte:new Date()}
         });
         if (!existsSubscription) {
             return res.status(404).json({
@@ -746,10 +760,9 @@ exports.KeywordSearchCandidate = async (req, res) => {
         } else {
             return res
                 .status(404)
-                .json({ error: 'No candidates found for this company' });
+                .json({ error: 'No candidates found' });
         }
     } catch (error) {
-        console.log(error);
         return res.status(500).json({ error: 'Internal server error' });
     }
 };
@@ -757,16 +770,23 @@ exports.KeywordSearchCandidate = async (req, res) => {
 
 exports.DownloadMultipleEmailId = async (req, res) => {
     const { companyId } = req.params;
-     const { selectedCandidates } = req.body;
+    const { selectedCandidates } = req.body;
 
     try {
+        if (!companyId) {
+            return res.status(400).json({ error: 'Company ID is required' });
+        }
+
         const objectId = new mongoose.Types.ObjectId(companyId);
-        const candidateIds = selectedCandidates.map(id =>new mongoose.Types.ObjectId(id));
-        const data=await candidate.aggregate([{
-            $match: {
-                _id: { $in: candidateIds }
-            }
-        },
+        const candidateIds = selectedCandidates.map(id => new mongoose.Types.ObjectId(id));
+
+        // Aggregating candidate data
+        const data = await candidate.aggregate([
+            {
+                $match: {
+                    _id: { $in: candidateIds }
+                }
+            },
             {
                 $lookup: {
                     from: 'candidate_basic_details',
@@ -776,23 +796,30 @@ exports.DownloadMultipleEmailId = async (req, res) => {
                 }
             },
             { $unwind: '$basicDetails' }
-        ])
+        ]);
 
         if (!data || data.length === 0) {
             return res.status(404).json({ error: 'No candidates found' });
         }
 
-        const uniqueEmails = [...new Set(data.map(candidate => candidate.basicDetails.email))];
+        // Extract unique emails and names
+        const uniqueEmails = [...new Set(data.map(candidate => ({
+            email: candidate.basicDetails.email,
+            name: candidate.basicDetails.name
+        })))];
 
-        const csvHeader = "Email\n";
-        const csvContent = uniqueEmails.join('\n');
-        const csvData = csvHeader + csvContent;
+        // Generate CSV content
+        const csvHeader = "Email,Name\n";  // Corrected header for separate email and name columns
+        const csvRows = uniqueEmails.map(candidate => `${candidate.email},${candidate.name}`).join('\n');
+        const csvData = csvHeader + csvRows;
 
+        // Send the CSV file as response
         res.header('Content-Type', 'text/csv');
         res.attachment('selected_emails.csv');
         res.send(csvData);
 
     } catch (error) {
+        console.error(error);
         return res.status(500).json({ error: 'Internal server error' });
     }
 };
@@ -803,17 +830,19 @@ exports.DownloadMultipleResume = async (req, res) => {
     const { selectedCandidates } = req.body;
 
     try {
-        if(!companyId){
-            return res.status(400).json({error:"Comapny Id is required"});
+        if (!companyId) {
+            return res.status(400).json({ error: "Company Id is required" });
         }
-        const objectId = new mongoose.Types.ObjectId(companyId);
 
-        const candidateIds = selectedCandidates.map(id =>new mongoose.Types.ObjectId(id));
-        const data=await candidate.aggregate([{
-            $match: {
-                _id: { $in: candidateIds }
-            }
-        },
+        const objectId = new mongoose.Types.ObjectId(companyId);
+        const candidateIds = selectedCandidates?.map(id => new mongoose.Types.ObjectId(id));
+
+        const data = await candidate.aggregate([
+            {
+                $match: {
+                    _id: { $in: candidateIds }
+                }
+            },
             {
                 $lookup: {
                     from: 'candidate_work_details',
@@ -822,43 +851,58 @@ exports.DownloadMultipleResume = async (req, res) => {
                     as: 'WorkDetails'
                 }
             },
-            { $unwind: '$WorkDetails' }
-        ])
+            { $unwind: '$WorkDetails' },
+            {
+                $lookup: {
+                    from: 'candidate_basic_details',
+                    localField: 'basic_details',
+                    foreignField: '_id',
+                    as: 'BasicDetails'
+                }
+            },
+            { $unwind: '$BasicDetails' }
+        ]);
 
         if (!data || data.length === 0) {
             return res.status(404).json({ error: 'No candidates found' });
         }
 
         const resumes = data.map(candidate => ({
-            resumeUrl: candidate.WorkDetails.resume
+            resumeUrl: candidate.WorkDetails.resume,
+            Name: candidate.BasicDetails.name
         }));
 
         const zip = new JSZip();
 
         for (const resume of resumes) {
             if (resume.resumeUrl) {
+                let fileContent;
+
                 if (resume.resumeUrl.includes('drive.google.com')) {
                     const fileId = extractGoogleDriveFileId(resume.resumeUrl);
                     const downloadUrl = `https://drive.google.com/uc?export=download&id=${fileId}`;
 
                     try {
                         const response = await axios.get(downloadUrl, { responseType: 'arraybuffer' });
-                        const fileName = `resume_${fileId}.pdf`;
-                        zip.file(fileName, response.data);
+                        fileContent = response.data;
                     } catch (err) {
                         console.log(`Failed to download from Google Drive: ${resume.resumeUrl}`);
+                        continue;
                     }
                 } else {
                     const fileName = path.basename(resume.resumeUrl); 
-                    const filePath = path.join(__dirname, '../../Images', fileName); 
+                    const filePath = path.join(__dirname, '../../Images', fileName);
 
                     if (fs.existsSync(filePath)) {
-                        const fileContent = await fs.promises.readFile(filePath);
-                        zip.file(fileName, fileContent);
+                        fileContent = await fs.promises.readFile(filePath);
                     } else {
                         console.log(`File not found: ${filePath}`);
+                        continue;
                     }
                 }
+
+                const fileName = `${resume.Name}.pdf`;
+                zip.file(fileName, fileContent);
             }
         }
 
@@ -873,6 +917,7 @@ exports.DownloadMultipleResume = async (req, res) => {
     }
 };
 
+// Function to extract Google Drive file ID from URL
 function extractGoogleDriveFileId(url) {
     const regex = /\/d\/(.*?)\//;
     const match = url.match(regex);

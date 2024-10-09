@@ -1,14 +1,14 @@
 const { getAllnotificatio, ViewDetails } = require('../controllers/Company_Controller/Notification_controller');
 
-//This notification for When new Candidate is Created  time comapny get Notification
 const companyNotification = (io) => {
     io.on("connection", (socket) => {
-        console.log("notification connected")
+        console.log("New candidate notification socket connected");
 
         socket.on('newCandidatenotification',async(companyId)=>{
             try {
+                socket.join(companyId);
                 const Notification = await getAllnotificatio (companyId)
-                socket.emit('notification', Notification)
+                io.to(companyId).emit('candidatenotification', Notification)
             } catch (err) {
                 console.log(err)
             }
@@ -29,4 +29,4 @@ const companyNotification = (io) => {
     })
 }
 
-module.exports = companyNotification
+module.exports = companyNotification;

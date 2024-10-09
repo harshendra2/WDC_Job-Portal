@@ -1,30 +1,33 @@
 const { getAllIssueNotificatio,ViewIssues} = require('../controllers/Company_Controller/Notification_controller');
-//this notification for Company when issue Solved
+
 const IssueNotification = (io) => {
     io.on("connection", (socket) => {
-        console.log("Issue notification socket connected")
+        console.log("Issue notification socket connected");
+        socket.on('issuenotification', async (companyId) => {
+            try {
+                socket.join(companyId);
 
-        socket.on('issuenotification',async(companyId)=>{
-            try{
-                const Notification = await getAllIssueNotificatio (companyId)
-                socket.emit('notification', Notification)
-            }catch(error){
+                const Notification = await getAllIssueNotificatio(companyId);
+                
+                io.to(companyId).emit('notification', Notification);
+            } catch (error) {
                 console.log(error);
             }
-        })
+        });
 
- socket.on('viewissuenotification', async (companyId) => {
+        socket.on('viewissuenotification', async (companyId) => {
             try {
-                const Viewed = await ViewIssues(companyId)
+                const viewed = await ViewIssues(companyId);
             } catch (err) {
-                console.log(err)
+                console.log(err);
             }
-        })
+        });
 
         socket.on("disconnect", () => {
-            console.log("disconnect")
-        })
-    })
-}
+            console.log("User disconnected");
+        });
+    });
+};
 
-module.exports = IssueNotification
+module.exports = IssueNotification;
+

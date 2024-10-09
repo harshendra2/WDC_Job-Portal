@@ -7,35 +7,92 @@ const Issue=require('../../models/Issue_Schema');
 
 exports.getAllnotificatio=async(companyId)=>{
     try{
-     const notification=await candidate.find({
-        'isRead_profile.company_id': { $ne: companyId },
-      }).populate('basic_details')
-     .populate('education_details')
-     .populate('work_details')
-     .populate('personal_details');
+        const candidates = await candidate.find({
+            isRead_profile: { 
+                    $not: { $elemMatch: { company_id: companyId } } 
+                }
+        })
+        .populate({
+            path: 'basic_details',
+            select: 'name email mobile linkedIn'
+        })
+        .populate({path:'work_details', select:'aspiring_position current_location'})
+        .populate({path:'personal_details', select:'spouse_profession Pan_verified_status Aadhar_verified_status'});
 
-        return notification || [];
+        // Filter candidates with 100% profile completion
+        const completeCandidates = candidates.filter(candidate => {
+            const profileCompletionPercentage = calculateProfileCompletionPercentage(candidate);
+            return profileCompletionPercentage == 100;
+        });
 
+        return completeCandidates || [];
     }catch(error){
-        console.log(error);
         throw error;
     }
 }
 
+const calculateProfileCompletionPercentage = (data) => {
+    if (!data) return 0;
+    const basicFields = ['name', 'email', 'mobile', 'linkedIn'];
+    const workFields = [
+        'aspiring_position','current_location'
+    ];
+    const personalFields = [
+        'spouse_profession', 'Pan_verified_status', 'Aadhar_verified_status'
+    ];
+
+    // Utility function to count filled fields
+    const calculateFilledFields = (details, fields) => {
+        let filled = 0;
+        if (!details) return filled;
+
+        fields.forEach(field => {
+            if (details[field] !== undefined && details[field] !== null && details[field] !== '' && details[field] !== false) {
+                filled++;
+            } else {
+            }
+        });
+        return filled;
+    };
+
+    const totalBasicFields = basicFields.length;
+    const filledBasicFields = calculateFilledFields(data.basic_details, basicFields);
+
+    const totalWorkFields = workFields.length;
+    const filledWorkFields = calculateFilledFields(data.work_details, workFields);
+
+    const totalPersonalFields = personalFields.length;
+    const filledPersonalFields = calculateFilledFields(data.personal_details, personalFields);
+
+    const totalFields = totalBasicFields + totalWorkFields + totalPersonalFields;
+    const filledFields = filledBasicFields  + filledWorkFields + filledPersonalFields;
+
+    // Calculate profile completion percentage
+    const profileCompletionPercentage = Math.round((filledFields / totalFields) * 100);
+    return profileCompletionPercentage;
+};
+
 exports.ViewDetails=async(companyId,arg)=>{
     try{
+        const temp={
+          isRead:true,
+          company_id:companyId
+        }
         const data = await candidate.findOneAndUpdate(
-            { _id: arg, 'isRead_profile.company_id': companyId },
-            { $set: { 'isRead_profile.$.isRead': true } },
+            { _id: arg},
+            { $push: { isRead_profile: temp } },
             { new: true }
           )
-          .populate('basic_details')
-          .populate('education_details')
-          .populate('work_details')
-          .populate('personal_details');
+          .populate({
+            path: 'basic_details',
+            select: 'name email mobile linkedIn'
+        })
+        .populate({path:'work_details', select:'aspiring_position current_location'})
+        .populate({path:'personal_details', select:'spouse_profession'});
+
       
           if (data) {
-            return data || [];
+            return data;
           }
     }catch(error){
         throw error;

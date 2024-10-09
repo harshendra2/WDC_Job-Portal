@@ -258,7 +258,7 @@ exports.OfferLetterRejected = async (req, res) => {
         const userID = new mongoose.Types.ObjectId(userId);
         const result = await CompanyJob.updateOne(
             { _id: jobID, 'Shortlisted.candidate_id': userID },
-            { $set: { 'Shortlisted.$.short_Candidate.offer_accepted_status': "Rejected" } }
+            { $set: { 'Shortlisted.$.short_Candidate.offer_accepted_status': "Rejected",'Shortlisted.$.short_Candidate.hired_date':new Date()} }
         );
         if (result.nModified === 0) {
             return res.status(400).json({ error: "Offer rejection failed. Candidate not found or already updated." });
@@ -283,7 +283,7 @@ exports.OfferLetterAccepted = async (req, res) => {
         const result = await CompanyJob.updateOne(
             { _id: jobID, 'Shortlisted.candidate_id': userID },
             {
-                $set: { 'Shortlisted.$.short_Candidate.offer_accepted_status': "Accepted" },
+                $set: { 'Shortlisted.$.short_Candidate.offer_accepted_status': "Accepted",'Shortlisted.$.short_Candidate.hired_date':new Date() },
                 $inc: { hired_Candidate: 1, No_openings: -1 }
             }
         );

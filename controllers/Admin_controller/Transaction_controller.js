@@ -1,95 +1,84 @@
-const moment=require("moment");
-const CompanySubscription=require('../../models/Company_SubscriptionSchema');
+const companyTransaction = require("../../models/CompanyTransactionSchema");
+const candidateTransaction = require("../../models/CandidateTransactionSchema");
 
 exports.GetAllTransaction = async (req, res) => {
-    try {
-        const data = await CompanySubscription.aggregate([
-            {
-                $lookup: {
-                    from: 'companies',
-                    localField: 'company_id',
-                    foreignField: '_id',
-                    as: 'company_details'
-                }
-            },
-            {
-                $unwind: '$company_details'
-            },
-            {
-                $project: {
-                    _id: 1,
-                    company_id: 1,
-                    subscription_plan: {
-                        plan_name: "$plan_name",
-                        price: "$price",
-                        search_limit: "$search_limit",
-                        available_candidate: "$available_candidate",
-                        user_access: "$user_access",
-                        cv_view_limit: "$cv_view_limit",
-                        download_email_limit: "$download_email_limit",
-                        download_cv_limit: "$download_cv_limit",
-                        job_posting: "$job_posting",
-                        createdDate: "$createdDate",
-                        expiresAt: "$expiresAt"
-                    },
-                    company_details: 1 
-                }
-            }
-        ]);
+  try {
+    const companytransaction = await companyTransaction.aggregate([
+      {
+        $lookup: {
+          from: "companies",
+          localField: "company_id",
+          foreignField: "_id",
+          as: "companydetails",
+        },
+      },
+      {
+        $project: {
+          "companydetails.company_name": 1,
+          type: 1,
+          plane_name: 1,
+          price: 1,
+          payment_method: 1,
+          transaction_Id: 1,
+          purchesed_data: 1,
+          Expire_date: 1,
+        },
+      },
+    ]);
 
-        const topUpPlans = await CompanySubscription.aggregate([
-            {
-                $match: {
-                    topUp: { $exists: true, $not: { $size: 0 } } 
-                }
-            },
-            {
-                $lookup: {
-                    from: 'companies',
-                    localField: 'company_id',
-                    foreignField: '_id',
-                    as: 'company_details'
-                }
-            },
-            {
-                $unwind: '$company_details'
-            },
-            {
-                $unwind: '$topUp' 
-            },
-            {
-                $project: {
-                    _id: 1,
-                    company_id: 1,
-                    topUpPlans: {
-                        plan_name: "$topUp.plane_name",
-                        price: "$topUp.plane_price",
-                        order_Id: "$topUp.order_Id",
-                        date: "$topUp.Date",
-                        ExpireDate:"$topUp.ExpireDate"
-                    },
-                    company_details: 1
-                }
-            }
-        ]);
-
-        const combinedResults = [...data, ...topUpPlans];
-        if (combinedResults.length > 0) {
-            return res.status(200).send(combinedResults);
-        } else {
-            return res.status(400).json({ error: "Empty database" });
-        }
-
-    } catch (error) {
-        return res.status(500).json({ error: "Internal server error" });
+    if (companytransaction.length > 0) {
+      return res.status(200).send(companytransaction);
+    } else {
+      return res.status(400).json({ error: "Empty database" });
     }
+  } catch (error) {
+    return res.status(500).json({ error: "Internal server error" });
+  }
 };
 
-
-exports.GetAllCandidateTransation=async(req,res)=>{
-    try{
-
-    }catch(error){
-     return res.status(500).json({error:"Internal server error"});
+exports.GetAllCandidateTransation = async (req, res) => {
+    try {
+      const candidateTransactions = await candidateTransaction.aggregate([
+        {
+          $lookup: {
+            from: "candidates",
+            localField: "candidate_id",
+            foreignField: "_id",
+            as: "candidatedetails",
+          },
+        },
+        {
+          $unwind: "$candidatedetails",
+        },
+        {
+          $lookup: {
+            from: "candidate_basic_details",
+            localField: "candidatedetails.basic_details",
+            foreignField: "_id",
+            as: "basicdetails",
+          },
+        },
+        {
+          $unwind: "$basicdetails",
+        },
+        {
+          $project: {
+            type: 1,
+          plane_name: 1,
+          price: 1,
+          payment_method: 1,
+          transaction_Id: 1,
+          purchesed_data: 1,
+          Expire_date: 1,
+            "basicdetails.name": 1,
+          },
+        },
+      ]);
+  
+      return res.status(200).send(candidateTransactions);
+    } catch (error) {
+      console.error(error);
+      return res.status(500).json({ error: "Internal server error" });
     }
-}
+  };
+  

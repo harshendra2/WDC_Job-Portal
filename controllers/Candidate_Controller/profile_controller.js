@@ -77,7 +77,7 @@ exports.getProfilePercentageStatus = async (req, res) => {
       ];
       const personalFields = [
         'gender', 'age', 'marriag_status', 'aadhar_number', 'PAN',
-        'family_member', 'spouse_profession','Pan_verified_status','Aadhar_verified_status'
+        'family_member', 'spouse_profession','Pan_verified_status','Aadhar_verified_status','location','country'
       ];
 
       const calculateFilledFields = (details, fields) => {
@@ -88,7 +88,7 @@ exports.getProfilePercentageStatus = async (req, res) => {
               if (details[field] !== undefined && details[field] !== null && details[field] !== ''&&details[field] !== false) {
                   filled++;
               } else {
-                  console.log(`Field "${field}" is not filled or invalid.`);
+                  // console.log(`Field "${field}" is not filled or invalid.`);
               }
           });
           return filled;
@@ -130,6 +130,7 @@ exports.getProfilePercentageStatus = async (req, res) => {
 
 exports.AddSummaryToCandidate=async(req,res)=>{
   const {userId}=req.params;
+  const {summary}=req.body
   try{
     if(!req.file){
       return res.status(400).json({error:"Please upload profile image"}); 
@@ -172,10 +173,11 @@ exports.AddSummaryToCandidate=async(req,res)=>{
       if (!candidates.work_details) {
         const newWorkDetails = new work_details();  
       newWorkDetails.Experience.push(workDetailsData); 
+      newWorkDetails.custom_id=candidates?.custom_id;
       const savedWorkDetails = await newWorkDetails.save(); 
 
       candidates.work_details = savedWorkDetails._id;
-      await candidate.save(); 
+      await candidates.save(); 
 
       return res.status(201).json({ message: "Work details added successfully", work_details: savedWorkDetails });
       } else {
@@ -188,7 +190,6 @@ exports.AddSummaryToCandidate=async(req,res)=>{
         return res.status(200).json({ message: "Work experience added successfully", work_details: updatedWorkDetails });
       }
     }catch(error){
-      console.log(error);
       return res.status(500).json({error:"Internal server error"});
     }
   }
@@ -542,7 +543,7 @@ exports.PanKYCverification=async(req,res)=>{
 
 exports.EditPersonalDetails = async (req, res) => {
   const { user_id } = req.params;
-  const { gender, age, marriag_status, aadhar_number, PAN, family_member, father_name, son_name, spouse_profession, disability, disbility_name } = req.body;
+  const { gender, age, marriag_status, aadhar_number, PAN, family_member, father_name, son_name, spouse_profession, disability, disbility_name,location,country} = req.body;
 
   const { error } = OnboardCandidatePersonalDetails.validate({
     gender, age, marriag_status, aadhar_number, PAN, family_member, father_name, son_name, spouse_profession
@@ -570,7 +571,9 @@ exports.EditPersonalDetails = async (req, res) => {
         son_name,
         spouse_profession,
         disability,
-        disbility_name
+        disbility_name,
+        location,
+        country
       });
 
       const savedPersonalDetails = await newPersonalDetails.save();
@@ -591,6 +594,8 @@ exports.EditPersonalDetails = async (req, res) => {
       spouse_profession: spouse_profession || candidateData.personal_details.spouse_profession,
       disability: disability || candidateData.personal_details.disability,
       disbility_name: disbility_name || candidateData.personal_details.disbility_name,
+      country:country|| candidateData.personal_details.country,
+      location:location|| candidateData.personal_details.location
     };
     const updatedPersonalDetails = await personal_details.findByIdAndUpdate(
       candidateData.personal_details._id,
@@ -656,7 +661,7 @@ exports.EditWorkDetails = async (req, res) => {
       career_highlight,
       recognation,
       skill,
-      resume: req.file?.filename,
+      resume: req?.file?.path,
       functions,preferred_location,current_location,country
     };
 
@@ -707,26 +712,82 @@ if(data){
 exports.AddNewAducation = async (req, res) => {
   const { user_id } = req.params;
   const {
-    highest_education,
-    board_represent,
-    articles,
     school,
     degree,
     Field_study,
     start_date,
     end_date,
     grade,
-    description,
-    certificates
+    description
   } = req.body;
 
   try {
-    // Validate if the candidate ID is valid
     if (!mongoose.Types.ObjectId.isValid(user_id)) {
       return res.status(400).json({ error: 'Invalid candidate ID' });
     }
+    const candidateData = await candidate.findById(user_id);
+    if (!candidateData) {
+      return res.status(404).json({ error: 'Candidate not found' });
+    }
 
-    // Process certificates (if available) with images
+    const newEducation = {
+      school,
+      degree,
+      Field_study,
+      start_date,
+      end_date,
+      grade,
+      description,
+      certificate:req?.file?.path
+    };
+
+    if (!candidateData.education_details) {
+      const newEducationDetails = new education_details({
+        Education: [newEducation], 
+        custom_id:candidateData?.custom_id
+      });
+
+      const savedEducationDetails = await newEducationDetails.save();
+
+      const updatedCandidate = await candidate.findByIdAndUpdate(
+        user_id,
+        { education_details: savedEducationDetails._id },
+        { new: true }
+      );
+
+      return res.status(201).json({
+        message: "Education added successfully",
+        candidate: updatedCandidate
+      });
+    }
+
+    const updatedEducationDetails = await education_details.findByIdAndUpdate(
+      candidateData.education_details._id,
+      {
+        $push: { Education: newEducation } 
+      },
+      { new: true }
+    );
+
+    return res.status(200).json({
+      message: "Education details updated successfully",
+      educationDetails: updatedEducationDetails
+    });
+
+  } catch (error) {
+    return res.status(500).json({ error: "Internal server error" });
+  }
+};
+
+
+exports.EditEducationDetails=async(req,res)=>{
+  const {user_id}=req.params;
+  const {highest_education,board_represent,articles,certificates}=req.body;
+  try{
+
+    if (!mongoose.Types.ObjectId.isValid(user_id)) {
+      return res.status(400).json({ error: 'Invalid candidate ID' });
+    }
     const certificatesArray = certificates?.map((certificate, index) => {
       const fileFieldName = `certificates[${index}][image]`;
       const file = req.files[fileFieldName] ? req.files[fileFieldName][0] : null;
@@ -736,35 +797,20 @@ exports.AddNewAducation = async (req, res) => {
       };
     });
 
-    // Find candidate by ID
     const candidateData = await candidate.findById(user_id);
     if (!candidateData) {
       return res.status(404).json({ error: 'Candidate not found' });
     }
 
-    // Prepare the new education object
-    const newEducation = {
-      custom_id: candidateData?.custom_id,  // Use existing custom_id
-      school,
-      degree,
-      Field_study,
-      start_date,
-      end_date,
-      grade,
-      description
-    };
-
-    // If candidate doesn't have education details yet, create and link them
     if (!candidateData.education_details) {
       const newEducationDetails = new education_details({
-        ...newEducation,           // Spread the newEducation data into the education_details schema
+        custom_id: candidateData?.custom_id,
         highest_education,
         board_represent,
         articles,
-        certificates: certificatesArray || [] // Add certificates if available
+        certificates: certificatesArray || [] 
       });
 
-      // Save the new education details to the database
       const savedEducationDetails = await newEducationDetails.save();
 
       // Update the candidate's document to link the new education details
@@ -780,15 +826,13 @@ exports.AddNewAducation = async (req, res) => {
       });
     }
 
-    // If education details already exist, update them
     const updatedEducationDetails = await education_details.findByIdAndUpdate(
       candidateData.education_details._id,
       {
         highest_education,
         board_represent,
         articles,
-        certificates: certificatesArray || [], // Update certificates if available
-        $addToSet: { Education: newEducation } // Add new education to existing array
+        certificates: certificatesArray || [],
       },
       { new: true }
     );
@@ -798,12 +842,10 @@ exports.AddNewAducation = async (req, res) => {
       educationDetails: updatedEducationDetails
     });
 
-  } catch (error) {
-    console.error(error);
-    return res.status(500).json({ error: "Internal server error" });
+  }catch(error){
+    return res.status(500).json({error:"Internal server error"});
   }
-};
-
+}
 
 
 exports.DeleteEducation=async(req,res)=>{
@@ -892,7 +934,7 @@ exports.GetAllCompanyReview = async (req, res) => {
     if (formattedData.length > 0) {
       return res.status(200).send(formattedData);
     } else {
-      return res.status(404).json({ message: "No reviews found for this user." });
+      return res.status(404).json({ message: "No reviews found for this Candidate." });
     }
   } catch (error) {
       return res.status(500).json({ error: "Internal server error" });

@@ -6,6 +6,7 @@ const CurrentUserSubscriptionPlaneSchema = new mongoose.Schema({
         type: mongoose.Schema.Types.ObjectId,
         ref:'candidate'
   },
+  custom_id: { type: Number},
   subscription_id:{
  type: mongoose.Schema.Types.ObjectId,
         ref:'CandidateSub'
@@ -28,7 +29,7 @@ const CurrentUserSubscriptionPlaneSchema = new mongoose.Schema({
   expiresAt: {
     type: Date,
     default: Date.now,
-    // index: { expires: '30d' }, 
+    index: { expires: '30d' } 
 },
 paymentMethod:{
   type:String

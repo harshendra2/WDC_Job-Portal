@@ -7,6 +7,7 @@ const company=require('../../models/Onboard_Company_Schema');
 const companySubscription=require("../../models/Company_SubscriptionSchema");
 const companyTransaction=require('../../models/CompanyTransactionSchema');
 const Candidate=require('../../models/Onboard_Candidate_Schema')
+const PromotePlane=require('../../models/Promote_Job_Schema');
 
 
 function generateOrderId() {
@@ -244,23 +245,28 @@ exports.CreateNewJob = async (req, res) => {
     }
 };
 
+exports.GetPromotedJobDetails=async(req,res)=>{
+  try{
+    const data=await PromotePlane.find({});
+    if(data){
+      return res.status(200).send(data)
+    }else{
+      return res.status(200).json({message:"Plane not available"});
+    }
+
+  }catch(error){
+    return res.status(500).json({error:"Internal server error"});
+  }
+}
+
 exports.PromoteJobPayment=async(req,res)=>{
    const apiUrl ='https://sandbox.cashfree.com/pg/orders';
-  const { company_id} = req.body;
+  const { company_id,jobId} = req.body;
   try{
     if(!company_id){
       return res.status(400).json({error:"Please provide company Id"});
     }
-    const objectId = new mongoose.Types.ObjectId(company_id); 
-    const existsSubscription = await companySubscription.findOne({ company_id: objectId, expiresAt: { $gte: new Date() },createdDate:{$lte:new Date()}})
-
-    if (!existsSubscription) {
-        return res.status(404).json({ error: "Subscription not found,Please buy new Subscription plane" });
-    }
-
-    if (existsSubscription.job_posting <= 0) {
-        return res.status(400).json({ error: "This subscription plan does not allow job postings Please upgrade your subscription plane" });
-    }
+   const promoteJob=await PromotePlane.findOne({});
     const companyData=await company.findOne({_id:company_id})
     const orderId = generateOrderId();
     const requestData = {
@@ -274,7 +280,7 @@ exports.PromoteJobPayment=async(req,res)=>{
                     'https://law-tech.co.in/PaymentSuccessfull?order_id=order'
       },
       order_id: "order_"+orderId,
-      order_amount:999,
+      order_amount:promoteJob?promoteJob?.price:999,
       order_currency: "INR",
       order_note: 'Promote job payment',
       subscriptionid:company_id
@@ -307,6 +313,7 @@ exports.PromoteJobPayment=async(req,res)=>{
           order_status : responseData.order_status,
           order_token : responseData.order_token,
           refundsurl : responseData.refunds.url,
+          jobId:jobId
         };
         return res.status(200).json(orderData);
       } else {     
@@ -314,13 +321,12 @@ exports.PromoteJobPayment=async(req,res)=>{
       }
   
   }catch(error){
-    console.log(error);
     return res.status(500).json({error:"Internal server error"});
   }
 }
 
 exports.CreatePromotesJob=async(req,res)=>{
-  const { orderId,company_id,paymentMethod,price,job_title,No_openings,industry,salary,experience,location,country,job_type,work_type,skills,education,description} = req.body;
+  const { orderId,company_id,paymentMethod,jobId} = req.body;
   //const apiUrl = `https://api.cashfree.com/pg/orders/${orderId}`;
   const apiUrl = `https://sandbox.cashfree.com/pg/orders/${orderId}`;
   const headers = {
@@ -338,64 +344,34 @@ exports.CreatePromotesJob=async(req,res)=>{
   const result = await response.json();
 
   if (result.order_status === 'PAID') {
+    const promoteJob=await PromotePlane.findOne({});
+      const objectId = new mongoose.Types.ObjectId(jobId); 
+     
+      const currentJob=await CompanyJob.findOne({_id:objectId})
 
-      const objectId = new mongoose.Types.ObjectId(company_id); 
-      const existsSubscription = await companySubscription.findOne({ company_id: objectId, expiresAt: { $gte: new Date() },createdDate:{$lte:new Date()}})
-
-      if (!existsSubscription) {
-          return res.status(404).json({ error: "Subscription not found,Please buy new Subscription plane" });
-      }
-
-      if (existsSubscription.job_posting <= 0) {
-          return res.status(400).json({ error: "This subscription plan does not allow job postings Please upgrade your subscription plane" });
-      }
-
-      // Create a new job
-      const job_Expire_Date = new Date();
-      job_Expire_Date.setMonth(job_Expire_Date.getMonth() + 3);
-      const jobCreated = new CompanyJob({
-          job_title,
-          No_openings,
-          industry,
-          salary,
-          experience,
-          location,
-          country,
-          job_type,
-          work_type,
-          skills,
-          education,
-          description,
-          company_id:company_id,
-          job_Expire_Date,
-          promote_job:true
-      });
-
-      await jobCreated.save();
-
-      // Decrease the job_posting count by 1
-      existsSubscription.job_posting -= 1;
-      await existsSubscription.save();
+      currentJob.promote_job=true;
+      await currentJob.save();
 
       const transaction=new companyTransaction({
         company_id:company_id,
         type:'Promote job',
         Plane_name:'Promote job',
-        price:price,
+        price:promoteJob?promoteJob?.price:999,
         payment_method:paymentMethod,
         transaction_Id:orderId,
         purchesed_data:new Date(),
-        Expire_date:job_Expire_Date
+        Expire_date:currentJob?.job_Expire_Date
     })
     await transaction.save();
 
-      return res.status(201).json({message: "Job created successfully",jobData: jobCreated});
+      return res.status(201).json({message: "Job promoted successfully"});
 
     } else {
         return res.status(400).json({ error: "payment failed" });
     }
 
   }catch(error){
+    console.log(error)
     return res.status(500).json({error:"Internal server error"});
   }
 }

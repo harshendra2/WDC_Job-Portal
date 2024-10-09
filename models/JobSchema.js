@@ -104,7 +104,6 @@ const CompanyJobSchema = new mongoose.Schema({
   },
   country: {
     type: String,
-    required: true,
   },
   job_type: {
     type: String,
