@@ -2,14 +2,16 @@ const moment=require('moment');
 const Company=require('../../models/Onboard_Company_Schema');
 const candidate=require('../../models/Onboard_Candidate_Schema');
 const companyjob=require('../../models/JobSchema');
-const CompanySubscriptionPlane=require('../../models/Company_SubscriptionSchema');
 const companyTransaction=require('../../models/CompanyTransactionSchema');
 const CandidateTransaction=require('../../models/CandidateTransactionSchema');
+const Support=require('../../models/Issue_Schema');
+const Admin=require('../../models/adminSchema');
 
 exports.getCountofCandidate = async (req, res) => {
   try {
       const companyCount = await Company.countDocuments({});
       const candidateCount = await candidate.countDocuments({});
+      const jobCount=await companyjob.countDocuments({});
       const data = await companyjob.aggregate([
         {
           $lookup: {
@@ -72,13 +74,85 @@ exports.getCountofCandidate = async (req, res) => {
       })
       TotalOfferReleased=Accepted+Rejected+Processing;
 
+      const Job = await companyjob.aggregate([
+        {
+            $group: {
+                _id: '$company_id',
+                jobCount: { $sum: 1 },
+                activeJobCount: {
+                    $sum: { $cond: [ {
+                      $and: [
+                          { $eq: ['$status',true] },
+                          {
+                              $gt: [
+                                  '$job_Expire_Date',
+                                  new Date()
+                              ]
+                          }
+                      ]
+                  }, 1, 0] }
+                },
+                inactiveJobCount: {
+                    $sum: {
+                        $cond: [
+                            {
+                                $and: [
+                                    { $eq: ['$status', false] },
+                                    {
+                                        $lt: [
+                                            '$job_Expire_Date',
+                                            new Date()
+                                        ]
+                                    }
+                                ]
+                            },
+                            1,
+                            0
+                        ]
+                    }
+                }
+            }
+        }
+    ]);
+
+    const supports=await Support.find({});
+    let TotalSupportRaised=0;
+    let TotalIssueSolved=0;
+    let TotalIssueRejected=0;
+    let TotalIssuePending=0;
+    supports.map((item)=>{
+      TotalSupportRaised+=1;
+      if(item?.status=='solved'){
+        TotalIssueSolved+=1;
+      }else if(item?.status=='pending'){
+        TotalIssuePending+=1;
+      }else{
+        TotalIssueRejected+=1;
+      }
+    })
+    let SupportData={
+      TotalSupportRaised,TotalIssueSolved,TotalIssueRejected,TotalIssuePending
+    }
+    const adminTeam={}
+    const admin=await Admin.find({}).populate({path:'responsibility',select:'role'}).select('responsibility');
+    admin.map((item)=>{
+      let roleName=item?.responsibility?.role;
+      if(!adminTeam[roleName]){
+        adminTeam[roleName]=0;
+      }
+      adminTeam[roleName]+=1
+    })
+
       return res.status(200).send({
           companyCount,
           candidateCount,
           Accepted,
           Rejected,
           Processing,
-          TotalOfferReleased
+          TotalOfferReleased,
+          Job,
+          SupportData,
+          adminTeam
       });
 
   } catch (error) {

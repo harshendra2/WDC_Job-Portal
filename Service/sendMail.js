@@ -19,3 +19,28 @@ exports.sendEmail = async (email, OTP) => {
       };
       await transporter.sendMail(mailOptions);
   };
+
+
+exports.sendMailToCompany=async(email,password,url)=>{
+  const mailOptions = {
+    from: process.env.EMAIL_USER,
+    to: email,
+    subject: "Your Login Credentials",
+    text: `Dear User,
+
+We are pleased to provide you with your login credentials for our application.
+
+Email: ${email}
+Password: ${password}
+Website Url: ${url}
+
+Please use these credentials to log in. If you would like to change your password, you can do so by using the "Forgot Password" feature available on the login page Additionally, please complete your profile to access more features of the application.
+
+Thank you for using our services.
+
+Best regards,
+DI Data Bank Team`,
+};
+
+  await transporter.sendMail(mailOptions);
+}

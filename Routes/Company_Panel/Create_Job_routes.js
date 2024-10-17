@@ -20,13 +20,24 @@ router.put('/company/edit_job/:jobId',controller.EditPostedJob);
 router.get('/company/view_job/:jobId',controller.ViewJobListDetails);
 //Listout Application
 router.get('/company/listout_applicant/:jobId',controller.ListOutAllAppliedApplicants);
+router.put('/company/interview_round/candidate/:jobId/:userId',controller.ShortlistedForInterviewRound);
+//Interviewed Candidate
+router.get('/company/interview_round/Candidate/:jobId',controller.ListoutInterviewRoundCandidate);
+router.put('/company/change_status/interview_round/:jobId/:userId',controller.ChangeInterviewStatus);
+
+//Longlisted out
+router.get('/company/listout_longlist_applicant/:jobId',controller.ListOutLonglist);
+router.put('/company/add_feedback/:jobId/:userId',controller.AddUserFeedBack);
+
+//Rejected Longlisted Candidate
+router.put('/company/reject/longlist/:jobId/:userId',controller.RejectLongListCandidate);
+//Shortlist Longlist Candidate
 router.put('/company/sortlist/candidate/:jobId/:userId',controller.ShortlistCandidate);
 //Shortlist Section
 router.get('/company/listout_sortliste/applicent/:jobId',controller.ListOutAllShortlistedApplicent);
-router.put('/company/add_feedback/:jobId/:userId',controller.AddUserFeedBack);
+
 //Finalize Section
 router.put('/company/reject_applicent/:jobId/:userId',controller.RejectApplicent);
-router.put('/company/hired_applicent/:jobId/:userId',controller.HireCandidate);
 //Job offer 
 router.get('/company/get_user_offer/:jobId/:userId',controller.GetUserDetailsForOffer);
 router.put('/company/job_offer/:jobId/:userId',upload.single('file'),controller.OfferJobToCandidate);

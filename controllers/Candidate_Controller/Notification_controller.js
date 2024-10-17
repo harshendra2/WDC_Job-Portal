@@ -4,7 +4,12 @@ const candidate=require('../../models/Onboard_Candidate_Schema')
 
 exports.getAllnotificatio=async(userId)=>{
     try{
-     const notification=await company.find({ 'isRead_profile.candidate_id': { $ne:userId }})
+     //const notification=await company.find({ 'isRead_profile.candidate_id': { $ne:userId }})
+     const notification=await company.find({
+      isRead_profile: { 
+              $not: { $elemMatch: { candidate_id: userId } } 
+          }
+  })
 
         return notification || [];
 

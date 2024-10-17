@@ -14,11 +14,31 @@ exports.getAppliedJob = async (req, res) => {
       const id = new mongoose.Types.ObjectId(userId);
 
         const jobs = await CompanyJob.aggregate([
-            { $match: { "applied_candidates.candidate_id": id }},
+            { $unwind: "$applied_candidates" },
+            { $match: { "applied_candidates.candidate_id": id } },
+            {
+                $lookup: {
+                  from: "companies",
+                  localField: "company_id",
+                  foreignField: "_id",
+                  as: "company_details",
+                },
+              },
+              {
+                $unwind: "$company_details" 
+            },
             {
                 $project: {
+                    company_details: {
+                        _id: "$company_details._id",
+                        name: "$company_details.name",
+                        company_name: "$company_details.company_name",
+                        profile:"$company_details.profile",
+                        verified_batch:"$company_details.verified_batch"
+                    },
                     applied_candidates: 1,
                     job_title: 1,
+                    company_id: 1,
                     industry: 1,
                     salary: 1,
                     experience: 1,
@@ -31,6 +51,7 @@ exports.getAppliedJob = async (req, res) => {
                     admin_verify: 1,
                     createdDate: 1,
                     No_openings: 1,
+                    applied_date: "$applied_candidates.applied_date",
                     Shortlisted: {
                         $filter: {
                             input: "$Shortlisted",
@@ -39,47 +60,126 @@ exports.getAppliedJob = async (req, res) => {
                         }
                     }
                 }
-            }
+            },
+            {
+                $group: {
+                    _id: "$_id",
+                    company_details:{$first:"$company_details"},
+                    applied_candidates: { $push: "$applied_candidates" },
+                    job_title: { $first: "$job_title" },
+                    company_id:{$first:"$company_id"},
+                    industry: { $first: "$industry" },
+                    salary: { $first: "$salary" },
+                    experience: { $first: "$experience" },
+                    location: { $first: "$location" },
+                    job_type: { $first: "$job_type" },
+                    work_type: { $first: "$work_type" },
+                    skills: { $first: "$skills" },
+                    education: { $first: "$education" },
+                    status: { $first: "$status" },
+                    admin_verify: { $first: "$admin_verify" },
+                    createdDate: { $first: "$createdDate" },
+                    No_openings: { $first: "$No_openings" },
+                    Shortlisted: { $first: "$Shortlisted" },
+                    applied_date:{$first:"$applied_date"}
+                }
+            },
+            { $sort: { applied_date: -1 } },
         ]);
-
         if (jobs.length === 0) {
-            return res.status(404).json({ message: "No jobs found for this user" });
+            return res.status(200).send([]);
         }
-        const jobDetails = jobs.map(job => {
-            const timeSincePosted = moment(job.createdDate).fromNow();
-            return {
-                ...job,
-                timeSincePosted
-            };
-        });
 
-        return res.status(200).json(jobDetails);
+        const baseUrl = `${req.protocol}://${req.get("host")}`;
+        const isGoogleDriveLink = (url) => {
+          return (
+            url &&
+            (url.includes("drive.google.com") || url.includes("docs.google.com"))
+          );
+        };
+    
+        const unappliedJobs =jobs
+          .map((job) => {
+            const timeSincePosted = moment(job.createdDate).fromNow();
+            const profileUrl = job?.company_details?.profile
+              ? isGoogleDriveLink(job?.company_details?.profile)
+                ? job?.company_details?.profile
+                : `${baseUrl}/${job?.company_details?.profile.replace(/\\/g, "/")}`
+              : null;
+    
+            return {
+              ...job,
+              profileUrl,
+              timeSincePosted,
+            };
+          });
+        return res.status(200).send(unappliedJobs);
     } catch (error) {
         return res.status(500).json({ error: "Internal server error" });
     }
 };
 
 
-
-
 exports.getSeavedjob=async(req,res)=>{
     const {userId}=req.params;
     try{
         const id=new mongoose.Types.ObjectId(userId)
-        const job = await CompanyJob.find({Save_id:id});
+        const job=await CompanyJob.aggregate([
+            {$match:{Save_id:id}},
+            {
+                $lookup: {
+                  from: "companies",
+                  localField: "company_id",
+                  foreignField: "_id",
+                  as: "company_details",
+                },
+              },
+              { $unwind: "$company_details" },
+              {$project:{
+                'company_details.Candidate_Feed_Back':0,
+                'company_details.password':0,
+                'company_details.GST':0,
+                'company_details.PAN':0,
+                'company_details.Logged_In_count':0,
+                'company_details.email':0,
+                'company_details.mobile':0,
+                'company_details.GST_image':0,
+                'company_details.PAN_image':0,
+                'company_details.contact_No':0,
+                'company_details.contact_email':0,
+                'company_details.overView':0,
+                'company_details.website_url':0,
+                'company_details.self_GST_verify':0,
+                'company_details.self_PAN_verify':0,
+                Save_id:0,
+                description:0,
+              }}
+        ])
 
-        if (job.length === 0) {
-            return res.status(404).json({ message: "No jobs found for this user" });
-        }
-        const jobDetails = job.map(job => {
+        const baseUrl = `${req.protocol}://${req.get("host")}`;
+        const isGoogleDriveLink = (url) => {
+          return (
+            url &&
+            (url.includes("drive.google.com") || url.includes("docs.google.com"))
+          );
+        };
+    
+        const unappliedJobs =job
+          .map((job) => {
             const timeSincePosted = moment(job.createdDate).fromNow();
+            const profileUrl = job?.company_details?.profile
+              ? isGoogleDriveLink(job?.company_details?.profile)
+                ? job?.company_details?.profile
+                : `${baseUrl}/${job?.company_details?.profile.replace(/\\/g, "/")}`
+              : null;
+    
             return {
-                ...job._doc,
-                timeSincePosted
+              ...job,
+              profileUrl,
+              timeSincePosted,
             };
-        });
-
-        return res.status(200).json(jobDetails);
+          });
+        return res.status(200).send(unappliedJobs);
 
     }catch(error){
         return res.status(500).json({error:"Internal server error"});
@@ -165,6 +265,13 @@ exports.GetApplicationStatus=async(req,res)=>{
             {
                 $project: {
                     company_id:1,
+                    applied_candidates:{
+                        $filter: {
+                            input: "$applied_candidates",
+                            as: "applied_candidates",
+                            cond: { $eq: ["$$applied_candidates.candidate_id",userID] }
+                        }
+                    },
                     Shortlisted: {
                         $filter: {
                             input: "$Shortlisted",
@@ -223,7 +330,6 @@ exports.AddCompanyFeedBack = async (req, res) => {
             rating,
             Feedback: feedback
         };
-
         const [updateShortlisted, updateCompany] = await Promise.all([
             CompanyJob.updateOne(
                 { _id: jobID, 'Shortlisted.candidate_id': userID },

@@ -18,9 +18,12 @@ router.put('/candidate/profile/add_summary/:userId',upload.single('file'),contro
 
  //Edit personal details
  router.get('/candidate/profile/get_personal/:user_id',controller.GetPersonlDetails);
- router.get('/candidate/profile/aadhar_verification/verify',controller.AadharVerification);
- router.get('/candidate/aadhar_otp/:userId',controller.aadharOtpVerification);
- router.get('/candidate/pan_verification/:userId',controller.PanKYCverification);
+
+ router.post('/candidate/profile/aadhar_verification/verify',controller.AadharVerification);
+ router.post('/candidate/aadhar_otp/:userId',controller.aadharOtpVerification);
+
+ router.post('/candidate/pan_verification/:userId',controller.PanKYCverification);
+ 
  router.put('/candidate/profile/edit_personal/:user_id',controller.EditPersonalDetails);
 
  //Edit work details

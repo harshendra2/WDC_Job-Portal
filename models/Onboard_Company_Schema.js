@@ -1,4 +1,4 @@
-const { required, number, defaults } = require("joi");
+const { required, number, defaults, ref } = require("joi");
 const mongoose = require("mongoose");
 const jwt = require("jsonwebtoken"); // Add this line to require jwt
 const Schema = mongoose.Schema;
@@ -65,6 +65,10 @@ const CompanySchema = new Schema({
     type: String,
     default: "processing",
   },
+  ImportStatus:{
+    type:Boolean,
+    default:true
+  },
   message: {
     type: String,
   },
@@ -100,6 +104,10 @@ const CompanySchema = new Schema({
     candidate_id:{
        type:mongoose.Schema.Types.ObjectId,
        ref:'candidate'
+    },
+    admin_id:{
+      type:mongoose.Schema.Types.ObjectId,
+      ref:'admin'
     }
  }],
   createdAt: {
@@ -154,6 +162,15 @@ CompanySchema.methods.generateAuthtoken = async function () {
   } catch (error) {
     throw new Error("Token generation failed");
   }
+};
+
+CompanySchema.methods.removeExpiredBatches = async function() {
+  const currentDate = new Date();
+  
+  this.verified_batch = this.verified_batch.filter(batch => {
+    return !batch.ExpireDate || batch.ExpireDate > currentDate;
+  });
+  await this.save();
 };
 
 module.exports = mongoose.model("company", CompanySchema);

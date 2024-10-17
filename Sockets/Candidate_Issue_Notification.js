@@ -4,10 +4,10 @@ const IssueNotification = (io) => {
     io.on("connection", (socket) => {
         console.log("Issue notification socket connected")
 
-        socket.on('issuenotification',async(userId)=>{
+        socket.on('CandidateIssuenotification',async(userId)=>{
             try{
                 const Notification = await getAllIssueNotificatio (userId)
-                socket.emit('notification', Notification)
+                socket.emit('CandidateNotification', Notification)
             }catch(error){
                 console.log(error);
             }
@@ -27,4 +27,4 @@ const IssueNotification = (io) => {
     })
 }
 
-module.exports = IssueNotification
+module.exports = IssueNotification;

@@ -4,4 +4,8 @@ const controller=require("../../controllers/Candidate_Controller/Cridential_cont
 
 router.post('/candidate/reg',controller.Registration);
 
+//Green Batch
+router.post('/candidate/green_tick/payment',controller.CandidateGreenTicks);
+ router.post('/candidate/green_tick/verify',controller.GreenTickVerifyPayment);
+
 module.exports=router;

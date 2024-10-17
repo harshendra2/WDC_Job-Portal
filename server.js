@@ -12,6 +12,8 @@ const companyNotification=require('./Sockets/Company_Notification');
 const candidateNotification=require('./Sockets/Candidate_Notification');
 const IssueNotification=require('./Sockets/Issue_Notification');
 const candidateViewNotification=require('./Sockets/CandidateView_CV_Notification');
+const CandidteIssueNotifcation=require('./Sockets/Candidate_Issue_Notification');
+const AdminNotification=require('./Sockets/Admin_Notification');
 
 
 const router = require("./Routes/Admin_Panel/admin_routes");
@@ -92,5 +94,7 @@ companyNotification(io);
 candidateNotification(io)
 IssueNotification(io);
 candidateViewNotification(io);
+CandidteIssueNotifcation(io);
+AdminNotification(io);
 
 

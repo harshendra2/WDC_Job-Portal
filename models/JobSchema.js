@@ -6,6 +6,50 @@ const CompanyJobSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: "company",
   },
+  Green_Batch:{
+  type:Boolean,
+  default:false
+  },
+    Phone_Screening:{
+      type:Boolean,
+      default:false
+    },
+    HR_Round:{
+      type:Boolean,
+      default:false
+    },
+    Technical_Round:{
+      type:Boolean,
+      default:false
+    },
+    Managerial_Round:{
+      type:Boolean,
+      default:false
+    },
+    Panel_Round:{
+      type:Boolean,
+      default:false
+    },
+    Leadership_Round:{
+      type:Boolean,
+      default:false
+    },
+    Project_Round:{
+      type:Boolean,
+      default:false
+    },
+    GD_Round:{
+      type:Boolean,
+      default:false
+    },
+    Behavioral_Testing:{
+      type:Boolean,
+      default:false
+    },
+    Peer_Round:{
+      type:Boolean,
+      default:false
+    },
   applied_candidates: [
     {
       candidate_id: {
@@ -17,10 +61,47 @@ const CompanyJobSchema = new mongoose.Schema({
         type: Date,
         default: Date.now,
       },
+      Interview_Round:{
+        type:Boolean,
+        default:false
+      },
+      Interview_Round_Date:{
+       type:Date,
+       default:Date.now
+      },
+      longlist:{
+       type:Boolean,
+       default:false
+      },
+      Longlist_Date:{
+       type:Date,
+       default:Date.now()
+      },
+      feed_back_Status:{
+       type:Boolean,
+       default:false
+      },
+      Action_Rejected:{
+        type:Boolean,
+        default:false
+      },
       Shortlist_status: {
         type: Boolean,
         default: false,
       },
+      interviewRound: [
+        {
+          roundName: {
+            type: String,
+            required: true,
+          },
+          roundAction: {
+            type: String, 
+            enum: ["Pending","Rejected", "Selected"],
+            default: "Pending",
+          },
+        },
+      ],
     },
   ],
   Save_id: [
@@ -48,20 +129,19 @@ const CompanyJobSchema = new mongoose.Schema({
         type: Boolean,
         default: false,
       },
-      interviewed_status:{
-       type:Boolean,
-       default:false
-      },
-      feed_back_status:{
+      feed_back_Status:{
         type:Boolean,
         default:false
-      },
+       },
          short_Candidate:{
             offer_date: {
              type: Date
            },
            offer_letter: {
           type: String,
+           },
+           offer_letter_validity:{
+             type:Date
            },
           offer_accepted_status: {
           type: String,
@@ -143,7 +223,13 @@ const CompanyJobSchema = new mongoose.Schema({
     enum: ["pending", "verified", "Unverified"],
     default: "pending",
   },
-  // job_reporting: [
+ 
+});
+
+module.exports = mongoose.model("CompanyJob", CompanyJobSchema);
+
+
+ // job_reporting: [
   //   {
   //     candidate_ids: {
   //       type: mongoose.Schema.Types.ObjectId,
@@ -161,6 +247,3 @@ const CompanyJobSchema = new mongoose.Schema({
   //     },
   //   },
   // ],
-});
-
-module.exports = mongoose.model("CompanyJob", CompanyJobSchema);

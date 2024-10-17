@@ -15,7 +15,12 @@ function generateOrderId() {
 exports.getCompanyDetails = async (req, res) => {
   const { id } = req.params;
   try {
+    if(!id){
+      return res.status(400).json({error:"Please provide company Id"});
+    }
     const objectId = new mongoose.Types.ObjectId(id);
+    const companies = await Company.findById(objectId); 
+      await companies.removeExpiredBatches();
     const [subscriptionData, jobData] = await Promise.all([
       CompanySubscription.aggregate([
         { $match: { company_id: objectId, expiresAt: { $gte: new Date() },createdDate:{$lte:new Date()}} },

@@ -160,8 +160,8 @@ exports.payment = async (req, res) => {
 
 
 exports.verifyPayment = async (req, res) => {
-    const { orderId, subscriptionId, userId } = req.body;
-    const apiUrl = `https://api.cashfree.com/pg/orders/${orderId}`;
+    const { orderId, subscriptionId, userId,paymentMethod } = req.body;
+    const apiUrl = `https://sandbox.cashfree.com/pg/orders/${orderId}`;
     const headers = {
       'x-client-id': process.env.CASHFREE_CLIENT_ID,
       'x-client-secret': process.env.CASHFREE_CLIENT_SECRET,
@@ -176,13 +176,13 @@ exports.verifyPayment = async (req, res) => {
           const result = await response.json();
       
             if (result.order_status === 'PAID') {
-                const candidate=await candidate.findById(userId)
+                const candidates=await candidate.findById(userId)
             const data = await subscription.findById(subscriptionId);
 
             if (data) {
                 const subdata = new UserSubscription({
                     candidate_id: userId,
-                    custom_id:candidate?.custom_id,
+                    custom_id:candidates?.custom_id,
                     subscription_id:subscriptionId,
                     plane_name: data.plane_name,
                     transaction_Id:orderId,
@@ -201,7 +201,7 @@ exports.verifyPayment = async (req, res) => {
                     payment_method:paymentMethod,
                     transaction_Id:orderId,
                     purchesed_data:new Date(),
-                    Expire_date:newExpirationDate
+                    Expire_date:new Date(Date.now() + 30*24*60*60*1000)
                 })
                 await transaction.save();
 
@@ -218,6 +218,7 @@ exports.verifyPayment = async (req, res) => {
         }
 
     } catch (error) {
+        console.log(error);
         res.status(500).json({ error: "Internal Server Error" });
     }
 };

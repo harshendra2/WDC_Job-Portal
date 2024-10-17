@@ -26,7 +26,7 @@ const IssueValidation=Joi.object({
             Issue_type,
             description,
             candidate_id:new mongoose.Types.ObjectId(userId),
-            file:req.file.path
+            file:req.file?.path
         });
 
         const data = await createdData.save();
@@ -41,7 +41,7 @@ const IssueValidation=Joi.object({
 exports.getAllIssuesClaim=async(req,res)=>{
     const {userId}=req.params;
     try{
-        const data=await IssueSchema.findOne({candidate_id:userId}).sort({createdDate:-1})
+        const data=await IssueSchema.find({candidate_id:userId}).sort({createdDate:-1})
         if(data){
             return res.status(200).send(data);
         }else{
@@ -60,7 +60,9 @@ exports.getTransaction=async(req,res)=>{
             return res.status(400).json({error:"Please provide user ID"});
         }
         const userID=new mongoose.Types.ObjectId(userId);
-    const data=await CandidateTransaction.aggregate([{$match:{candidate_id:userID}}])
+    const data=await CandidateTransaction.aggregate([{$match:{candidate_id:userID}}]).sort({
+        purchesed_data:-1
+        })
     if(data){
         return res.status(200).send(data);
     }

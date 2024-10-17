@@ -40,7 +40,7 @@ const IssueValidation=Joi.object({
 exports.getAllIssuesClaim=async(req,res)=>{
     const {companyId}=req.params;
     try{
-        const data=await IssueSchema.findOne({company_id:companyId}).sort({createdDate:-1})
+        const data=await IssueSchema.find({company_id:companyId}).sort({createdDate:-1})
         if(data){
             return res.status(200).send(data);
         }else{

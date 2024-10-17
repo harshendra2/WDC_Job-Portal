@@ -104,8 +104,7 @@ exports.getAllAppliedCandidate = async (req, res) => {
                     'personalDetails.son_name': 0,
                     'workDetails.current_ctc': 0,
                     'workDetails.work_experience': 0,
-                    'workDetails.skill': 0,
-                    'workDetails.Experience': 0
+                    'workDetails.skill': 0
                 }
             }
         ]);
@@ -390,7 +389,6 @@ exports.KeywordSearchCandidate = async (req, res) => {
                     'workDetails.current_ctc': 0,
                     'workDetails.work_experience': 0,
                     'workDetails.skill': 0,
-                    'workDetails.Experience': 0
                 }
             }
         ]);

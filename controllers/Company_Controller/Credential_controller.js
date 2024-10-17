@@ -9,6 +9,7 @@ const { email } = require("../../config/emailConfig");
 const company = require("../../models/Onboard_Company_Schema");
 const CompanySubscription = require("../../models/Company_SubscriptionSchema");
 const basic_details = require("../../models/Basic_details_CandidateSchema");
+const candidate=require('../../models/Onboard_Candidate_Schema')
 
 const companyRegistration = Joi.object({
   email: Joi.string().email().required(),
@@ -81,6 +82,10 @@ exports.CompanyRegistration = async (req, res) => {
     const alreadyexisted = await company.findOne({ email: email });
     if (alreadyexisted) {
       return res.status(400).json({ error: "This email already exists" });
+    }
+    const existedCandidate=await basic_details.findOne({email:email});
+    if(existedCandidate){
+       return res.status(400).json({error:"This email is already associated with an existing Candidate."})
     }
     const data = { email, password };
     return res.status(200).json({ message: "registration successfully", data });
@@ -171,72 +176,93 @@ exports.Login = async (req, res) => {
 
   const { error } = companylogin.validate({ email, password });
   if (error) {
-    return res.status(400).json({ error: error.details[0].message });
+      return res.status(400).json({ error: error.details[0].message });
   }
   try {
-    const [existedCompany, existUser] = await Promise.all([
-      company.findOne({ email }).lean(),
-      basic_details.findOne({ email }).lean()
-    ]);
+      const [existedCompany, existUser] = await Promise.all([
+          company.findOne({ email }).lean(),
+          basic_details.findOne({ email }).lean()
+      ]);
 
-    if (existedCompany) {
-      const subscriptionExists = await CompanySubscription.findOne({
-        company_id: existedCompany._id,
-        expiresAt: { $gte: Date.now() },
-        $or: [
-          { user_access: { $gt: 0 } }, 
-          { user_access: "Unlimited" }  
-        ]
-      }).lean();
-      if (subscriptionExists) {
-        const passwordMatch = await bcrypt.compare(password, existedCompany.password);
-        if (!passwordMatch) {
-          return res.status(400).json({ error: "Invalid password" });
-        }
+      if (existedCompany) {
+          const subscriptionExists = await CompanySubscription.findOne({
+              company_id: existedCompany._id,
+              expiresAt: { $gte: Date.now() },
+              $or: [{ user_access: { $gt: 0 } }, { user_access: 'Unlimited' }]
+          }).lean();
+          if (subscriptionExists) {
+              const passwordMatch = await bcrypt.compare(
+                  password,
+                  existedCompany.password
+              );
+              if (!passwordMatch) {
+                  return res.status(400).json({ error: 'Invalid password' });
+              }
 
-        const OTP = generateOTP();
+              const OTP = generateOTP();
 
-      // If subscription exists, send OTP
-      if (subscriptionExists) {
-        await sendEmail(email, OTP);
-        return res.status(200).json({ message: "OTP sent successfully", companyOTP: OTP });
+              // If subscription exists, send OTP
+              if (subscriptionExists) {
+                  await sendEmail(email, OTP);
+                  return res.status(200).json({
+                      message: 'OTP sent successfully',
+                      companyOTP: OTP
+                  });
+              }
+          }
+
+          if (existedCompany.company_access_count > 0) {
+              const passwordMatch = await bcrypt.compare(
+                  password,
+                  existedCompany.password
+              );
+              if (!passwordMatch) {
+                  return res.status(400).json({ error: 'Invalid password' });
+              }
+              const OTP = generateOTP();
+
+              await sendEmail(email, OTP);
+              return res.status(200).json({
+                  message: 'OTP sent successfully',
+                  companyOTP: OTP
+              });
+          }
+
+          return res
+              .status(400)
+              .json({ error: 'No login access available for this company' });
       }
+
+      if (existUser) {
+          const passwordMatch = await bcrypt.compare(
+              password,
+              existUser.password
+          );
+          if (!passwordMatch) {
+              return res.status(400).json({ error: 'Invalid password' });
+          }
+
+          const candiateID = await candidate.findOne({
+              basic_details: existUser._id
+          });
+
+          const token = jwt.sign(
+              { _id: candiateID._id, email: existUser.email },
+              process.env.CANDIDATESECRET_KEY,
+              { expiresIn: '30d' }
+          );
+          return res.status(200).json({
+              message: 'User Login Successfully',
+              CandidateToken: token
+          });
       }
 
-      if (existedCompany.company_access_count > 0) {
-        const passwordMatch = await bcrypt.compare(password, existedCompany.password);
-        if (!passwordMatch) {
-          return res.status(400).json({ error: "Invalid password" });
-        }
-        const OTP = generateOTP();
-        
-          await sendEmail(email, OTP);
-          return res.status(200).json({ message: "OTP sent successfully", companyOTP: OTP });
-        
-      }
-
-      return res.status(400).json({ error: "No login access available for this company" });
-    }
-
-    if (existUser) {
-      const passwordMatch = await bcrypt.compare(password, existUser.password);
-      if (!passwordMatch) {
-        return res.status(400).json({ error: "Invalid password" });
-      }
-
-      const token = jwt.sign(
-        { _id: existUser._id, email: existUser.email },
-        process.env.CANDIDATESECRET_KEY, 
-        { expiresIn: "30d" }
-      );
-      return res.status(200).json({ message: "User Login Successfully", CandidateToken: token });
-    }
-
-    return res.status(400).json({ error: "This Email ID does not exist in our Database" });
-
+      return res
+          .status(400)
+          .json({ error: 'This Email ID does not exist in our Database' });
   } catch (error) {
-    console.log(error);
-    return res.status(500).json({ error: "Internal Server Error" });
+      console.log(error);
+      return res.status(500).json({ error: 'Internal Server Error' });
   }
 };
 

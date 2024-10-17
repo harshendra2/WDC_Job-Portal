@@ -11,5 +11,6 @@ router.put('/admin/edit_company/:id',upload.fields([{ name: 'panImage' },{ name:
 // download Excel and upload Excel Sheets
 router.get('/admin/company/download-excel-template',controller.DownloadExcelTemplete);
 router.post('/admin/company/upload-excel', upload.single('file'),controller.uploadExcelFile);
+router.post('/admin/company/send_email',controller.SendEmailImportedCandidate);
 
 module.exports = router;

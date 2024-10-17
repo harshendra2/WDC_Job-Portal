@@ -7,12 +7,12 @@ const Company=require('../../models/Onboard_Company_Schema');
 exports.KeywordJobSearch = async (req, res) => {
   const { userId } = req.params;
   const {
-    search,
+    search,  //Its working
     experience,
-    location,
+    location, 
     industry,
-    salary,
-    job_type,
+    salary, 
+    job_type, 
     date_posted,
   } = req.body;
 
@@ -22,27 +22,63 @@ exports.KeywordJobSearch = async (req, res) => {
       : ["", ""];
 
     let conditions = [];
+   
     if (experience) {
-      const expCondition = !isNaN(Number(experience))
-        ? { "workDetails.work_experience": Number(experience) }
-        : {
-            "workDetails.work_experience": {
-              $regex: experience,
-              $options: "i",
+      if (!isNaN(Number(experience))) {
+        const userExperience = Number(experience);
+        let expCondition = {
+          $or: [
+            { experience: userExperience },
+            {
+              $expr: {
+                $and: [
+                  { $regexMatch: { input: "$experience", regex: /(\d+)-(\d+)/ } },
+                  {
+                    $let: {
+                      vars: {
+                        range: { $split: ["$experience", "-"] },
+                      },
+                      in: {
+                        $and: [
+                          { $gte: [userExperience, { $toInt: { $arrayElemAt: ["$$range", 0] } }] },
+                          { $lte: [userExperience, { $toInt: { $arrayElemAt: ["$$range", 1] } }] },
+                        ],
+                      },
+                    },
+                  },
+                ],
+              },
             },
-          };
-      conditions.push(expCondition);
+          ],
+        };
+    
+        conditions.push(expCondition);
+      } else {
+       let expCondition = {
+          experience: {
+            $regex: experience,
+            $options: "i",
+          },
+        };
+    
+        conditions.push(expCondition);
+      }
     }
+    
+    
+
+    //Working
     if (location) {
       conditions.push({
         $or: [
           {
-            "workDetails.current_location": { $regex: location, $options: "i" },
+            location: { $regex: location, $options: "i" },
           },
-          { "workDetails.country": { $regex: location, $options: "i" } },
+          {country: { $regex: location, $options: "i" } },
         ],
       });
     }
+    //Its working
     if (industry) {
       conditions.push({
         industry: { $regex: industry, $options: "i" },
@@ -50,11 +86,39 @@ exports.KeywordJobSearch = async (req, res) => {
     }
 
     if (salary) {
-      const salaryCondition = !isNaN(Number(salary))
-        ? { salary: { $gte: Number(salary) } }
-        : { salary: { $regex: salary, $options: "i" } };
+      let salaryCondition;
+      const salaryRange = salary.split("-");
+    
+      if (salaryRange.length === 2 && !isNaN(Number(salaryRange[0])) && !isNaN(Number(salaryRange[1]))) {
+        const minSalaryInput = Number(salaryRange[0]);
+        const maxSalaryInput = Number(salaryRange[1]);
+    
+        salaryCondition = {
+          $expr: {
+            $and: [
+              { $regexMatch: { input: "$salary", regex: /(\d+)-(\d+)/ } },
+              {
+                $let: {
+                  vars: {
+                    range: { $split: ["$salary", "-"] }, 
+                  },
+                  in: {
+                    $and: [
+                      { $lte: [minSalaryInput, { $toInt: { $arrayElemAt: ["$$range", 1] } }] },
+                      { $gte: [maxSalaryInput, { $toInt: { $arrayElemAt: ["$$range", 0] } }] },
+                    ],
+                  },
+                },
+              },
+            ],
+          },
+        };
+      }
+    
       conditions.push(salaryCondition);
     }
+    
+    
 
     if (job_type) {
       conditions.push({
@@ -185,9 +249,9 @@ exports.KeywordJobSearch = async (req, res) => {
 exports.getUnappliedJob = async (req, res) => {
     const { id } = req.params; 
 
-    try {
+    try {  
         const sortedJobs = await CompanyJob.aggregate([
-          { $match: { job_Expire_Date: { $gte: new Date() } } },
+          { $match: { job_Expire_Date: { $gte: new Date() },No_openings:{$ne:0}} },
           {
             $lookup: {
               from: "companies",
@@ -241,28 +305,33 @@ exports.getUnappliedJob = async (req, res) => {
     }
 };
 
-exports.getJobDetails=async(req,res)=>{
-    const {id}=req.params;
-    try{
-        const objectId = new mongoose.Types.ObjectId(id); 
-        const job=await CompanyJob.findById({_id:objectId});
-         
-        const timeSincePosted = moment(job.createdDate).fromNow();
+exports.getJobDetails = async (req, res) => {
+  const { id } = req.params;
+  try {
+      if (!id) {
+          return res.status(400).json({ error: 'Please provide job Id' });
+      }
+      const objectId = new mongoose.Types.ObjectId(id);
+      const job = await CompanyJob.findById(objectId)
+          .populate({ path: 'company_id', select: 'company_name profile' })
+          .select(
+              'job_title industry salary experience location job_type work_type skills education description admin_verify createdDate No_openings applied_candidates'
+          );
 
-        const jobDetails = {
-            ...job._doc,
-            timeSincePosted
-        };
-    
-        if(jobDetails){
-            return res.status(200).send(jobDetails);
-        }
+      const timeSincePosted = moment(job.createdDate).fromNow();
 
-    }catch(error){
-        console.log(error);
-        return res.status(500).json({error:"Internal server error"});
-    }
-}
+      const jobDetails = {
+          ...job._doc,
+          timeSincePosted
+      };
+
+      if (jobDetails) {
+          return res.status(200).send(jobDetails);
+      }
+  } catch (error) {
+      return res.status(500).json({ error: 'Internal server error' });
+  }
+};
 
 exports.GetCompanyDetails=async(req,res)=>{
   const {companyId}=req.params;
@@ -326,15 +395,22 @@ exports.GetCompanyBasicDetails=async(req,res)=>{
 }
 
 exports.GetAllJobpostedByCompany=async(req,res)=>{
-  const {companyId}=req.params;
+  const {companyId,userId}=req.params;
   try{
-    if(!companyId){
-      return res.status(400).json({error:"Please provide company Id"});
+    if(!companyId && !userId){
+      return res.status(400).json({error:"Please provide company Id and User Id"});
     }
     const objectId=new mongoose.Types.ObjectId(companyId);
-    const jobs = await CompanyJob.find({ company_id: objectId });
+    const jobs = await CompanyJob.find({ company_id: objectId,  job_Expire_Date: { $gt: new Date() },No_openings:{$ne:0}}).select('company_id apply_status job_title industry salary experience location job_type work_type education createdDate No_openings applied_candidates');
+    const unappliedJobs = jobs
+          .filter(
+            (job) =>
+              !job.applied_candidates.some(
+                (candidate) => candidate.candidate_id.toString() ==userId
+              )
+          )
 
-    const PostedJobList = jobs.map(job => {
+    const PostedJobList = unappliedJobs.map(job => {
         const timeSincePosted = moment(job.createdDate).fromNow();
         return {
             ...job._doc,
@@ -350,28 +426,66 @@ exports.GetAllJobpostedByCompany=async(req,res)=>{
   }
 }
 
-exports.GetAllCompanyReveiw=async(req,res)=>{
-  const {companyId}=req.params;
-  try{
-    if(!companyId){
-      return res.status(400).json({error:"Please provide Company Id"});
+exports.GetAllCompanyReveiw = async (req, res) => {
+  const { companyId } = req.params;
+  try {
+    if (!companyId) {
+      return res.status(400).json({ error: "Please provide Company Id" });
     }
-    const objectId=new mongoose.Types.ObjectId(companyId)
-    const data = await Company.findById(objectId, { Candidate_Feed_Back: 1, _id: 0 })
-    .populate({
-      path: 'Candidate_Feed_Back.candidate_id',
-      select: 'profile basic_details',
-      populate: {
-        path: 'basic_details',
-        select: 'name'
-      }
-    });
-    return res.status(200).send(data);
 
-  }catch(error){
-    return res.status(500).json({error:"Internal server error"});
+    const objectId = new mongoose.Types.ObjectId(companyId);
+    
+    // Fetch company data and populate candidate feedback
+    const data = await Company.findById(objectId, { Candidate_Feed_Back: 1, _id: 0 })
+      .populate({
+        path: 'Candidate_Feed_Back.candidate_id',
+        select: 'profile basic_details',
+        populate: {
+          path: 'basic_details',
+          select: 'name'
+        }
+      });
+
+    if (!data || !data.Candidate_Feed_Back) {
+      return res.status(200).send([]);
+    }
+
+    const baseUrl = `${req.protocol}://${req.get("host")}`;
+    
+    // Helper function to check if the URL is a Google Drive link
+    const isGoogleDriveLink = (url) => {
+      return (
+        url &&
+        (url.includes("drive.google.com") || url.includes("docs.google.com"))
+      );
+    };
+
+    // Update feedback data with profile URLs
+    const updatedData = data.Candidate_Feed_Back.map((feedback) => {
+      const candidate = feedback.candidate_id;
+      const profileUrl = candidate?.profile
+        ? isGoogleDriveLink(candidate.profile)
+          ? candidate.profile
+          : `${baseUrl}/${candidate.profile.replace(/\\/g, "/")}`
+        : null;
+
+      return {
+        ...feedback._doc,  // Spread the feedback document
+        candidate_id: {
+          ...candidate._doc,  // Spread candidate data
+          profileUrl,
+        },
+      };
+    });
+
+    return res.status(200).send(updatedData);
+
+  } catch (error) {
+    console.log(error);
+    return res.status(500).json({ error: "Internal server error" });
   }
-}
+};
+
 
 
 exports.applyToJob = async (req, res) => {

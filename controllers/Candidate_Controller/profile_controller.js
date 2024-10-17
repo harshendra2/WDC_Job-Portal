@@ -430,15 +430,7 @@ exports.aadharOtpVerification = async (req, res) => {
   try {
     const response = await fetch(apiUrl, requestOptions);
 
-    if (!response.ok) {
-      if (response.status === 404) {
-        return res.status(404).json({ status: false, error: 'Resource not found' });
-      }
-      return res.status(response.status).json({ status: false, error: 'Failed to verify Aadhaar OTP' });
-    }
-
     const responseData = await response.json();
-
     if (responseData.status === 'VALID') {
       const candidateData = await candidate.findById(userId);
 
@@ -469,7 +461,7 @@ exports.aadharOtpVerification = async (req, res) => {
 
       return res.status(200).json({ status: true, responseData, updatedPersonalDetails });
     } else {
-      return res.status(200).json({ status: false, responseData });
+      return res.status(400).json({ status: false, responseData });
     }
   } catch (error) {
     return res.status(500).json({ status: false, error: 'Internal server error' });
@@ -478,10 +470,11 @@ exports.aadharOtpVerification = async (req, res) => {
 
 exports.PanKYCverification=async(req,res)=>{
   const {userId}=req.params;
-  const {pan}=req.body;
+  const {pan,name}=req.body;
   const apiUrl = 'https://sandbox.cashfree.com/verification/pan';
   const requestData = {
-    pan: pan
+    pan: pan,
+    name:name
   };
 
   const requestOptions = {
@@ -503,7 +496,7 @@ exports.PanKYCverification=async(req,res)=>{
 
     const output = { status: true, responseData: responseData };
 
-    if (responseData.valid === true) {
+    if (responseData.valid === true&& responseData.registered_name.toLowerCase() == name.toLowerCase()) {
       const candidateData = await candidate.findById(userId);
 
       if (!candidateData) {
@@ -533,7 +526,7 @@ exports.PanKYCverification=async(req,res)=>{
 
       return res.status(200).json({ status: true, responseData, updatedPersonalDetails });
     } else {
-      res.status(200).json({ status: false, responseData: responseData });
+      res.status(400).json({ status: false, responseData: responseData });
     }
   }catch(error){
     return res.status(500).json({error:"Intrnal server error"});

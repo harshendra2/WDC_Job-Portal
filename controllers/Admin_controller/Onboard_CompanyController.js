@@ -5,16 +5,8 @@ const Joi = require("joi");
 const XLSX = require('xlsx');
 const axios=require('axios');
 const tesseract = require('tesseract.js');
-const nodemailer=require('nodemailer');
-
-//email config
-const transporter = nodemailer.createTransport({
-  service: "gmail",
-  auth: {
-    user:"harsendraraj20@gmail.com",
-    pass:'ukiovyhquvazeomy',
-  },
-});
+const mongoose=require('mongoose')
+const { sendMailToCompany } = require('../../Service/sendMail');
 
 const PAN_REGEX = /^[A-Z]{5}[0-9]{4}[A-Z]{1}$/;
 const GST_REGEX = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[A-Z0-9]{3}$/;
@@ -56,9 +48,9 @@ exports.createOnboardCompany = async (req, res) => {
   const {email, mobile, company_name,overView,industry,company_size,GST,PAN,website_url,location,contact_email,contact_No,headQuater_add} = req.body;
 
   const { error } = OnboardRegistration.validate({ email, mobile, company_name,overView,industry,company_size,GST,PAN,website_url,location,contact_email,contact_No,headQuater_add});
-  const panImage = req.files['panImage'] ? req.files['panImage'][0].path : null;
-  const gstImage = req.files['gstImage'] ? req.files['gstImage'][0].path : null;
-  const profile = req.files['profile'] ? req.files['profile'][0].path : null;
+  const panImage = req?.files['panImage'] ? req?.files['panImage'][0]?.path : null;
+  const gstImage = req?.files['gstImage'] ? req?.files['gstImage'][0]?.path : null;
+  const profile = req?.files['profile'] ? req?.files['profile'][0]?.path : null;
   if (error) {
     return res.status(400).json({ error: error.details[0].message });
   }
@@ -104,16 +96,16 @@ exports.createOnboardCompany = async (req, res) => {
         // }
 
 
-
+        const hashedPassword = await bcrypt.hash("Company12#", 12);
     const newCompany = new Company({
-      email, mobile, company_name,overView,industry,company_size,GST,PAN,website_url,location,contact_email,contact_No,headQuater_add,GST_image:gstImage,PAN_image:panImage,profile
+      email, mobile, company_name,overView,industry,company_size,GST,PAN,website_url,location,contact_email,contact_No,headQuater_add,GST_image:gstImage,PAN_image:panImage,profile,password:hashedPassword,ImportStatus:true
     });
 
     const savedCompany = await newCompany.save();
+    await sendMailToCompany(savedCompany?.email,"Company12#");
 
     return res.status(201).json({ message: "Company created Successfully", company: savedCompany });
   } catch (error) {
-    console.log(error);
     return res.status(500).json({ error: "Internal Server Error" });
   }
 };
@@ -180,6 +172,7 @@ exports.getAllOnboardCompany = async (req, res) => {
       const data = await Company.find({})
           .sort({ createdAt: -1 })
           .select({ company_name: 1, location: 1, email: 1 });
+      const MailSendCount=await Company.find({ImportStatus:false}).countDocuments()
 
       if (data && data.length > 0) {
           const updatedData = await Promise.all(
@@ -236,11 +229,10 @@ exports.getAllOnboardCompany = async (req, res) => {
               })
           );
 
-          return res.status(200).send(updatedData);
+          return res.status(200).send({updatedData,MailSendCount});
       }
       return res.status(200).send([]);
   } catch (error) {
-      console.error(error); // Log the error for debugging
       return res.status(500).json({ error: 'Internal Server Error' });
   }
 };
@@ -340,24 +332,43 @@ exports.uploadExcelFile = async (req, res) => {
       return res.status(400).json({ error: "Empty Excel File" });
     }
 
+    function toCamelCase_Name(input) {
+      return input
+        .toLowerCase()
+        .split(' ')
+        .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+        .join(' ');
+    }
+
+    function toCamelCase_Sentence(input) {
+      return input
+        .toLowerCase()
+        .split('  ')
+        .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+        .join(' ');
+    }
+
     for (const row of sheetData) {
       const Details = {
-        company_name: row.Company_Name,
+        company_name:toCamelCase_Name(row.Company_Name),
         email: row.Email,
         mobile: row.Mobile_No,
-        overview: row.Overview,
-        industry: row.Industry,
+        overview:toCamelCase_Sentence( row.Overview ),
+        industry:toCamelCase_Name(row.Industry),
         company_size: row.Company_Size,
         GST: row.GST_Number,
         PAN: row.PAN_Number,
         website_url: row.Website_URL,
-        location: row.Location,
+        location:toCamelCase_Name(row.Location),
         contact_email: row.Contact_Email,
         contact_No: row.Contact_Number,
-        headQuarter_add: row.Headquarters_Address,
+        headQuarter_add:toCamelCase_Name(row.Headquarters_Address),
         PAN_image: row.PAN_Image_URL,
         GST_image: row.GST_Image_URL,
+        ImportStatus:false,
+        password:hashedPassword
       };
+
 
       if(!Details.company_name &&!Details.email&&!Details.mobile&&!Details.overview &&!Details.industry&&!Details.company_size&&!Details.PAN &&!Details.GST&&!Details.website_url&&!Details.location&&!Details.contact_email&&!Details.contact_No &&!Details.headQuarter_add&&!Details.PAN_image&&!Details.GST_image){
         return res.status(400).json({ error: "Empty Excel file" });
@@ -459,24 +470,27 @@ exports.uploadExcelFile = async (req, res) => {
         }
       }
     }
-
+    const hashedPassword = await bcrypt.hash("Company12#", 12);
+    
     for (const row of sheetData) {
       const Details = {
-        company_name: row.Company_Name,
+        company_name:toCamelCase_Name(row.Company_Name),
         email: row.Email,
         mobile: row.Mobile_No,
-        overview: row.Overview,
-        industry: row.Industry,
+        overview:toCamelCase_Sentence( row.Overview ),
+        industry:toCamelCase_Name(row.Industry),
         company_size: row.Company_Size,
         GST: row.GST_Number,
         PAN: row.PAN_Number,
         website_url: row.Website_URL,
-        location: row.Location,
+        location:toCamelCase_Name(row.Location),
         contact_email: row.Contact_Email,
         contact_No: row.Contact_Number,
-        headQuarter_add: row.Headquarters_Address,
+        headQuarter_add:toCamelCase_Name(row.Headquarters_Address),
         PAN_image: row.PAN_Image_URL,
         GST_image: row.GST_Image_URL,
+        ImportStatus:false,
+        password:hashedPassword
       };
 
       if(!Details.company_name &&!Details.email&&!Details.mobile&&!Details.overview &&!Details.industry&&!Details.company_size&&!Details.PAN &&!Details.GST&&!Details.website_url&&!Details.location&&!Details.contact_email&&!Details.contact_No &&!Details.headQuarter_add&&!Details.PAN_image&&!Details.GST_image){
@@ -562,7 +576,6 @@ exports.uploadExcelFile = async (req, res) => {
           return false;
         }
       };
-
       // Check the PAN image URL
       if (Details.PAN_image) {
         const isPANImageAccessible = await isPubliclyAccessible(Details.PAN_image);
@@ -580,12 +593,28 @@ exports.uploadExcelFile = async (req, res) => {
       }
 
       // Save the details to the database
-      const savedBasicDetails = await new Company(Details).save();
+      let savedBasicDetails = await new Company(Details).save();
     }
 
-    res.status(200).json({ message: `${sheetData.length} companies imported successfully.`,savedBasicDetails});
+    res.status(200).json({ message: `${sheetData.length} Companies Imported Successfully.`});
   } catch (error) {
     console.log(error)
     return res.status(500).json({ error: 'Internal server error' });
   }
 };
+
+exports.SendEmailImportedCandidate=async(req,res)=>{
+  try{
+     const companyDate=await Company.find({ImportStatus:false});
+
+     for(let data of companyDate){
+      await sendMailToCompany(data?.email,"Company12#",`https://didatabank.com/login`);
+      data.ImportStatus=true;
+     await data.save();
+     }
+     return res.status(200).json({message:"Email send successfully"});
+
+  }catch(error){
+    return res.status(500).json({error:"Internal server error"});
+  }
+}

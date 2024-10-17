@@ -28,6 +28,10 @@ const CandidateShema=new mongoose.Schema({
     summary:{
         type:String
     },
+    ImportStatus:{
+       type:Boolean,
+       default:false
+    },
     isRead_profile:[{
        isRead:{
         type:Boolean,
@@ -36,6 +40,10 @@ const CandidateShema=new mongoose.Schema({
        company_id:{
           type:mongoose.Schema.Types.ObjectId,
           ref:'company'
+       },
+       admin_id:{
+        type:mongoose.Schema.Types.ObjectId,
+        ref:'admin'
        }
     }],
     message:{
@@ -68,10 +76,44 @@ const CandidateShema=new mongoose.Schema({
       }
     }
   ],
+  verified_batch:[
+    {
+      batch_name: {
+        type: String
+      },
+      price: {
+        type: Number,
+        required: true
+      },
+      orderId:{
+       type:Number
+      },
+      ExpireDate:{
+        type: Date
+      },
+      Date:{
+        type:Date,
+        default: Date.now,
+      },
+      paymentMethod:{
+        type:String
+      }  
+    }],
     createdAt:{
         type: Date,
         default: Date.now
       }   
 })
+
+
+CandidateShema.methods.removeExpiredBatches = async function() {
+  const currentDate = new Date();
+  
+  this.verified_batch = this.verified_batch.filter(batch => {
+    return !batch.ExpireDate || batch.ExpireDate > currentDate;
+  });
+  await this.save();
+};
+
 
 module.exports = mongoose.model("candidate", CandidateShema);

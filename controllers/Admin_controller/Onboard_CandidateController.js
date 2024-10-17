@@ -7,6 +7,8 @@ const basic_details=require("../../models/Basic_details_CandidateSchema");
 const personal_details=require("../../models/Personal_details_candidateSchema");
 const work_details=require("../../models/work_details_candidate");
 const education_details=require("../../models/education_details_candidateSchema");
+const { sendMailToCompany } = require('../../Service/sendMail');
+const Counter=require('../../models/CounterSchema');
 
 const PAN_REGEX = /^[A-Z]{5}[0-9]{4}[A-Z]{1}$/;
 
@@ -48,6 +50,17 @@ const OnboardCandidate = Joi.object({
     board_represent:Joi.string().min(5),
     articles:Joi.string().min(5)
   })
+
+  async function getNextCustomId() {
+    const result = await Counter.findOneAndUpdate(
+      {_id:'collection'},
+        { $inc: { sequence_value: 1 } },
+        { new: true, upsert: true }
+    );
+  
+    return result.sequence_value;
+  }
+  
   
   exports.createBasicDetaileCandidate = async (req, res) => {
     const { name, email, mobile, linkedIn} = req.body;
@@ -61,10 +74,11 @@ const OnboardCandidate = Joi.object({
     }
   
     try {
-     
-  
+      const customId = await getNextCustomId('customers');
+      const hashedPassword = await bcrypt.hash("Candidate12#", 12);
       const candidateData = {
-        name, email, mobile, linkedIn
+        name, email, mobile, linkedIn,password:hashedPassword,
+        custom_id:customId
       };
        const existEmail=await basic_details.findOne({email:email});
        if(existEmail){
@@ -78,8 +92,9 @@ const OnboardCandidate = Joi.object({
       const newBasicDetails = new basic_details(candidateData);
       const savedBasicDetails = await newBasicDetails.save();
   
-      const newCandidate = new candidate({ basic_details: savedBasicDetails._id });
+      const newCandidate = new candidate({ basic_details: savedBasicDetails._id,custom_id:customId});
       const savedCandidate = await newCandidate.save();
+      await sendMailToCompany(savedBasicDetails?.email, "Candidate12#", `https://didatabank.com/login`);
   
       return res.status(201).json({ message: "Candidate details added successfully", candidate: savedCandidate });
   
@@ -102,7 +117,9 @@ const OnboardCandidate = Joi.object({
     }
   
     try {
-      const CandidateData = {  gender,age,marriag_status,aadhar_number,PAN,family_member, father_name, son_name, spouse_profession};
+      const CustomID=await candidate.findById(id);
+      const CandidateData = {  gender,age,marriag_status,aadhar_number,PAN,family_member, father_name, son_name, spouse_profession,
+        custom_id:CustomID?.custom_id};
       
       const newPersonalDetails = new personal_details(CandidateData);
       const savedPersonalDetails = await newPersonalDetails.save();
@@ -141,7 +158,8 @@ const OnboardCandidate = Joi.object({
       if (!req.file) {
         return res.status(400).json({ error: "Please upload a file" });
       }
-      const Candidatedata={industry,current_ctc,aspiring_position,work_experience,career_highlight,recognation,functions,preferred_location,current_location,resume:req.file.path,skill};
+      const CustomID=await candidate.findById(id);
+      const Candidatedata={industry,current_ctc,aspiring_position,work_experience,career_highlight,recognation,functions,preferred_location,current_location,resume:req.file.path,skill, custom_id:CustomID?.custom_id};
       const newWorkDetails = new work_details(Candidatedata);
       const savedWorkDetails = await newWorkDetails.save();
           
@@ -183,11 +201,13 @@ const OnboardCandidate = Joi.object({
                 image: file ? file.path : null,
             };
         });
+        const CustomID=await candidate.findById(id);
         const Candidatedata = {
             highest_education,
             board_represent,
             articles,
-            certificates: certificatesArray
+            certificates: certificatesArray,
+            custom_id:CustomID?.custom_id
         };
         const newEducationDetails = new education_details(Candidatedata);
         const savededucationDetails = await newEducationDetails.save();
@@ -213,6 +233,7 @@ const OnboardCandidate = Joi.object({
 
   exports.getAllCandidate = async (req, res) => {
     try {
+      const RemainngEmail=await candidate.find({ImportStatus:false}).countDocuments();
       const data = await candidate.aggregate([
         {
           $lookup: {
@@ -248,7 +269,7 @@ const OnboardCandidate = Joi.object({
         }
       ]).sort({ createdAt: -1 });
       if(data){
-      return res.status(200).send(data);
+      return res.status(200).send({data,RemainngEmail});
       }
     } catch (error) {
       return res.status(500).json({ error: 'Internal Server Error' });
@@ -589,14 +610,11 @@ const OnboardCandidate = Joi.object({
           Spouse_profession: '',
           Resume_Link: '',
           Designation: '',
-          Company_name: '',
           Industry: '',
           Current_CTC: '',
           Role: '',
           Total_experience: '',
           Functions_S: '',
-          Current_reporting_structure: '',
-          Last_reposrting_Structure: '',
           Preffered_location: '',
           Current_location: '',
           Career_Highlight: '',
@@ -606,7 +624,7 @@ const OnboardCandidate = Joi.object({
           Articles: ''
         }
       ];
-  
+      
       const worksheet = XLSX.utils.json_to_sheet(data);
       const columnWidths = Object.keys(data[0]).map((key) => ({
         wch: Math.max(key.length, 20)  // Ensuring a minimum width of 20 characters
@@ -640,7 +658,7 @@ const OnboardCandidate = Joi.object({
       }
 
       for (const row of sheetData) {
-        if(!row.Name&& !row.Email&& !row.Mobile_No && !row.linkedIn_Profile_Link&&!row.Gender&&!row.Age&&!row.Marriage_Status&&!row.Aadhar_Number&&!row.PAN_Number&&!row.Member_In_Family&&!row.Name_of_Father&&!row.Son_Name&&!row.Spouse_profession&&!row.Designation&&!row.Company_name&&!row.Industry&&!row.Current_CTC&&!row.Role&&!row.Total_experience&&!row.Current_reporting_structure&&!row.Last_reposrting_Structure&&!row.Career_Highlight&&!row.Recognation&&!row.Functions_S&&!row.Preffered_location&&!row.Current_location&&!row.Resume_Link&&!row.Highest_Education&&!row.Board_Represent_Name&&!row.Articles){
+        if(!row.Name&& !row.Email&& !row.Mobile_No && !row.linkedIn_Profile_Link&&!row.Gender&&!row.Age&&!row.Marriage_Status&&!row.Aadhar_Number&&!row.PAN_Number&&!row.Member_In_Family&&!row.Name_of_Father&&!row.Son_Name&&!row.Spouse_profession&&!row.Designation&&!row.Industry&&!row.Current_CTC&&!row.Role&&!row.Total_experience&&!row.Last_reposrting_Structure&&!row.Career_Highlight&&!row.Recognation&&!row.Functions_S&&!row.Preffered_location&&!row.Current_location&&!row.Resume_Link&&!row.Highest_Education&&!row.Board_Represent_Name&&!row.Articles){
           return res.status(400).json({ error: "Empty Excel file" });
         }
         // Validation for basic details
@@ -690,9 +708,7 @@ const OnboardCandidate = Joi.object({
         if (!row.Designation || typeof row.Designation !== 'string') {
           return res.status(400).json({ error: "Designation is required and must be a string." });
         }
-        if (!row.Company_name || typeof row.Company_name !== 'string') {
-          return res.status(400).json({ error: "Company name is required and must be a string." });
-        }
+       
         if (row.Industry && typeof row.Industry !== 'string') {
           return res.status(400).json({ error: "Industry must be a string." });
         }
@@ -705,12 +721,7 @@ const OnboardCandidate = Joi.object({
         if (row.Total_experience && isNaN(row.Total_experience)) {
           return res.status(400).json({ error: "Work experience must be a number." });
         }
-        if (row.Current_reporting_structure && typeof row.Current_reporting_structure !== 'string') {
-          return res.status(400).json({ error: "Current reporting structure must be a string." });
-        }
-        if (row.Last_reposrting_Structure && typeof row.Last_reposrting_Structure !== 'string') {
-          return res.status(400).json({ error: "Last reporting structure must be a string." });
-        }
+       
         if (row.Career_Highlight && typeof row.Career_Highlight !== 'string') {
           return res.status(400).json({ error: "Career highlight must be a string." });
         }
@@ -773,6 +784,13 @@ const OnboardCandidate = Joi.object({
         }
         
       }
+      function toCamelCase_Name(input) {
+        return input
+          .toLowerCase()
+          .split(' ')
+          .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+          .join(' ');
+      }
   
       for (const row of sheetData) {
         // Validation for basic details
@@ -903,10 +921,13 @@ const OnboardCandidate = Joi.object({
         if (existingMobile) {
           return res.status(400).json({ error: `The mobile number "${row.Mobile_No}" already exists in our database.` });
         }
-        const basicDetails={ name:row.Name, email:row.Email, mobile:row.Mobile_No, linkedIn:row.linkedIn_Profile_Link};
-        const personalDetails={gender:row.Gender,age:row.Age,marriag_status:row.Marriage_Status,aadhar_number:row.Aadhar_Number,PAN:row.PAN_Number,family_member:row.Member_In_Family, father_name:row.Name_of_Father, son_name:row.Son_Name, spouse_profession:row.Spouse_profession}
-        const workDetails={designation:row.Designation,company_name:row.Company_name,industry:row.Industry,current_ctc:row.Current_CTC,aspiring_position:row.Role,work_experience:row.Total_experience,current_report:row.Current_reporting_structure,last_reporting:row.Last_reposrting_Structure,career_highlight:row.Career_Highlight,recognation:row.Recognation,functions:row.Functions_S,preferred_location:row.Preffered_location,current_location:row.Current_location,resume:row.Resume_Link}
-        const educationDetails={ highest_education:row.Highest_Education,board_represent:row.Board_Represent_Name,articles:row.Articles}
+        const customId = await getNextCustomId('customers');
+        const hashedPassword = await bcrypt.hash("Candidate12#", 12);
+        const basicDetails={ name:toCamelCase_Name(row.Name), email:row.Email, mobile:row.Mobile_No, linkedIn:row.linkedIn_Profile_Link,password:hashedPassword,
+          custom_id:customId};
+        const personalDetails={gender:row.Gender,age:row.Age,marriag_status:toCamelCase_Name(row.Marriage_Status),aadhar_number:row.Aadhar_Number,PAN:row.PAN_Number,family_member:row.Member_In_Family, father_name:toCamelCase_Name(row.Name_of_Father), son_name:toCamelCase_Name(row.Son_Name), spouse_profession:toCamelCase_Name(row.Spouse_profession), custom_id:customId}
+        const workDetails={designation:toCamelCase_Name(row.Designation),industry:toCamelCase_Name(row.Industry),current_ctc:row.Current_CTC,aspiring_position:toCamelCase_Name(row.Role),work_experience:row.Total_experience,career_highlight:toCamelCase_Name(row.Career_Highlight),recognation:toCamelCase_Name(row.Recognation),functions:row.Functions_S,preferred_location:row.Preffered_location,current_location:row.Current_location,resume:row.Resume_Link, custom_id:customId}
+        const educationDetails={ highest_education:toCamelCase_Name(row.Highest_Education),board_represent:toCamelCase_Name(row.Board_Represent_Name),articles:toCamelCase_Name(row.Articles), custom_id:customId}
   
         // Save data to the database
         const savedBasicDetails = await new basic_details(basicDetails).save();
@@ -920,6 +941,7 @@ const OnboardCandidate = Joi.object({
           personal_details: savedPersonalDetails._id,
           work_details: savedWorkDetails._id,
           education_details: savedEducationDetails._id,
+          custom_id:customId
         });
         await newCandidate.save();
       }
@@ -931,3 +953,25 @@ const OnboardCandidate = Joi.object({
     }
   };
   
+
+  exports.SendImportedCandidateMail=async(req,res)=>{
+    try{
+      const candidates = await candidate.find({ ImportStatus: false }).populate('basic_details');
+  
+for (let data of candidates) {
+  
+    try {
+     
+      await sendMailToCompany(data?.basic_details?.email, "Candidate12#", `https://didatabank.com/login`);
+      data.ImportStatus = true;
+      await data.save();
+    } catch (error) {
+      console.log(error);
+    }
+ 
+}
+   return res.status(200).json({message:"Email send successfully"})
+    }catch(error){
+      return res.status(500).json({error:"Internal server error"})
+    }
+  }

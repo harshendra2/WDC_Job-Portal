@@ -26,5 +26,6 @@ router.put('/admin/edit_educationdetails/:id',uploads ,controller.editEducationD
 // download Excel and upload Excel Sheets
 router.get('/admin/candidate/download-excel-template',controller.DownloadExcelTemplate);
 router.post('/admin/candidate/upload-excel',upload.single('file'),controller.uploadExcelFile);
+router.post('/admin/candidate/send_mail',controller.SendImportedCandidateMail);
 
 module.exports = router;

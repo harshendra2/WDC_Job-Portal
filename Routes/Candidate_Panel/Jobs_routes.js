@@ -2,12 +2,12 @@ const express=require("express");
 const router=new express.Router();
 const controller=require('../../controllers/Candidate_Controller/Jobs_controller');
 
-router.get('/candidate/job_search/:userId',controller.KeywordJobSearch);
+router.post('/candidate/job_search/:userId',controller.KeywordJobSearch);
 router.get('/candidate/getunappliedjob/:id',controller.getUnappliedJob);
 router.get('/candidate/getjobdetails/:id',controller.getJobDetails);
 router.get('/candidate/company_details/:companyId',controller.GetCompanyDetails);
 router.get('/candidate/basic_details/:companyId',controller.GetCompanyBasicDetails);
-router.get('/candidate/posted_jobs/company/:companyId',controller.GetAllJobpostedByCompany);
+router.get('/candidate/posted_jobs/company/:companyId/:userId',controller.GetAllJobpostedByCompany);
 router.get('/candidate/company/review/:companyId',controller.GetAllCompanyReveiw);
 
 router.post('/candidate/jobapply/:userId/:jobId',controller.applyToJob);
