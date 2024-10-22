@@ -13,7 +13,7 @@ const IssueNotification = (io) => {
             }
         })
 
- socket.on('viewissuenotification', async (userId) => {
+ socket.on('viewissuenotifications', async (userId) => {
             try {
                 const Viewed = await ViewIssues(userId)
             } catch (err) {

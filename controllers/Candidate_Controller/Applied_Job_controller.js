@@ -333,7 +333,7 @@ exports.AddCompanyFeedBack = async (req, res) => {
         const [updateShortlisted, updateCompany] = await Promise.all([
             CompanyJob.updateOne(
                 { _id: jobID, 'Shortlisted.candidate_id': userID },
-                { $set: { 'Shortlisted.$.feed_back_status': true } }
+                { $set: { 'Shortlisted.$.Candidate_feed_back_Status': true } }
             ),
             company.findByIdAndUpdate(
                 companyJob.company_id,

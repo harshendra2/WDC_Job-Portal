@@ -1,6 +1,8 @@
 const mongoose=require("mongoose");
 const company=require('../../models/Onboard_Company_Schema');
 const candidate=require('../../models/Onboard_Candidate_Schema')
+const Issue=require('../../models/Issue_Schema');
+const moment=require('moment')
 
 exports.getAllnotificatio=async(userId)=>{
     try{
@@ -21,13 +23,21 @@ exports.getAllnotificatio=async(userId)=>{
 
 exports.ViewDetails=async(userId,companyId)=>{
     try{
-       const data=await company.findByIdAndUpdate({_id:companyId,'isRead_profile.candidate_id':userId }, { $set: { 'isRead_profile.$.isRead': true } },
-        { new: true })
-      if(data){
-        return data ||[]
+      const IsReadData={
+        isRead:true,
+        candidate_id:userId
       }
+      const data = await company.findByIdAndUpdate(
+        companyId,
+        {$push:{isRead_profile:IsReadData}},
+        { new: true }
+      );
+      if (data) {
+        return data || [];
+      }
+      
     }catch(error){
-        return res.status(500).json({error:"Internal Server Error"});
+        return error;
     }
 }
 

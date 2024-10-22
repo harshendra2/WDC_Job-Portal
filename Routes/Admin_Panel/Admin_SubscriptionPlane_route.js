@@ -4,10 +4,10 @@ const controller=require('../../controllers/Admin_controller/Admin_Subscription_
 
 //Subscription Plane
 router.get('/admin/get_subscription',controller.getallsubscription);
-router.get('/admin/get_subscription_name',controller.getAllSubscriptionName)
-router.get('/admin/get_singlesubscription/:id',controller.getSingleSubscription)
-router.put('/admin/edit_subscription/:id',controller.editSubscriptionPlane)
-router.post('/admin/create_subscription',controller.createSubscriptionPlane)
+router.get('/admin/get_subscription_name',controller.getAllSubscriptionName);
+router.get('/admin/get_singlesubscription/:id',controller.getSingleSubscription);
+router.put('/admin/edit_subscription/:id',controller.editSubscriptionPlane);
+router.post('/admin/create_subscription',controller.createSubscriptionPlane);
 
 //TopUp Plane 
 router.post('/admin/create_topup_plane',controller.CreateNewTopUpPlane);
@@ -20,6 +20,19 @@ router.get('/admin/candidate/subscription',controller.GetAllCandidateSubscriptio
 router.post('/admin/create/candidateSub',controller.CreateCandidateSubscription);
 router.get('/admin/candidate_subscriptionname/:id',controller.GetCandidateSubscriptionName);
 router.get('/admin/get_singlesub/:id',controller.GetSingleCandidateSubscription);
+
+
+//Green batch subscription plane 
+router.get('/admin/get_green_batch/subscription',controller.GetAllGreenBatchSubscription);
+router.get('/admin/get_single/green_batch/:id',controller.GetSingleGreenBatch);
+router.put('/admin/Edit_green/batch/:id',controller.EditGreenBatch)
+router.post('/admin/add_new/green_batch',controller.AddNewGreenBatch);
+
+//Promote subscription plan
+router.get('/admin/get_promote/subscription',controller.GetAllPromoteSubscription);
+router.get('/admin/get_single/promote_sub/:id',controller.GetSinglePromoteSubscription);
+router.put('/admin/Edit_promot/sub/:id',controller.EditPromoteSub)
+router.post('/admin/add_new/promote',controller.AddNewPromotePlan);
 
 
 

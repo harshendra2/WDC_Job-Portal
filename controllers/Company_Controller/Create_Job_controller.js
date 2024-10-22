@@ -541,7 +541,7 @@ exports.ListOutAllAppliedApplicants = async (req, res) => {
     const candidateDetails = await CompanyJob.aggregate([
       { $match: { _id: jobObjectId} }, 
       { $unwind: '$applied_candidates' },
-      {$match:{'applied_candidates.longlist':false,'applied_candidates.Interview_Round':false}},
+      {$match:{'applied_candidates.longlist':false}},
       {
         $lookup: {
           from: 'candidates',
@@ -650,20 +650,20 @@ exports.ShortlistedForInterviewRound = async (req, res) => {
       if (jobData[round.roundKey] === true) {
         let data = {
           roundName: round.roundName,
-          roundAction: 'pending'
+          roundAction: 'Pending'
         };
 
         await CompanyJob.updateOne(
           { _id: jobObjectId, 'applied_candidates.candidate_id': userObjectId },
           {
-            $set: { 'applied_candidates.$.Interview_Round': true,'applied_candidates.$.Interview_Round_Date':new Date()},
+            $set: { 'applied_candidates.$.longlist': true,'applied_candidates.$.Longlist_Date':new Date()},
             $push: { 'applied_candidates.$.interviewRound': data }
           }
         );
       }
     }
 
-    return res.status(200).json({ message: "Candidate shortlisted for next round" });
+    return res.status(200).json({ message: "Candidate longlisted successfully" });
 
   } catch (error) {
     return res.status(500).json({ error: "Internal server error" });
@@ -671,7 +671,7 @@ exports.ShortlistedForInterviewRound = async (req, res) => {
 };
 
 
-exports.ListoutInterviewRoundCandidate = async (req, res) => {
+exports.ListoutLongListCandidate = async (req, res) => {
   const { jobId } = req.params;
   try {
     if (!jobId) {
@@ -682,7 +682,7 @@ exports.ListoutInterviewRoundCandidate = async (req, res) => {
     const candidateDetails = await CompanyJob.aggregate([
       { $match: { _id: jobObjectId } },
       { $unwind: '$applied_candidates' },
-      { $match: { 'applied_candidates.Interview_Round': true, 'applied_candidates.longlist': false } },
+      { $match: {'applied_candidates.longlist':true ,'applied_candidates.Shortlist_status':false} },
       {
         $lookup: {
           from: 'candidates',
@@ -724,7 +724,7 @@ exports.ListoutInterviewRoundCandidate = async (req, res) => {
         }
       },
       {
-        $sort: { 'applied_candidates.Interview_Round_Date': -1 }
+        $sort: { 'applied_candidates.Longlist_Date': -1 }
       }
     ]);
 
@@ -796,7 +796,6 @@ exports.ChangeInterviewStatus = async (req, res) => {
 
     if (status === "Selected") {
       const shouldLonglist = await checkAndLonglistCandidate(jobObjectId, userObjectId);
-
       if (shouldLonglist) {
         await longlistCandidate(jobObjectId, userObjectId);
       }
@@ -817,22 +816,13 @@ const checkAndLonglistCandidate = async (jobObjectId, userObjectId) => {
         'applied_candidates.candidate_id': userObjectId 
       }
     },
-    { $unwind: '$applied_candidates' },
-    { $unwind: '$applied_candidates.interviewRound' }
+    { $unwind: '$applied_candidates' }
   ]);
-
-  const filteredCandidates = LonglistCandidate.filter((company) => {
+  const allRoundsSelected = LonglistCandidate.every((company) => {
     const interviewRounds = company.applied_candidates.interviewRound;
-    if (Array.isArray(interviewRounds)) {
-      const allRoundsSelected = interviewRounds.every(
-        (round) => round.roundAction === 'Selected'
-      );
-      return !allRoundsSelected;
-    }
-    return true; 
+    return interviewRounds.every((round) => round.roundAction === 'Selected');
   });
-
-  return filteredCandidates.length > 0;
+  return allRoundsSelected;
 };
 
 
@@ -843,33 +833,45 @@ const longlistCandidate = async (jobObjectId, userObjectId) => {
       'applied_candidates.candidate_id': userObjectId 
     },
     {
-      $set: { 'applied_candidates.$.longlist': true ,'applied_candidates.$.Longlist_Date':new Date()}
+      $set: { 'applied_candidates.$.Shortlist_status': true }
+    }
+  );
+  
+  await CompanyJob.updateOne(
+    { _id: jobObjectId },
+    {
+      $addToSet: {
+        Shortlisted: {
+          candidate_id: userObjectId,   
+          sortlisted_date: new Date() 
+        }
+      }
     }
   );
 };
 
 
-exports.ListOutLonglist=async(req,res)=>{
+exports.ListshortList=async(req,res)=>{
   const {jobId}=req.params;
   try{
-       if(!jobId){
-        return res.status(400).json({error:"Please provide ID"})
-       }
-    const jobObjectId = new mongoose.Types.ObjectId(jobId);
+    if(!jobId){
+      return res.status(400).json({error:"Please provide Job ID"});
+    }
 
+    const jobObjectId = new mongoose.Types.ObjectId(jobId);
     const candidateDetails = await CompanyJob.aggregate([
-      { $match: { _id: jobObjectId} }, 
-      { $unwind: '$applied_candidates' },
-      {$match:{'applied_candidates.longlist':true, 'applied_candidates.Action_Rejected':false, 'applied_candidates.Shortlist_status':false}},
+      { $match: { _id: jobObjectId } }, 
+      { $unwind: '$Shortlisted' },
+      {$match: {'Shortlisted.reject_status':false}},
       {
         $lookup: {
           from: 'candidates',
-          localField: 'applied_candidates.candidate_id',
+          localField: 'Shortlisted.candidate_id',
           foreignField: '_id',
           as: 'CandidateDetails'
         }
       },
-       { $unwind: '$CandidateDetails' },
+      { $unwind: '$CandidateDetails' },
       {
         $lookup: {
           from: 'candidate_basic_details',
@@ -878,7 +880,7 @@ exports.ListOutLonglist=async(req,res)=>{
           as: 'BasicDetails'
         }
       },
-       { $unwind: '$BasicDetails' },
+      { $unwind: '$BasicDetails' },
       {
         $lookup: {
           from: 'candidate_work_details',
@@ -891,23 +893,22 @@ exports.ListOutLonglist=async(req,res)=>{
       {
         $project: {
           _id: 1,
-          'applied_candidates.Longlist_Date':1,
-          'applied_candidates.feed_back_Status':1,
+          'Shortlisted.sortlisted_date': 1,
+          'Shortlisted.short_Candidate': 1,
+          'Shortlisted.shorted_status':1,
+          'Shortlisted.reject_status':1,
+          'Shortlisted.feed_back_Status':1,
           'CandidateDetails._id': 1,
-          'CandidateDetails.name': 1,
-          'CandidateDetails.email': 1,
           'BasicDetails.name': 1,
           'BasicDetails.email': 1,
           'BasicDetails.mobile': 1,
-          'WorkDetails.resume':1
+          'WorkDetails.resume': 1
         }
       },
       {
-        $sort: { 'applied_candidates.Longlist_Date': -1} 
+        $sort: { 'Shortlisted.sortlisted_date': -1} 
       }
-
     ]);
-    
     const isGoogleDriveLink = (url) => {
       return url && (url.includes('drive.google.com') || url.includes('docs.google.com'));
     };
@@ -950,10 +951,10 @@ exports.AddUserFeedBack=async(req,res)=>{
     }
     const jobObjectId = new mongoose.Types.ObjectId(jobId);
     const userObjectId = new mongoose.Types.ObjectId(userId);
-    await CompanyJob.updateOne( { _id: jobObjectId,'applied_candidates.candidate_id':userObjectId},
+    await CompanyJob.updateOne( { _id: jobObjectId,'Shortlisted.candidate_id':userObjectId},
                 {
             $set: {
-           'applied_candidates.$.feed_back_Status':true   
+           'Shortlisted.$.feed_back_Status':true   
             }
             },
            { new: true })
@@ -978,153 +979,6 @@ exports.AddUserFeedBack=async(req,res)=>{
     return res.status(500).json({error:"Internal server error"});
   }
 }
-
-exports.RejectLongListCandidate=async(req,res)=>{
-  const {jobId,userId}=req.params;
-  try{
-    if(!jobId && ! userId){
-      return res.status(400).json({error:"Please provide ID"});
-    }
-    const jobObjectId = new mongoose.Types.ObjectId(jobId);
-    const userObjectId = new mongoose.Types.ObjectId(userId);
-    const updateCandidate = await CompanyJob.updateOne(
-      { _id: jobObjectId, 'applied_candidates.candidate_id': userObjectId },
-      { $set: { 'applied_candidates.$.Action_Rejected': true } }
-    );
-
-    if (updateCandidate.nModified === 0) {
-      return res.status(404).json({ error: 'Candidate not found or already shortlisted' });
-    }
-    return res.status(200).json({message: "Candidate rejected successfully"});
-
-  }catch(error){
-    return res.status(500).json({error:"Internal server error"});
-  }
-}
-
-
-exports.ShortlistCandidate = async (req, res) => {
-  const { jobId, userId } = req.params;
-  try {
-    if(!jobId &&!userId){
-      return res.status(400).json({error:"Please provide all ID"});
-    }
-    const jobObjectId = new mongoose.Types.ObjectId(jobId);
-    const userObjectId = new mongoose.Types.ObjectId(userId);
-    const updateCandidate = await CompanyJob.updateOne(
-      { _id: jobObjectId, 'applied_candidates.candidate_id': userObjectId },
-      { $set: { 'applied_candidates.$.Shortlist_status': true } }
-    );
-
-    if (updateCandidate.nModified === 0) {
-      return res.status(404).json({ error: 'Candidate not found or already shortlisted' });
-    }
-
-    await CompanyJob.updateOne(
-      { _id: jobObjectId },
-      {
-        $addToSet: {
-          Shortlisted: {
-            candidate_id: userObjectId,   
-            sortlisted_date: new Date() 
-          }
-        }
-      }
-    );
-
-    return res.status(200).json({ message: 'Candidate shortlisted successfully' });
-  } catch (error) {
-    return res.status(500).json({ error: 'Internal server error' });
-  }
-};
-
-
-exports.ListOutAllShortlistedApplicent = async (req, res) => {
-  const { jobId } = req.params;
-  try {
-    if(!jobId){
-      return res.status(400).json({error:"please provide job id"});
-    }
-    const jobObjectId = new mongoose.Types.ObjectId(jobId);
-    const candidateDetails = await CompanyJob.aggregate([
-      { $match: { _id: jobObjectId } }, 
-      { $unwind: '$Shortlisted' },
-      {$match: {'Shortlisted.reject_status':false}},
-      {
-        $lookup: {
-          from: 'candidates',
-          localField: 'Shortlisted.candidate_id',
-          foreignField: '_id',
-          as: 'CandidateDetails'
-        }
-      },
-      { $unwind: '$CandidateDetails' },
-      {
-        $lookup: {
-          from: 'candidate_basic_details',
-          localField: 'CandidateDetails.basic_details',
-          foreignField: '_id',
-          as: 'BasicDetails'
-        }
-      },
-      { $unwind: '$BasicDetails' },
-      {
-        $lookup: {
-          from: 'candidate_work_details',
-          localField: 'CandidateDetails.work_details',
-          foreignField: '_id',
-          as: 'WorkDetails'
-        }
-      },
-      { $unwind: '$WorkDetails' },
-      {
-        $project: {
-          _id: 1,
-          'Shortlisted.sortlisted_date': 1,
-          'Shortlisted.short_Candidate': 1,
-          'CandidateDetails._id': 1,
-          'BasicDetails.name': 1,
-          'BasicDetails.email': 1,
-          'BasicDetails.mobile': 1,
-          'WorkDetails.resume': 1
-        }
-      },
-      {
-        $sort: { 'Shortlisted.sortlisted_date': -1} 
-      }
-    ]);
-    const isGoogleDriveLink = (url) => {
-      return url && (url.includes('drive.google.com') || url.includes('docs.google.com'));
-    };
-
-    const bindUrlOrPath = (url) => {
-      const baseUrl = `${req.protocol}://${req.get('host')}`;
-      return isGoogleDriveLink(url)
-        ? url
-        : `${baseUrl}/${url.replace(/\\/g, '/')}`;
-    };
-    if (candidateDetails && candidateDetails.length > 0) {
-
-      const updatedData = candidateDetails.map((company) => {
-        return {
-          ...company,
-          resumeUrl: company.WorkDetails?.resume
-            ?bindUrlOrPath(company.WorkDetails?.resume)
-            : null,
-        };
-      });
-
-      return res.status(200).json(updatedData);
-    } else {
-      return res.status(200).json([]);
-    }
-
-  } catch (error) {
-    console.error(error);
-    return res.status(500).json({ error: "Internal server error" });
-  }
-};
-
 
 exports.RejectApplicent=async(req,res)=>{
   const {jobId,userId}=req.params;

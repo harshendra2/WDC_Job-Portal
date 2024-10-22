@@ -2,6 +2,9 @@ const Joi=require("joi");
 const subscription=require("../../models/SubscriptionSchema");
 const TopUpPlane=require('../../models/ToupPlane');
 const CandidateSub=require('../../models/Candidate_SubscriptionSchema');
+const GreenBatch=require('../../models/Green_Tick_Schema');
+const PromotePlan=require('../../models/Promote_Job_Schema');
+const mongoose=require('mongoose');
 
 const EditSubscriptionPlane = Joi.object({
     plane_name: Joi.string().required(),
@@ -242,6 +245,134 @@ exports.GetSingleCandidateSubscription=async(req,res)=>{
         return res.status(200).send(data);
      }
 
+    }catch(error){
+        return res.status(500).json({error:"Internal server error"});
+    }
+}
+
+exports.GetAllGreenBatchSubscription=async(req,res)=>{
+    try{
+        const data=await GreenBatch.find({});
+        if(data){
+         return res.status(200).send(data);
+        }else{
+            return res.status(200).send([]);
+        }
+
+    }catch(error){
+        return res.status(500).json({error:"Internal server error"});
+    }
+}
+
+exports.GetSingleGreenBatch=async(req,res)=>{
+    const {id}=req.params;
+    try{
+        if(!id){
+            return res.status(400).json({error:"Please provide Id"});
+        }
+        const ObjectID=new mongoose.Types.ObjectId(id)
+        const data=await GreenBatch.findById(ObjectID);
+        return res.status(200).send(data);
+
+    }catch(error){
+        return res.status(500).json({error:'Internal server error'});
+    }
+}
+
+exports.EditGreenBatch=async(req,res)=>{
+    const {id}=req.params;
+    const {batch_name,price,month}=req.body;
+    try{
+        const updateData = {
+            batch_name:batch_name,
+            price:price,
+            month:month
+        };
+        const updatedBatch= await GreenBatch.findByIdAndUpdate(
+           id,
+            { $set: updateData },
+            { new: true }
+        );
+
+        return res.status(200).json({
+            message: "Plan updated successfully",
+            updatedBatch
+        });
+    }catch(error){
+        return res.status(500).json({error:"Internal server error"});
+    }
+}
+
+exports.AddNewGreenBatch=async(req,res)=>{
+    const {batch_name,price,month}=req.body;
+    try{
+        const newBatch = new GreenBatch({ batch_name, price, month });
+        await newBatch.save();
+        return res.status(200).json({ message: "Subscription plan created successfully" });
+    }catch(error){
+     return res.status(500).json({error:"Internal server error"});
+    }
+}
+
+exports.GetAllPromoteSubscription=async(req,res)=>{
+    try{
+
+        const data=await PromotePlan.find({});
+        return res.status(200).send(data);
+
+    }catch(error){
+        return res.status(500).json({error:"Internal server errror"});
+    }
+}
+
+exports.GetSinglePromoteSubscription=async(req,res)=>{
+    const {id}=req.params;
+    try{
+        if(!id){
+            return res.status(400).json({error:"Please provide ID"});
+        }
+        const ID=new mongoose.Types.ObjectId(id);
+        const data=await PromotePlan.findById(ID);
+        return res.status(200).send(data);
+
+    }catch(error){
+        return res.status(500).json({error:"Internal server error"});
+    }
+}
+
+exports.EditPromoteSub=async(req,res)=>{
+    const {id}=req.params;
+    const {plane_name,price}=req.body;
+    try{
+        if(!id){
+            return res.status(400).json({error:"Please provide ID"});
+        }
+        const updateData = {
+            price:price,
+            plane_name:plane_name
+        };
+        const updatedBatch= await PromotePlan.findByIdAndUpdate(
+           id,
+            { $set: updateData },
+            { new: true }
+        );
+
+        return res.status(200).json({
+            message: "Plan updated successfully",
+            updatedBatch
+        });
+        
+    }catch(error){
+        return res.status(500).json({error:"Internal server error"});
+    }
+}
+
+exports.AddNewPromotePlan=async(req,res)=>{
+    const {plane_name,price}=req.body;
+    try{
+        const newBatch = new PromotePlan({ plane_name, price});
+        await newBatch.save();
+        return res.status(200).json({ message: "Subscription plan created successfully" });
     }catch(error){
         return res.status(500).json({error:"Internal server error"});
     }

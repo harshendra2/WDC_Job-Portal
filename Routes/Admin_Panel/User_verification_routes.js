@@ -17,4 +17,8 @@ router.get('/admin/verified/getcompany',controller.GetAllVerifiedOnboardCompany)
 //Verified Candidate
 router.get('/admin/verified/getcandidate',controller.GetAllVerifiedOnboardCandidate);
 
+// Return correction 
+router.get('/admin/re_correction/company',controller.GetAllRecorrectionCompany);
+router.put('/admin/block/company/:cmpId',controller.BlockOnboardCompany);
+
 module.exports=router;

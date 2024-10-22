@@ -71,6 +71,9 @@ const work_details_candidate=new mongoose.Schema({
           start_date:{
             type:Date
           },
+          end_date:{
+            type:Date
+          },
           End_posistion:{
             type:Boolean
           },

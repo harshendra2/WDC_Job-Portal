@@ -71,7 +71,7 @@ exports.getProfilePercentageStatus = async (req, res) => {
         'highest_education', 'board_represent'
       ];
       const workFields = [
-           'industry','current_ctc', 'aspiring_position',
+           'industry', 'aspiring_position',
         'work_experience','career_highlight',
          'functions', 'preferred_location', 'current_location', 'resume','skill'
       ];
@@ -470,10 +470,10 @@ exports.aadharOtpVerification = async (req, res) => {
 
 exports.PanKYCverification=async(req,res)=>{
   const {userId}=req.params;
-  const {pan,name}=req.body;
+  const {PAN,name}=req.body;
   const apiUrl = 'https://sandbox.cashfree.com/verification/pan';
   const requestData = {
-    pan: pan,
+    pan: PAN,
     name:name
   };
 
@@ -508,7 +508,7 @@ exports.PanKYCverification=async(req,res)=>{
       if (!candidateData.personal_details) {
         const newPersonalDetails = new personal_details({
           Pan_verified_status: true,
-          PAN:pan
+          PAN:PAN
         });
         const savedPersonalDetails = await newPersonalDetails.save();
 
@@ -519,7 +519,7 @@ exports.PanKYCverification=async(req,res)=>{
       } else {
         updatedPersonalDetails = await personal_details.findByIdAndUpdate(
           candidateData.personal_details._id,
-          { $set: { Pan_verified_status: true,PAN:pan} },
+          { $set: { Pan_verified_status: true,PAN:PAN} },
           { new: true }
         );
       }

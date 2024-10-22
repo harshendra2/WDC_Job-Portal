@@ -217,7 +217,8 @@ exports.EditProfile = async (req, res) => {
                   ...companyData,
                   GST,
                   PAN,
-                  status: 'processing'
+                  status: 'processing',
+                  Attempt_count:previousDetails?.Attempt_count+1
               };
               if (panImage) companyData.PAN_image = panImage;
               if (gstImage) companyData.GST_image = gstImage;

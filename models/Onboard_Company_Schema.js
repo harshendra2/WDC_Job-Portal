@@ -65,6 +65,14 @@ const CompanySchema = new Schema({
     type: String,
     default: "processing",
   },
+  block_status:{
+    type:Boolean,
+    default:false
+  },
+  Attempt_count:{
+   type:Number,
+   default:0
+  },
   ImportStatus:{
     type:Boolean,
     default:true

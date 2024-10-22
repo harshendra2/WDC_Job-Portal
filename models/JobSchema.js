@@ -61,14 +61,6 @@ const CompanyJobSchema = new mongoose.Schema({
         type: Date,
         default: Date.now,
       },
-      Interview_Round:{
-        type:Boolean,
-        default:false
-      },
-      Interview_Round_Date:{
-       type:Date,
-       default:Date.now
-      },
       longlist:{
        type:Boolean,
        default:false
@@ -76,14 +68,6 @@ const CompanyJobSchema = new mongoose.Schema({
       Longlist_Date:{
        type:Date,
        default:Date.now()
-      },
-      feed_back_Status:{
-       type:Boolean,
-       default:false
-      },
-      Action_Rejected:{
-        type:Boolean,
-        default:false
       },
       Shortlist_status: {
         type: Boolean,
@@ -110,6 +94,7 @@ const CompanyJobSchema = new mongoose.Schema({
       ref: "candidate",
     },
   ],
+   
   Shortlisted: [
     {
       candidate_id: {
@@ -130,6 +115,10 @@ const CompanyJobSchema = new mongoose.Schema({
         default: false,
       },
       feed_back_Status:{
+       type:Boolean,
+       default:false
+      },
+      Candidate_feed_back_Status:{
         type:Boolean,
         default:false
        },
