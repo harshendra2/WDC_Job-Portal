@@ -767,6 +767,8 @@ exports.ListoutLongListCandidate = async (req, res) => {
 exports.ChangeInterviewStatus = async (req, res) => {
   const { userId, jobId } = req.params;
   const { interviewRound, status } = req.body;
+  console.log( userId, jobId )
+  console.log(interviewRound, status )
 
   if (!userId || !jobId) {
     return res.status(400).json({ error: "Please provide both userId and jobId" });

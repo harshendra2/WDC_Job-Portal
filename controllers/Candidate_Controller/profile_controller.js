@@ -225,10 +225,10 @@ exports.AddSummaryToCandidate=async(req,res)=>{
   }
     try{
 
-      const candidate=await await candidate.findById(user_id);
+      const candidates=await await candidate.findById(user_id);
 
       const updatedCandidate = await work_details.findOneAndUpdate(
-        { _id:candidate.work_details, 'Experience._id': exp_id },
+        { _id:candidates.work_details, 'Experience._id': exp_id },
         {
           $set: {
             'Experience.$.designation': designation,
@@ -612,10 +612,9 @@ exports.GetworkDetails=async(req,res)=>{
   const {user_id}=req.params;
   try{
     const data=await candidate.findById({_id:user_id}).populate('work_details');
-    if(!data){
-      return res.status(400).json({error:"Emptt work details"});
-    }
-    return res.status(200).send(data);
+    const workDetails = data.work_details;
+
+    return res.status(200).json(workDetails);
   }catch(error){
     return res.status(500).json({error:"Internal sever error"});
   }

@@ -16,7 +16,7 @@ exports.GetAllTransaction = async (req, res) => {
         $project: {
           "companydetails.company_name": 1,
           type: 1,
-          plane_name: 1,
+          Plane_name: 1,
           price: 1,
           payment_method: 1,
           transaction_Id: 1,
@@ -64,7 +64,7 @@ exports.GetAllCandidateTransation = async (req, res) => {
         {
           $project: {
             type: 1,
-          plane_name: 1,
+          Plane_name: 1,
           price: 1,
           payment_method: 1,
           transaction_Id: 1,
