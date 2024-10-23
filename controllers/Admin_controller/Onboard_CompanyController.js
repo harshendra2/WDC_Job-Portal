@@ -7,6 +7,7 @@ const axios=require('axios');
 const tesseract = require('tesseract.js');
 const mongoose=require('mongoose')
 const { sendMailToCompany } = require('../../Service/sendMail');
+const bcrypt=require('bcryptjs')
 
 const PAN_REGEX = /^[A-Z]{5}[0-9]{4}[A-Z]{1}$/;
 const GST_REGEX = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[A-Z0-9]{3}$/;
@@ -365,8 +366,7 @@ exports.uploadExcelFile = async (req, res) => {
         headQuarter_add:toCamelCase_Name(row.Headquarters_Address),
         PAN_image: row.PAN_Image_URL,
         GST_image: row.GST_Image_URL,
-        ImportStatus:false,
-        password:hashedPassword
+        ImportStatus:false
       };
 
 
