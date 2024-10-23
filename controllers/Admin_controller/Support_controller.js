@@ -11,10 +11,51 @@ exports.getAllIssuesClaim=async(req,res)=>{
                     from: 'companies',
                     localField: 'company_id',
                     foreignField: '_id',
-                    as: 'details'
+                    as: 'companyDetails'
+                }
+            },
+            {
+                $lookup: {
+                    from: 'candidates',
+                    localField: 'candidate_id',
+                    foreignField: '_id',
+                    as: 'candidateDetails'
+                }
+            },
+            {
+                $unwind: {
+                    path: '$candidateDetails',
+                    preserveNullAndEmptyArrays: true
+                }
+            },
+            {
+                $lookup: {
+                    from: 'candidate_basic_details',
+                    localField: 'candidateDetails.basic_details',
+                    foreignField: '_id',
+                    as: 'candidateBasicDetails'
+                }
+            },
+            {
+                $addFields: {
+                    details: {
+                        companyEmail: { $arrayElemAt: ['$companyDetails.email', 0] }, // Extract company email
+                        candidateEmail: { $arrayElemAt: ['$candidateBasicDetails.email', 0] }, // Extract candidate email
+                        candidateBasicDetails: { $arrayElemAt: ['$candidateBasicDetails', 0] } // Other candidate basic details
+                    }
+                }
+            },
+            {
+                $project: {
+                    companyDetails: 0, // Exclude original fields if not needed
+                    candidateDetails: 0,
+                    candidateBasicDetails: 0,
+                    'details.candidateBasicDetails':0
+
                 }
             }
         ]);
+        
         
         if (data && data.length > 0) {
             const isGoogleDriveLink = (url) => {
