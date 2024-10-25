@@ -2,7 +2,6 @@ const { getAllMessages, saveNewMessage } = require('../controllers/Company_Contr
 
 const chatSocket = (io) => {
   io.on("connection", (socket) => {
-    console.log("A client connected with ID:", socket.id);
     socket.on('getAllMessage', async (IssueId) => {
       try {
         const messages = await getAllMessages(IssueId);

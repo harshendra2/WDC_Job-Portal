@@ -2,7 +2,7 @@ const mongoose=require('mongoose');
 const moment = require('moment');
 const CompanyJob=require("../../models/JobSchema");
 const Company=require('../../models/Onboard_Company_Schema');
-
+const Candidate=require('../../models/Onboard_Candidate_Schema');
 
 exports.KeywordJobSearch = async (req, res) => {
   const { userId } = req.params;
@@ -490,7 +490,6 @@ exports.GetAllCompanyReveiw = async (req, res) => {
 
 exports.applyToJob = async (req, res) => {
     const { userId, jobId } = req.params;
-
     try {
         const job = await CompanyJob.findById(jobId);
         if (!job) {
@@ -513,6 +512,15 @@ exports.applyToJob = async (req, res) => {
         if (!applyToJob) {
             return res.status(404).json({ message: "Job not found" });
         }
+        await Candidate.findOneAndUpdate(
+          {_id:userId},
+          {$addToSet:{
+            StartRating:{
+              rating:1,
+              jobId:jobId
+            }
+          }}
+        )
 
         await CompanyJob.findOneAndUpdate(
             { _id: jobId },

@@ -8,6 +8,8 @@ router.post('/company/reg',controller.Registration);
 
 router.post('/company/login',controller.Login);
 router.post('/company/login_otp',controller.CompanyOTP);
+router.get('/company/profile/details/:cmpId',controller.GetCompanyDetails);
+router.get('/candidate.profile/details/:userId',controller.GetCandidateDetails);
 
 router.post('/company/forgotpassword',controller.forgotPassword);
 router.post('/company/newpassword',controller.NewPassowrd)

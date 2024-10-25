@@ -89,7 +89,20 @@ exports.getAllJob = async (req, res) => {
           foreignField: '_id',
           as: 'company'
         }
-      }
+      },
+      {$project:{
+        'company.company_name':1,
+        'company.profile':1,
+        job_title:1,
+        experience:1,
+        location:1,
+        salary:1,
+        education:1,
+        createdDate:1,
+        applied_candidates:1,
+        Green_Batch:1
+
+      }}
     ]);
 
     if (data && data.length > 0) {

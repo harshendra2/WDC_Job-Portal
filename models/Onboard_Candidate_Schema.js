@@ -67,15 +67,21 @@ const CandidateShema=new mongoose.Schema({
         type: mongoose.Schema.Types.ObjectId,
         ref: "company"
       },
-      rating: {
-        type: Number,
-        default: 0,
-      },
       feedBack: {
         type: String,
       }
     }
   ],
+  StartRating:[{
+   rating:{
+    type:Number,
+    default:0
+   },
+   jobId:{
+    type:mongoose.Schema.Types.ObjectId,
+    ref:'CompanyJob'
+   }
+}],
   verified_batch:[
     {
       batch_name: {

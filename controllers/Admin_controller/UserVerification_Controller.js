@@ -287,20 +287,13 @@ exports.BlockOnboardCompany=async(req,res)=>{
     if (!CompanyRecord) {
       return res.status(404).json({ error: "Company not found" });
     }
-    const updatedStatus = !CompanyRecord.block_status;
 
     const updated = await company.findByIdAndUpdate(
       ID, 
-      { block_status:updatedStatus, Attempt_count: 0 } 
+      { block_status:false, Attempt_count: 0 } 
     );
 
-    if (updatedStatus==true) {
-      return res.status(200).json({ message: "Company is blocked successfully" });
-    } else if(updatedStatus==false) {
       return res.status(200).json({ message: "Company is Unblocked successfully" });
-    }else{
-      return res.status(404).json({ error: "Company not found" });
-    }
   }catch(error){
     return res.status(500).json({error:"Internal server error"});
   }

@@ -2,6 +2,7 @@ const mongoose=require("mongoose");
 const company=require('../../models/Onboard_Company_Schema');
 const candidate=require('../../models/Onboard_Candidate_Schema')
 const Issue=require('../../models/Issue_Schema');
+const CompanyJob=require('../../models/JobSchema');
 const moment=require('moment')
 
 exports.getAllnotificatio=async(userId)=>{
@@ -79,7 +80,7 @@ exports.ViewIssues=async(userId)=>{
 exports.GetAllCVviewedCompany=async(userId)=>{
     try{
         const notification = await candidate.aggregate([
-            { $match: { _id: mongoose.Types.ObjectId(userId) } }, 
+            { $match: { _id:new  mongoose.Types.ObjectId(userId) } }, 
             { $unwind: "$profile_view_company" }, 
             { $match: { "profile_view_company.is_read": false } },
             { 
@@ -119,4 +120,46 @@ exports.CandidateViewedCompany=async(userId,companyId)=>{
     }catch(error){
         throw error;
     }
+}
+
+exports.getAllShortlistnotification=async(userId)=>{
+  try{
+        const shortlistedNotifications = await CompanyJob.aggregate([
+          {
+            $match: {
+              "applied_candidates.candidate_id":new mongoose.Types.ObjectId(userId),
+              "applied_candidates.Shortlist_status": true,
+              "applied_candidates.user_view":false
+            },
+          },
+          {$project:{
+            _id:1
+          }}
+        ]);
+    
+        return shortlistedNotifications;
+  }catch(error){
+    return error;
+  }
+}
+
+exports.UserViewShortlistData=async(userId,jobId)=>{
+  try{
+    const userID=new mongoose.Types.ObjectId(userId);
+    const jobID=new mongoose.Types.ObjectId(jobId);
+   const data= await CompanyJob.updateOne(
+      { 
+        _id: jobID, 
+        'applied_candidates.candidate_id': userID 
+      },
+      {
+        $set: { 'applied_candidates.$.user_view': true }
+      }
+    );
+    
+    return data;
+
+  }catch(error){
+    return error;
+  }
 }

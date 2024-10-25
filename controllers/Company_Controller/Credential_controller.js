@@ -247,7 +247,7 @@ exports.Login = async (req, res) => {
           });
 
           const token = jwt.sign(
-              { _id: candiateID._id, email: existUser.email },
+              { _id: candiateID._id},
               process.env.CANDIDATESECRET_KEY,
               { expiresIn: '30d' }
           );
@@ -298,7 +298,7 @@ exports.CompanyOTP = async (req, res) => {
 
       // Generate JWT token for the company
       const token = jwt.sign(
-        { _id: existedCompany._id, email: existedCompany.email },
+        { _id: existedCompany._id},
         process.env.COMPANYSECRET_KEY,
         { expiresIn: "30d" }
       );
@@ -345,6 +345,43 @@ exports.CompanyOTP = async (req, res) => {
   }
 };
 
+
+exports.GetCompanyDetails=async(req,res)=>{
+  const {cmpId}=req.params
+  try{
+ if(!cmpId){
+   return res.status(400).json({error:"Please provide Company Id"});
+  }
+
+  const data = await company.findById(cmpId).select('profile name');
+return res.status(200).send(data);
+
+  }catch(error){
+    return res.status(500).json({error:"Internal server error"});
+  }
+}
+
+exports.GetCandidateDetails=async(req,res)=>{
+  const {userId}=req.params;
+  try{
+    if(!userId){
+      return res.status(400).json({error:"Please provide User ID"})
+    }
+    const candidateDetails = await candidate
+    .findById(userId)
+    .populate({
+      path: 'basic_details',
+      select: 'name',
+  })
+    .select('profile'); 
+
+return res.status(200).send(candidateDetails);
+
+  }catch(error){
+    console.log(error);
+    return res.status(500).json({error:'Internal server error'});
+  }
+}
 
 
 exports.forgotPassword = async (req, res) => {

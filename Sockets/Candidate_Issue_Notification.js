@@ -2,7 +2,6 @@ const { getAllIssueNotificatio,ViewIssues} = require('../controllers/Candidate_C
 //this notification for Candidate when issue Solved
 const IssueNotification = (io) => {
     io.on("connection", (socket) => {
-        console.log("Issue notification socket connected")
 
         socket.on('CandidateIssuenotification',async(userId)=>{
             try{

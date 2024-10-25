@@ -126,21 +126,7 @@ exports.GetSavedProfileData=async(req,res)=>{
 // Function to extract PAN number from text using regex
 exports.EditProfile = async (req, res) => {
   const { id } = req.params;
-  const {
-      company_name,
-      email,
-      mobile,
-      overView,
-      industry,
-      company_size,
-      GST,
-      PAN,
-      website_url,
-      location,
-      contact_email,
-      contact_No,
-      headQuater_add
-  } = req.body;
+  const {company_name,email,mobile,overView,industry,company_size,GST,PAN,website_url,location,contact_email,contact_No,headQuater_add} = req.body;
   const { error } = EditCompanyProfile.validate({
       company_name,
       email,
@@ -213,6 +199,17 @@ exports.EditProfile = async (req, res) => {
               break;
 
           case 'reject':
+            if(previousDetails?.Attempt_count==5){
+              companyData = {
+                ...companyData,
+                status: 'reject',
+                Attempt_count:0,
+                block_status:true
+            };
+            if (panImage) companyData.PAN_image = panImage;
+            if (gstImage) companyData.GST_image = gstImage;
+            if (profile) companyData.profile = profile;
+            }else{
               companyData = {
                   ...companyData,
                   GST,
@@ -223,6 +220,7 @@ exports.EditProfile = async (req, res) => {
               if (panImage) companyData.PAN_image = panImage;
               if (gstImage) companyData.GST_image = gstImage;
               if (profile) companyData.profile = profile;
+            }
               break;
 
           default:

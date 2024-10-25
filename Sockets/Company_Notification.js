@@ -2,8 +2,6 @@ const { getAllnotificatio, ViewDetails } = require('../controllers/Company_Contr
 
 const companyNotification = (io) => {
     io.on("connection", (socket) => {
-        console.log("New candidate notification socket connected");
-
         socket.on('newCandidatenotification',async(companyId)=>{
             try {
                 socket.join(companyId);

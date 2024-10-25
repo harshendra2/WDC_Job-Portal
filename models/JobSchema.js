@@ -73,6 +73,10 @@ const CompanyJobSchema = new mongoose.Schema({
         type: Boolean,
         default: false,
       },
+      user_view:{
+       type:Boolean,
+       default:false
+      },
       interviewRound: [
         {
           roundName: {

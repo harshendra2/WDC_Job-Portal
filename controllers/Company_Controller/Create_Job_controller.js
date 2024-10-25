@@ -663,6 +663,13 @@ exports.ShortlistedForInterviewRound = async (req, res) => {
       }
     }
 
+       await Candidate.updateOne(
+        { _id: userId, 'StartRating.jobId':jobId},
+        {
+          $set: { 'StartRating.$.rating':2},
+        }
+       )
+
     return res.status(200).json({ message: "Candidate longlisted successfully" });
 
   } catch (error) {
@@ -850,6 +857,14 @@ const longlistCandidate = async (jobObjectId, userObjectId) => {
       }
     }
   );
+
+  await Candidate.updateOne(
+    { _id: userObjectId, 'StartRating.jobId':jobObjectId},
+    {
+      $set: { 'StartRating.$.rating':3},
+    }
+   )
+
 };
 
 
@@ -946,7 +961,7 @@ exports.ListshortList=async(req,res)=>{
 
 exports.AddUserFeedBack=async(req,res)=>{
   const {jobId,userId}=req.params;
-  const {feedBack,rating}=req.body;
+  const {feedBack}=req.body;
   try{
     if(!jobId && !userId){
       return res.status(400).json({error:"please provide job id and user Id"});
@@ -968,7 +983,6 @@ exports.AddUserFeedBack=async(req,res)=>{
         $addToSet: {
           Interviewed: {
             company_id:cmpID?.company_id, 
-            rating,
             feedBack
           }
         }
@@ -1116,6 +1130,12 @@ exports.OfferJobToCandidate= async(req,res)=>{
       },
       { new: true }
     );
+    await Candidate.updateOne(
+      { _id: userId, 'StartRating.jobId':jobId},
+      {
+        $set: { 'StartRating.$.rating':4},
+      }
+     )
     return res.status(200).json({error:"Offer letter uploaded successfully"});
 
   }catch(error){

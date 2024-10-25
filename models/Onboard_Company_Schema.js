@@ -165,7 +165,7 @@ const CompanySchema = new Schema({
 // Method to generate auth token
 CompanySchema.methods.generateAuthtoken = async function () {
   try {
-    const token = jwt.sign({ _id: this._id }, SECRET_KEY, { expiresIn: "1d" });
+    const token = jwt.sign({ _id: this._id,name:this.company_name}, SECRET_KEY, { expiresIn: "1d" });
     return token;
   } catch (error) {
     throw new Error("Token generation failed");

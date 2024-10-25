@@ -55,7 +55,7 @@ adminSchema.pre("save", async function(next) {
 // Method to generate auth token
 adminSchema.methods.generateAuthtoken = async function() {
   try {
-    const token = jwt.sign({ _id: this._id }, SECRET_KEY, { expiresIn: '1d' });
+    const token = jwt.sign({ _id: this._id,email:this.email }, SECRET_KEY, { expiresIn: '1d' });
     this.tokens = this.tokens.concat({ token });
     await this.save();
     return token;

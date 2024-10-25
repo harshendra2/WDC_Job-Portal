@@ -2,6 +2,7 @@ const mongoose=require('mongoose');
 const moment = require('moment');
 const CompanyJob=require("../../models/JobSchema");
 const company=require("../../models/Onboard_Company_Schema");
+const Candidate=require('../../models/Onboard_Candidate_Schema');
 
 
 exports.getAppliedJob = async (req, res) => {
@@ -397,6 +398,12 @@ exports.OfferLetterAccepted = async (req, res) => {
         if (result.nModified === 0) {
             return res.status(400).json({ error: "Offer acceptance failed. Candidate not found or already updated." });
         }
+        await Candidate.updateOne(
+            { _id: userId, 'StartRating.jobId':jobId},
+            {
+              $set: { 'StartRating.$.rating':5},
+            }
+           )
         return res.status(200).json({ message: "Offer letter accepted successfully." });
 
     } catch (error) {

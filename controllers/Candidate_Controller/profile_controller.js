@@ -110,7 +110,7 @@ exports.getProfilePercentageStatus = async (req, res) => {
       const filledFields = filledBasicFields + filledEducationFields + filledWorkFields + filledPersonalFields;
 
       const profileCompletionPercentage = Math.round((filledFields / totalFields) * 100);
-      const starRating = data.Interviewed.map((temp) => temp.rating);
+      const starRating = data.StartRating.map((temp) => temp.rating);
       const totalRating = starRating.reduce((acc, rating) => acc + rating, 0);
       const averageRating = starRating.length > 0 ? totalRating / starRating.length : 0;
         const baseUrl = `${req.protocol}://${req.get('host')}`;
