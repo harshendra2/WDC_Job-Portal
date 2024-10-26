@@ -971,3 +971,37 @@ exports.getSubscriptionCountStatus=async(req,res)=>{
         return res.status(500).json({error:"Internal server error"});
     }
 }
+
+exports.DownloadSingleFiles = async (req, res) => {
+    const {url } = req.query;
+    const isGoogleDriveLink = /^https:\/\/drive\.google\.com/.test(url);
+    try {
+      if (isGoogleDriveLink) {
+        const fileId = url.split('/d/')[1]?.split('/')[0];
+        if (!fileId) {
+          return res.status(400).json({ error: "Invalid Google Drive URL." });
+        }
+  
+        const googleDriveUrl = `https://drive.google.com/uc?export=download&id=${fileId}`;
+
+        const response = await axios({
+          url: googleDriveUrl,
+          method: 'GET',
+          responseType: 'stream',
+        });
+        res.setHeader('Content-Disposition', 'attachment; filename="resume.pdf"');
+        response.data.pipe(res);
+  
+      } else {
+        const file = url.split('/Images/')[1]?.split('/')[0];
+        const filePath = path.join(__dirname, '../../Images', file);
+        return res.download(filePath, (err) => {
+          if (err) {
+            return res.status(500).send("Could not download the file.");
+          }
+        });
+      }
+    } catch (error) {
+      return res.status(500).json({ error: "Internal server error" });
+    }
+  };

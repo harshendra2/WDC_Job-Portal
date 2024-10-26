@@ -7,8 +7,8 @@ const candidateNotification = (io) => {
             try {
                 const Notification = await GetAllCVviewedCompany (userId)
                 socket.emit('companyViewnotification', Notification)
-            } catch (err) {
-                console.log(err)
+            } catch (error) {
+                console.log(error)
             }
         
     })
@@ -17,8 +17,8 @@ const candidateNotification = (io) => {
             try {
                 const Viewed = await CandidateViewedCompany(userId,companyId)
                 io.emit('companyview', Viewed)
-            } catch (err) {
-                console.log(err)
+            } catch (error) {
+                console.log(error)
             }
         })
 

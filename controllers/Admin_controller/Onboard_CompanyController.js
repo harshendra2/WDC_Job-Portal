@@ -16,7 +16,6 @@ const OnboardRegistration = Joi.object({
   email: Joi.string().email().required(),
   mobile: Joi.string().length(10).pattern(/^[0-9]+$/).required(), 
   company_name: Joi.string().min(5).required(),
-  overView: Joi.string().min(6),
   industry: Joi.string().min(1),
   company_size: Joi.string(),
   GST: Joi.string().pattern(/^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[A-Z0-9]{1}[Z]{1}[A-Z0-9]{1}$/), 
@@ -33,7 +32,6 @@ const OnboardComapanyEdit=Joi.object({
   email: Joi.string().email().required(),
   mobile: Joi.string().length(10).pattern(/^[0-9]+$/).required(), 
   company_name: Joi.string().min(5).required(),
-  overView: Joi.string().min(6),
   industry: Joi.string().min(1),
   company_size: Joi.string(),
   GST: Joi.string().pattern(/^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[A-Z0-9]{1}[Z]{1}[A-Z0-9]{1}$/), 
@@ -48,7 +46,7 @@ const OnboardComapanyEdit=Joi.object({
 exports.createOnboardCompany = async (req, res) => {
   const {email, mobile, company_name,overView,industry,company_size,GST,PAN,website_url,location,contact_email,contact_No,headQuater_add} = req.body;
 
-  const { error } = OnboardRegistration.validate({ email, mobile, company_name,overView,industry,company_size,GST,PAN,website_url,location,contact_email,contact_No,headQuater_add});
+  const { error } = OnboardRegistration.validate({ email, mobile, company_name,industry,company_size,GST,PAN,website_url,location,contact_email,contact_No,headQuater_add});
   const panImage = req?.files['panImage'] ? req?.files['panImage'][0]?.path : null;
   const gstImage = req?.files['gstImage'] ? req?.files['gstImage'][0]?.path : null;
   const profile = req?.files['profile'] ? req?.files['profile'][0]?.path : null;
@@ -71,27 +69,27 @@ exports.createOnboardCompany = async (req, res) => {
       return res.status(400).json({ error: "Mobile number already existed" });
     }
 
-    let panText = '';
-        let gstText = '';
+    // let panText = '';
+    //     let gstText = '';
 
-        if (panImage) {
-            // Perform OCR on PAN image
-            const panResult = await tesseract.recognize(panImage, 'eng');
-            panText = panResult.data.text;
-        }
+        // if (panImage) {
+        //     // Perform OCR on PAN image
+        //     const panResult = await tesseract.recognize(panImage, 'eng');
+        //     panText = panResult.data.text;
+        // }
 
-        if (gstImage) {
-            // Perform OCR on GST image
-            const gstResult = await tesseract.recognize(gstImage, 'eng');
-            gstText = gstResult.data.text;
-        }
-        gstText = preprocessText(gstText);
+        // if (gstImage) {
+        //     // Perform OCR on GST image
+        //     const gstResult = await tesseract.recognize(gstImage, 'eng');
+        //     gstText = gstResult.data.text;
+        // }
+        //gstText = preprocessText(gstText);
         // Extract the PAN and GST numbers from the text using regex
-        const panNumber = extractPAN(panText);
-        const gstNumber = extractGST(gstText);
-        if (panNumber != PAN) {
-            return res.status(400).json({ error: "PAN number and PAN image number do not match" });
-        }
+        // const panNumber = extractPAN(panText);
+        // const gstNumber = extractGST(gstText);
+        // if (panNumber != PAN) {
+        //     return res.status(400).json({ error: "PAN number and PAN image number do not match" });
+        // }
         // if (gstNumber !=GST) {
         //     return res.status(400).json({ error: "GST number and GST image number do not match" });
         // }
@@ -111,23 +109,23 @@ exports.createOnboardCompany = async (req, res) => {
   }
 };
 
-const preprocessText = (text) => {
-  return text.replace(/[^A-Z0-9\s]/gi, '').replace(/\s+/g, ' ').trim();
-};
-// Function to extract PAN number from text using regex
-const extractPAN = (text) => {
-  const panRegex = /[A-Z]{5}[0-9]{4}[A-Z]{1}/;
-  const match = text.match(panRegex);
-  return match ? match[0] : null;
-};
+// const preprocessText = (text) => {
+//   return text.replace(/[^A-Z0-9\s]/gi, '').replace(/\s+/g, ' ').trim();
+// };
+// // Function to extract PAN number from text using regex
+// const extractPAN = (text) => {
+//   const panRegex = /[A-Z]{5}[0-9]{4}[A-Z]{1}/;
+//   const match = text.match(panRegex);
+//   return match ? match[0] : null;
+// };
 
 // Function to extract GST number from text using regex
-const extractGST = (text) => {
- const gstRegex = /\d{2}[A-Z]{5}\d{4}[A-Z]{1}[A-Z\d]{1}[Z]{1}[A-Z\d]{1}/;
-  const match = text.match(gstRegex);
-  return match ? match[0] : null;
+// const extractGST = (text) => {
+//  const gstRegex = /\d{2}[A-Z]{5}\d{4}[A-Z]{1}[A-Z\d]{1}[Z]{1}[A-Z\d]{1}/;
+//   const match = text.match(gstRegex);
+//   return match ? match[0] : null;
 
-};
+// };
 
 
 exports.getSingleCompany = async (req, res) => {
@@ -240,26 +238,74 @@ exports.getAllOnboardCompany = async (req, res) => {
 
 
 exports.editOnboardCompany = async (req, res) => {
-  const {email, mobile, company_name,overView,industry,company_size,GST,PAN,website_url,location,contact_email,contact_No,headQuater_add} = req.body;
+  const { 
+    email, 
+    mobile, 
+    company_name,
+    overView,
+    industry,
+    company_size,
+    GST,
+    PAN,
+    website_url,
+    location,
+    contact_email,
+    contact_No,
+    headQuater_add 
+  } = req.body;
+  
   const { id } = req.params;
-  const panImage = req.files['panImage'] ? req.files['panImage'][0].path : null;
-  const gstImage = req.files['gstImage'] ? req.files['gstImage'][0].path : null;
-  const profile = req.files['profile'] ? req.files['profile'][0].path : null;
-  const { error } = OnboardComapanyEdit.validate({mobile,company_name,email,overView,industry,company_size,GST,PAN,website_url,location,contact_email,contact_No,headQuater_add});
+
+  const panImage = req?.files['panImage'] ? req?.files['panImage'][0]?.path : undefined;
+  const gstImage = req?.files['gstImage'] ? req?.files['gstImage'][0]?.path : undefined;
+  const profile = req?.files['profile'] ? req?.files['profile'][0]?.path : undefined;
+
+  // Validate the input data
+  const { error } = OnboardComapanyEdit.validate({
+    mobile,
+    company_name,
+    email,
+    industry,
+    company_size,
+    GST,
+    PAN,
+    website_url,
+    location,
+    contact_email,
+    contact_No,
+    headQuater_add
+  });
+
   if (error) {
     return res.status(400).json({ error: error.details[0].message });
   }
 
   try {
-    const updatedCompany = await Company.findByIdAndUpdate(
-      id,
-      {email, mobile, company_name,overView,industry,company_size,GST,PAN,website_url,location,contact_email,contact_No,headQuater_add,GST_image:gstImage,PAN_image:panImage,profile},
-      { new: true }
-    );
-
-    if (!updatedCompany) {
+    const existingCompany = await Company.findById(id);
+    if (!existingCompany) {
       return res.status(404).json({ error: "Company not found" });
     }
+
+    const updatedData = {
+      email,
+      mobile,
+      company_name,
+      overView,
+      industry,
+      company_size,
+      GST,
+      PAN,
+      website_url,
+      location,
+      contact_email,
+      contact_No,
+      headQuater_add,
+      GST_image: gstImage !== undefined ? gstImage : existingCompany.GST_image,
+      PAN_image: panImage !== undefined ? panImage : existingCompany.PAN_image,
+      profile: profile !== undefined ? profile : existingCompany.profile
+    };
+
+    const updatedCompany = await Company.findByIdAndUpdate(id, updatedData, { new: true });
 
     return res.status(200).json({ message: "Company details updated successfully", updatedCompany });
   } catch (error) {
@@ -268,7 +314,6 @@ exports.editOnboardCompany = async (req, res) => {
 };
 
 
-// download and upload Excel Sheets
 
 exports.DownloadExcelTemplete = async (req, res) => {
   try {
@@ -334,36 +379,44 @@ exports.uploadExcelFile = async (req, res) => {
     }
 
     function toCamelCase_Name(input) {
-      return input
+      if(typeof input=='string'){
+      return input?input
         .toLowerCase()
         .split(' ')
         .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-        .join(' ');
+        .join(' '):null
+      }else{
+        return input;
+      }
     }
 
     function toCamelCase_Sentence(input) {
-      return input
+      if(typeof input=='string'){
+      return input?input
         .toLowerCase()
         .split('  ')
         .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-        .join(' ');
+        .join(' '):null
+      }else{
+        return input;
+      }
     }
 
     for (const row of sheetData) {
       const Details = {
-        company_name:toCamelCase_Name(row.Company_Name),
+        company_name:row?.Company_Name?toCamelCase_Name(row.Company_Name):null,
         email: row.Email,
         mobile: row.Mobile_No,
-        overview:toCamelCase_Sentence( row.Overview ),
-        industry:toCamelCase_Name(row.Industry),
+        overview: row?.Overview?toCamelCase_Sentence( row.Overview ):null,
+        industry:row.Industry?toCamelCase_Name(row.Industry):null,
         company_size: row.Company_Size,
         GST: row.GST_Number,
         PAN: row.PAN_Number,
         website_url: row.Website_URL,
-        location:toCamelCase_Name(row.Location),
+        location:row.Location?toCamelCase_Name(row.Location):null,
         contact_email: row.Contact_Email,
         contact_No: row.Contact_Number,
-        headQuarter_add:toCamelCase_Name(row.Headquarters_Address),
+        headQuarter_add:row.Headquarters_Address?toCamelCase_Name(row.Headquarters_Address):null,
         PAN_image: row.PAN_Image_URL,
         GST_image: row.GST_Image_URL,
         ImportStatus:false
@@ -474,19 +527,19 @@ exports.uploadExcelFile = async (req, res) => {
     
     for (const row of sheetData) {
       const Details = {
-        company_name:toCamelCase_Name(row.Company_Name),
+        company_name:row?.Company_Name?toCamelCase_Name(row.Company_Name):null,
         email: row.Email,
         mobile: row.Mobile_No,
-        overview:toCamelCase_Sentence( row.Overview ),
-        industry:toCamelCase_Name(row.Industry),
+        overview: row.Overview ?toCamelCase_Sentence( row.Overview ):null,
+        industry:row.Industry?toCamelCase_Name(row.Industry):null,
         company_size: row.Company_Size,
         GST: row.GST_Number,
         PAN: row.PAN_Number,
         website_url: row.Website_URL,
-        location:toCamelCase_Name(row.Location),
+        location:row.Location?toCamelCase_Name(row.Location):null,
         contact_email: row.Contact_Email,
         contact_No: row.Contact_Number,
-        headQuarter_add:toCamelCase_Name(row.Headquarters_Address),
+        headQuarter_add:row.Headquarters_Address?toCamelCase_Name(row.Headquarters_Address):null,
         PAN_image: row.PAN_Image_URL,
         GST_image: row.GST_Image_URL,
         ImportStatus:false,
@@ -537,7 +590,7 @@ exports.uploadExcelFile = async (req, res) => {
       }
 
       // Check if the email already exists
-      const existsCompany = await Company.findOne({company_name: Details.company_name});
+      const existsCompany = await Company.findOne({company_name: Details?.company_name});
       if (existsCompany) {
         return res.status(400).json({ error: `Company "${Details.company_name}" already created.` });
       }

@@ -12,20 +12,26 @@ const EditSubscriptionPlane = Joi.object({
   });
 
 
-exports.getallsubscription=async(req,res)=>{
-    try{
-        const topUpPlane=await TopUpPlane.find({});
-        const subscriptionplane=await subscription.find({});
-        if(subscriptionplane){
-            return res.status(200).send({subscriptionplane,topUpPlane});
-        }else{
-            return res.status(404).json({message:"Empty data base"});
-        }
 
-    }catch(error){
-        return res.status(500).json({error:"Internal Server Error"});
+  exports.getallsubscription = async (req, res) => {
+    try {
+        const topUpPlane = await TopUpPlane.find({});
+        const subscriptionplane = await subscription.find({});
+        const promoteJob = await PromotePlan.find({});
+        const Greenbatch = await GreenBatch.find({})
+            return res
+                .status(200)
+                .send({
+                    subscriptionplane,
+                    topUpPlane,
+                    promoteJob,
+                    Greenbatch
+                });
+        
+    } catch (error) {
+        return res.status(500).json({ error: 'Internal Server Error' });
     }
-}
+};
 
 exports.getAllSubscriptionName = async (req, res) => {
     try {

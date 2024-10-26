@@ -12,4 +12,7 @@ router.post('/company/download_email/:companyId',controller.DownloadMultipleEmai
 router.post('/company/download_resume/:companyId',controller.DownloadMultipleResume);
 router.get('/company/subscription_count_status/:companyId',controller.getSubscriptionCountStatus);
 
+//Download Single Resume and other file
+router.get('/company/download-resume',controller.DownloadSingleFiles);
+
 module.exports=router;
