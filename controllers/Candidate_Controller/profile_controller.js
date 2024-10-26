@@ -845,7 +845,7 @@ exports.DeleteEducation=async(req,res)=>{
   try{
 
     const candidateData = await candidate.findById(user_id).populate('education_details');
-    const updatedEducationDetails = await education_details.findByIdAndDelete(
+    const updatedEducationDetails = await education_details.findByIdAndUpdate(
       candidateData.education_details._id,
       { $pull: { Education: { _id: education_id } } },
       { new: true } 
