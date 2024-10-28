@@ -9,6 +9,7 @@ router.post('/admin/create_basicdetails_candidate', controller.createBasicDetail
 router.post('/admin/create_personaldetails',controller.createPersonalDetailsCandidate);
 router.post('/admin/create_workdetails',upload.single("file"),controller.createWorkDetailsCandidate);
 router.post('/admin/create_educationdetails',uploads ,controller.createEducationDetailsCandidate);
+
 router.get('/admin/get_candidate',controller.getAllCandidate);
 
 router.get('/admin/get_basicdetails/:id',controller.getbasicDetails);

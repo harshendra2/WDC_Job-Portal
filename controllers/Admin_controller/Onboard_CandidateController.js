@@ -1,6 +1,7 @@
 const Joi=require("joi");
 const axios=require('axios');
 const XLSX = require('xlsx');
+const bcrypt=require('bcryptjs');
 const mongoose = require('mongoose');
 const candidate=require("../../models/Onboard_Candidate_Schema");
 const basic_details=require("../../models/Basic_details_CandidateSchema");
@@ -64,7 +65,6 @@ const OnboardCandidate = Joi.object({
   
   exports.createBasicDetaileCandidate = async (req, res) => {
     const { name, email, mobile, linkedIn} = req.body;
-  
     const { error } = OnboardCandidate.validate({
       name, email, mobile, linkedIn
     });
@@ -99,27 +99,25 @@ const OnboardCandidate = Joi.object({
       return res.status(201).json({ message: "Candidate details added successfully", candidate: savedCandidate });
   
     } catch (error) {
-      console.error('Error during candidate creation:', error);
+      console.log(error);
       return res.status(500).json({ error: "Internal Server Error" });
     }
   };
 
 
   exports.createPersonalDetailsCandidate = async (req, res) => {
-    const {gender,age,marriag_status,aadhar_number,PAN, family_member, father_name, son_name, spouse_profession,id} = req.body;
+    const {gender,age,marriag_status,aadhar_number,PAN, family_member, father_name, son_name, spouse_profession,location,country,id} = req.body;
+    // const { error } = OnboardCandidatePersonalDetails.validate({
+    //   gender,age,marriag_status,aadhar_number,PAN,family_member, father_name, son_name, spouse_profession
+    // });
   
-    const { error } = OnboardCandidatePersonalDetails.validate({
-      gender,age,marriag_status,aadhar_number,PAN,family_member, father_name, son_name, spouse_profession
-    });
-  
-    if (error) {
-      return res.status(400).json({ error: error.details[0].message });
-    }
-  
+    // if (error) {
+    //   return res.status(400).json({ error: error.details[0].message });
+    // }
     try {
       const CustomID=await candidate.findById(id);
       const CandidateData = {  gender,age,marriag_status,aadhar_number,PAN,family_member, father_name, son_name, spouse_profession,
-        custom_id:CustomID?.custom_id};
+        custom_id:CustomID?.custom_id,location,country};
       
       const newPersonalDetails = new personal_details(CandidateData);
       const savedPersonalDetails = await newPersonalDetails.save();
@@ -145,21 +143,19 @@ const OnboardCandidate = Joi.object({
   exports.createWorkDetailsCandidate=async(req,res)=>{
     const {industry,current_ctc,aspiring_position,work_experience,career_highlight,recognation,functions,preferred_location,current_location,skill,id}=req.body;
 
-    const { error } = OnboardCandidateWorkDetails.validate({
-      industry,current_ctc,aspiring_position,work_experience,career_highlight,recognation,functions,preferred_location,current_location
-    });
+    // const { error } = OnboardCandidateWorkDetails.validate({
+    //   industry,current_ctc,aspiring_position,work_experience,career_highlight,recognation,functions,preferred_location,current_location
+    // });
   
-    if (error) {
-      return res.status(400).json({ error: error.details[0].message });
-    }
+    // if (error) {
+    //   return res.status(400).json({ error: error.details[0].message });
+    // }
+
   
     try{
 
-      if (!req.file) {
-        return res.status(400).json({ error: "Please upload a file" });
-      }
       const CustomID=await candidate.findById(id);
-      const Candidatedata={industry,current_ctc,aspiring_position,work_experience,career_highlight,recognation,functions,preferred_location,current_location,resume:req.file.path,skill, custom_id:CustomID?.custom_id};
+      const Candidatedata={industry,current_ctc,aspiring_position,work_experience,career_highlight,recognation,functions,preferred_location,current_location,resume:req.file?req.file.path:'',skill, custom_id:CustomID?.custom_id};
       const newWorkDetails = new work_details(Candidatedata);
       const savedWorkDetails = await newWorkDetails.save();
           
@@ -177,6 +173,7 @@ const OnboardCandidate = Joi.object({
 
 
     }catch(error){
+      console.log(error);
       return res.status(500).json({error:"Internal Server Error"});
     }
   }
@@ -184,24 +181,31 @@ const OnboardCandidate = Joi.object({
 
   exports.createEducationDetailsCandidate = async (req, res) => {
     const { highest_education, board_represent, articles, certificates, id } = req.body;
-    const { error } = OnboardCandidateEducationDetails.validate({
-        highest_education, board_represent, articles
-    });
+    // const { error } = OnboardCandidateEducationDetails.validate({
+    //     highest_education, board_represent, articles
+    // });
 
-    if (error) {
-        return res.status(400).json({ error: error.details[0].message });
-    }
+    // if (error) {
+    //     return res.status(400).json({ error: error.details[0].message });
+    // }
 
     try {
-        const certificatesArray = certificates.map((certificate, index) => {
+      if(!id){
+        return res.status(500).json({error:"Please provide Candidate ID"});
+      }
+      let certificatesArray
+      if(certificates){
+         certificatesArray = certificates.map((certificate, index) => {
             const fileFieldName = `certificates[${index}][image]`;
-            const file = req.files[fileFieldName] ? req.files[fileFieldName][0] : null;
+            const file = req?.files[fileFieldName] ? req?.files[fileFieldName][0] :'';
             return {
                 Certificate: certificate.certificateName,
-                image: file ? file.path : null,
+                image: file ? file?.path : null,
             };
         });
-        const CustomID=await candidate.findById(id);
+      }
+      const ID=new mongoose.Types.ObjectId(id)
+        const CustomID=await candidate.findOne({_id:ID});
         const Candidatedata = {
             highest_education,
             board_represent,
@@ -228,8 +232,6 @@ const OnboardCandidate = Joi.object({
         return res.status(500).json({ error: "Internal Server Error" });
     }
 };
-
-  
 
   exports.getAllCandidate = async (req, res) => {
     try {
