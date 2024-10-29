@@ -132,7 +132,15 @@ exports.forgotPassword=async(req,res)=>{
         from: process.env.EMAIL_USER,
         to: email,
         subject: 'Password Reset OTP',
-        text: `Your OTP for password reset is: ${OTP}. This OTP is valid for the next 10 minutes. If you did not request this, please ignore this email.`,
+        text:`Dear User,
+
+You have requested to reset your password. Please use the OTP below to proceed with the reset process:
+
+OTP: ${OTP}
+
+This OTP is valid for the next 10 minutes. If you did not request a password reset, please ignore this email, and no changes will be made to your account.
+
+Thank you`,
       };
   
       await transporter.sendMail(mailOptions);

@@ -1,9 +1,6 @@
 const mongoose = require('mongoose');
 
 const TopUpPlaneSchema = new mongoose.Schema({
-    Subscription_Name:{
-      type:String
-    },
   plane_name: {
     type: String,
     required: true

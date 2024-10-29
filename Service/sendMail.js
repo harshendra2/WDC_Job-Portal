@@ -14,8 +14,16 @@ exports.sendEmail = async (email, OTP) => {
       const mailOptions = {
         from: process.env.EMAIL_USER,
         to:email,
-        subject: "Login OTP",
-        text: `Your OTP for Login: ${OTP}. This OTP is valid for the next 10 minutes. If you did not request this, please ignore this email.`,
+        subject: "Login Verification - OTP Code",
+       text:`Hello,
+
+You requested an OTP to verify your login. Please use the code below to proceed with your login:
+
+OTP Code: ${OTP}
+
+This code is valid for 10 minutes. If you did not request this OTP, please disregard this email to keep your account secure.
+
+Thank you`,
       };
       await transporter.sendMail(mailOptions);
   };

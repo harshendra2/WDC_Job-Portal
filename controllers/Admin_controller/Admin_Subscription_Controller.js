@@ -126,9 +126,9 @@ exports.createSubscriptionPlane=async(req,res)=>{
 
 //TopUp Plane Code
 exports.CreateNewTopUpPlane=async(req,res)=>{
-    const {Subscription_Name,plane_name,price,search_limit,cv_view_limit,job_posting,user_access}=req.body;
+    const {plane_name,price,search_limit,cv_view_limit,job_posting,user_access}=req.body;
     try{
-        const topupdata={Subscription_Name,plane_name,price,search_limit,cv_view_limit,job_posting,user_access}
+        const topupdata={plane_name,price,search_limit,cv_view_limit,job_posting,user_access}
       
         data = await new TopUpPlane(topupdata).save();
 
@@ -145,10 +145,10 @@ exports.CreateNewTopUpPlane=async(req,res)=>{
 }
 
 exports.EditTopUpPlane=async(req,res)=>{
-    const{Subscription_Name,plane_name,price,search_limit,cv_view_limit,job_posting,user_access}=req.body;
+    const{plane_name,price,search_limit,cv_view_limit,job_posting,user_access}=req.body;
     const {id}=req.params;
     try{
-     const topupdata={Subscription_Name,plane_name,price,search_limit,cv_view_limit,job_posting,user_access}
+     const topupdata={plane_name,price,search_limit,cv_view_limit,job_posting,user_access}
 
         const data=await TopUpPlane.findByIdAndUpdate(id,topupdata,{new:true});
         if(data){
