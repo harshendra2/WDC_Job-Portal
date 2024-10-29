@@ -1,4 +1,4 @@
-const {NewCompanyCreated,ViewCompanyNotification,NewCandidateCreated,ViewCandidateNotification} = require('../controllers/Admin_controller/AdminNotification_Controller');
+const {NewCompanyCreated,ViewCompanyNotification,NewCandidateCreated,ViewCandidateNotification,GetSupportRequestNot,ViewSupportNotification,KYCVerificationRequest,ViewKYCreqyest} = require('../controllers/Admin_controller/AdminNotification_Controller');
 
 //This notification for Candidate if new company is created
 const AdminNotification = (io) => {
@@ -39,12 +39,58 @@ const AdminNotification = (io) => {
         socket.on('adminviewCandidateNotification', async (adminId,candidateId) => {
             try {
                 const Viewed = await ViewCandidateNotification(adminId,candidateId)
-                io.emit('AdminView', Viewed)
+                io.emit('AdminViews', Viewed)
             } catch (err) {
                 console.log(err)
             }
         })
 
+    //SubAdmin LogedIn Notification
+          socket.on('SubadminloginNot',async(superAdminId)=>{
+            try{
+                const GetNotification=await GetSubAdminLogInNot(superAdminId);
+              socket.emit('getsubadminNot',GetNotification)
+            }catch(error){
+                console.log(error);
+            }
+          })
+
+    //Support Notification 
+      socket.on('SupportAdminNotification',async()=>{
+        try{
+            const GetSupportNTF=await GetSupportRequestNot();
+            socket.emit('listsupportrequest',GetSupportNTF);
+        }catch(error){
+            console.log(error);
+        }
+      })
+
+      socket.on('adminviewSupport', async (supportId) => {
+        try {
+            const Viewed = await ViewSupportNotification(supportId);
+            io.emit('AdminViewsupport', Viewed)
+        } catch (err) {
+            console.log(err)
+        }
+    })
+
+    //Company KYC verififcation request 
+     socket.on('kycverificationrequest',async()=>{
+        try{
+               const data=await KYCVerificationRequest();
+               io.emit('listkycrequest',data);
+        }catch(error){
+            console.log(error);
+        }
+     })
+
+     socket.on('viewKYCRequest',async(cmpID)=>{
+        try{
+            const data=await ViewKYCreqyest(cmpID)
+        }catch(error){
+            console.log(error);
+        }
+     })
 
         socket.on("disconnect", () => {
             console.log("disconnect")

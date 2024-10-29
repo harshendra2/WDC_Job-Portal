@@ -96,6 +96,10 @@ const CompanySchema = new Schema({
     type: Boolean,
     default: false,
   },
+  isView:{
+    type:Boolean,
+    default:false
+  },
   company_access_count:{
     type:Number,
     default:1

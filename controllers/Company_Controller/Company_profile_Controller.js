@@ -174,8 +174,6 @@ exports.EditProfile = async (req, res) => {
           contact_email,
           contact_No,
           headQuater_add,
-          GST_verify: false,
-          PAN_verify: false,
           message: ''
       };
 
@@ -186,7 +184,10 @@ exports.EditProfile = async (req, res) => {
                   ...companyData,
                   GST,
                   PAN,
-                  status: 'processing'
+                  status: 'processing',
+                  isView:false,
+                  GST_verify: false,
+                  PAN_verify: false,
               };
               if (panImage) companyData.PAN_image = panImage;
               if (gstImage) companyData.GST_image = gstImage;
@@ -195,6 +196,8 @@ exports.EditProfile = async (req, res) => {
 
           case 'approve':
               companyData.status = 'approve';
+              companyData.GST_verify=true;
+              companyData.PAN_verify=true;
               if (profile) companyData.profile = profile;
               break;
 
@@ -215,6 +218,9 @@ exports.EditProfile = async (req, res) => {
                   GST,
                   PAN,
                   status: 'processing',
+                  GST_verify:false,
+                  PAN_verify:false,
+                  isView:false,
                   Attempt_count:previousDetails?.Attempt_count+1
               };
               if (panImage) companyData.PAN_image = panImage;

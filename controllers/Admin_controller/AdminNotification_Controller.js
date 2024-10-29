@@ -1,5 +1,7 @@
 const company=require('../../models/Onboard_Company_Schema');
 const candidate=require("../../models/Onboard_Candidate_Schema");
+const admin=require('../../models/adminSchema');
+const support=require('../../models/Issue_Schema');
 
 exports.NewCompanyCreated=async(adminId)=>{
     try{
@@ -16,13 +18,20 @@ exports.NewCompanyCreated=async(adminId)=>{
 }
 
 exports.ViewCompanyNotification=async(adminId,companyId)=>{
+  console.log(adminId,companyId)
     try{
+const datas={
+  isRead:true,
+  admin_id: adminId
+}
+      const data = await company.findOneAndUpdate(
+        { _id: companyId },
+        {$push:{isRead_profile:datas
 
-        const data=await company.findByIdAndUpdate({_id:companyId,'isRead_profile.admin_id':adminId }, { $set: { 'isRead_profile.$.isRead': true } },
-            { new: true })
-          if(data){
-            return data ||[]
-          }
+        }}
+    );
+
+    return data || [];
     }catch(error){
         console.log(error);
     }
@@ -41,7 +50,6 @@ exports.ViewCompanyNotification=async(adminId,companyId)=>{
       })
       .populate({path:'work_details', select:'aspiring_position current_location'})
       .populate({path:'personal_details', select:'spouse_profession Pan_verified_status Aadhar_verified_status'});
-
       // Filter candidates with 100% profile completion
       const completeCandidates = candidates.filter(candidate => {
           const profileCompletionPercentage = calculateProfileCompletionPercentage(candidate);
@@ -97,14 +105,61 @@ exports.ViewCompanyNotification=async(adminId,companyId)=>{
 
     exports.ViewCandidateNotification=async(adminId,candidateId)=>{
       try{
-
-        const data=await candidate.findByIdAndUpdate({_id:candidateId,'isRead_profile.admin_id':adminId }, { $set: { 'isRead_profile.$.isRead': true } },
-          { new: true })
+          const datas={
+            isRead:true,
+            admin_id: adminId
+          }
+        const data=await candidate.findOneAndUpdate({_id:candidateId},  {$push:{isRead_profile:datas}})
         if(data){
           return data ||[]
         }
-
       }catch(error){
       console.log(error);
+      }
+    }
+
+    exports.GetSubAdminLogInNot=async(AdminId)=>{
+      try{
+        const data=await admin.find({});
+      }catch(error){
+        console.log(error);
+      }
+    }
+
+    exports.GetSupportRequestNot=async()=>{
+      try{
+        const data = await support.find({ status: 'pending', adminIsRead: false });
+        return data;
+      }catch(error){
+        console.log(error);
+      }
+    }
+
+    exports.ViewSupportNotification=async(ID)=>{
+      try{
+            const data=await support.findByIdAndUpdate(ID,{adminIsRead:true},{new:true});
+            return data;
+      }catch(error){
+        console.log(error);
+      }
+    }
+
+    exports.KYCVerificationRequest=async()=>{
+      try{
+        const data=await company.find({status:'processing',GST_verify:false,PAN_verify:false, isView:false}).select('name _id');
+        return data;
+      }catch(error){
+        console.log(error);
+      }
+    }
+
+    exports.ViewKYCreqyest=async(cmpID)=>{
+      try{
+        const updatedData = await company.findByIdAndUpdate(cmpID,{isView:true}, {
+          new: true
+      });
+      return updatedData;
+      }catch(error){
+        console.log(error);
       }
     }

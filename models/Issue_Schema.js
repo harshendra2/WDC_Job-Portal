@@ -32,6 +32,10 @@ const IssueSchema = new mongoose.Schema({
   isRead:{
     type:Boolean,
     default:false
+  },
+  adminIsRead:{
+    type:Boolean,
+    default:false
   }
 });
 

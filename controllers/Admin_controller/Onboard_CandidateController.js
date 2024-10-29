@@ -610,8 +610,9 @@ const OnboardCandidate = Joi.object({
           Name_of_Father: '',
           Son_Name: '',
           Spouse_profession: '',
+          Location:'',
+          Country:'',
           Resume_Link: '',
-          Designation: '',
           Industry: '',
           Current_CTC: '',
           Role: '',
@@ -660,7 +661,7 @@ const OnboardCandidate = Joi.object({
       }
 
       for (const row of sheetData) {
-        if(!row.Name&& !row.Email&& !row.Mobile_No && !row.linkedIn_Profile_Link&&!row.Gender&&!row.Age&&!row.Marriage_Status&&!row.Aadhar_Number&&!row.PAN_Number&&!row.Member_In_Family&&!row.Name_of_Father&&!row.Son_Name&&!row.Spouse_profession&&!row.Designation&&!row.Industry&&!row.Current_CTC&&!row.Role&&!row.Total_experience&&!row.Last_reposrting_Structure&&!row.Career_Highlight&&!row.Recognation&&!row.Functions_S&&!row.Preffered_location&&!row.Current_location&&!row.Resume_Link&&!row.Highest_Education&&!row.Board_Represent_Name&&!row.Articles){
+        if(!row.Name&& !row.Email&& !row.Mobile_No && !row.linkedIn_Profile_Link&&!row.Gender&&!row.Age&&!row.Marriage_Status&&!row.Aadhar_Number&&!row.PAN_Number&&!row.Member_In_Family&&!row.Name_of_Father&&!row.Son_Name&&!row.Spouse_profession&&!row.Industry&&!row.Current_CTC&&!row.Role&&!row.Total_experience&&!row.Last_reposrting_Structure&&!row.Career_Highlight&&!row.Recognation&&!row.Functions_S&&!row.Preffered_location&&!row.Current_location&&!row.Resume_Link&&!row.Highest_Education&&!row.Board_Represent_Name&&!row.Articles){
           return res.status(400).json({ error: "Empty Excel file" });
         }
         // Validation for basic details
@@ -705,11 +706,13 @@ const OnboardCandidate = Joi.object({
         if (row.Spouse_profession && typeof row.Spouse_profession !== 'string') {
           return res.status(400).json({ error: "Spouse profession must be a string." });
         }
-  
-        // Validation for work details
-        if (!row.Designation || typeof row.Designation !== 'string') {
-          return res.status(400).json({ error: "Designation is required and must be a string." });
+        if (row.Location && typeof row.Location !== 'string') {
+          return res.status(400).json({ error: "Location must be a string." });
         }
+        if (row.Country && typeof row.Country !== 'string') {
+          return res.status(400).json({ error: "Country must be a string." });
+        }
+  
        
         if (row.Industry && typeof row.Industry !== 'string') {
           return res.status(400).json({ error: "Industry must be a string." });
@@ -837,14 +840,14 @@ const OnboardCandidate = Joi.object({
         if (row.Spouse_profession && typeof row.Spouse_profession !== 'string') {
           return res.status(400).json({ error: "Spouse profession must be a string." });
         }
+        if (row.Location && typeof row.Location !== 'string') {
+          return res.status(400).json({ error: "Location must be a string." });
+        }
+        if (row.Country && typeof row.Country !== 'string') {
+          return res.status(400).json({ error: "Country must be a string." });
+        }
   
         // Validation for work details
-        if (!row.Designation || typeof row.Designation !== 'string') {
-          return res.status(400).json({ error: "Designation is required and must be a string." });
-        }
-        if (!row.Company_name || typeof row.Company_name !== 'string') {
-          return res.status(400).json({ error: "Company name is required and must be a string." });
-        }
         if (row.Industry && typeof row.Industry !== 'string') {
           return res.status(400).json({ error: "Industry must be a string." });
         }
@@ -927,8 +930,8 @@ const OnboardCandidate = Joi.object({
         const hashedPassword = await bcrypt.hash("Candidate12#", 12);
         const basicDetails={ name:toCamelCase_Name(row.Name), email:row.Email, mobile:row.Mobile_No, linkedIn:row.linkedIn_Profile_Link,password:hashedPassword,
           custom_id:customId};
-        const personalDetails={gender:row.Gender,age:row.Age,marriag_status:toCamelCase_Name(row.Marriage_Status),aadhar_number:row.Aadhar_Number,PAN:row.PAN_Number,family_member:row.Member_In_Family, father_name:toCamelCase_Name(row.Name_of_Father), son_name:toCamelCase_Name(row.Son_Name), spouse_profession:toCamelCase_Name(row.Spouse_profession), custom_id:customId}
-        const workDetails={designation:toCamelCase_Name(row.Designation),industry:toCamelCase_Name(row.Industry),current_ctc:row.Current_CTC,aspiring_position:toCamelCase_Name(row.Role),work_experience:row.Total_experience,career_highlight:toCamelCase_Name(row.Career_Highlight),recognation:toCamelCase_Name(row.Recognation),functions:row.Functions_S,preferred_location:row.Preffered_location,current_location:row.Current_location,resume:row.Resume_Link, custom_id:customId}
+        const personalDetails={gender:row.Gender,age:row.Age,marriag_status:toCamelCase_Name(row.Marriage_Status),aadhar_number:row.Aadhar_Number,PAN:row.PAN_Number,family_member:row.Member_In_Family, father_name:toCamelCase_Name(row.Name_of_Father), son_name:toCamelCase_Name(row.Son_Name), spouse_profession:toCamelCase_Name(row.Spouse_profession), custom_id:customId,location:toCamelCase_Name(row.Location),country:toCamelCase_Name(row.Country)}
+        const workDetails={industry:toCamelCase_Name(row.Industry),current_ctc:row.Current_CTC,aspiring_position:toCamelCase_Name(row.Role),work_experience:row.Total_experience,career_highlight:toCamelCase_Name(row.Career_Highlight),recognation:toCamelCase_Name(row.Recognation),functions:row.Functions_S,preferred_location:row.Preffered_location,current_location:row.Current_location,resume:row.Resume_Link, custom_id:customId}
         const educationDetails={ highest_education:toCamelCase_Name(row.Highest_Education),board_represent:toCamelCase_Name(row.Board_Represent_Name),articles:toCamelCase_Name(row.Articles), custom_id:customId}
   
         // Save data to the database

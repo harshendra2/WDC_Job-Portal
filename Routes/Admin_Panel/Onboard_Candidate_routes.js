@@ -3,7 +3,7 @@ const router = new express.Router();
 const controller = require("../../controllers/Admin_controller/Onboard_CandidateController");
 const uploads = require("../../middleware/multiple_certificate_multer");
 const {upload}=require("../../middleware/multer")
-const multer=require('multer');
+const {uploadss}=require('../../middleware/ExcelFiles');
 
 router.post('/admin/create_basicdetails_candidate', controller.createBasicDetaileCandidate);
 router.post('/admin/create_personaldetails',controller.createPersonalDetailsCandidate);
@@ -26,7 +26,7 @@ router.put('/admin/edit_educationdetails/:id',uploads ,controller.editEducationD
 
 // download Excel and upload Excel Sheets
 router.get('/admin/candidate/download-excel-template',controller.DownloadExcelTemplate);
-router.post('/admin/candidate/upload-excel',upload.single('file'),controller.uploadExcelFile);
+router.post('/admin/candidate/upload-excel',uploadss.single('file'),controller.uploadExcelFile);
 router.post('/admin/candidate/send_mail',controller.SendImportedCandidateMail);
 
 module.exports = router;

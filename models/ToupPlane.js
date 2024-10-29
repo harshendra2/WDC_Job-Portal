@@ -13,17 +13,22 @@ const TopUpPlaneSchema = new mongoose.Schema({
     required: true
   },
   search_limit: {
-      type: mongoose.Schema.Types.Mixed, // Allows both numbers and strings
-      default:500
+      type: mongoose.Schema.Types.Mixed,
+      default:0
   },
   cv_view_limit: {
-    type: mongoose.Schema.Types.Mixed, // Allows both numbers and strings
-    default:200
+    type: mongoose.Schema.Types.Mixed,
+    default:0
   },
   job_posting: {
-    type: Number,
-    default: 0
-  }
+    type: mongoose.Schema.Types.Mixed,
+    default:0
+  },
+  
+user_access:{
+  type: mongoose.Schema.Types.Mixed,
+  default:0
+}
 });
 
 module.exports = mongoose.model("TopUpPlane", TopUpPlaneSchema);

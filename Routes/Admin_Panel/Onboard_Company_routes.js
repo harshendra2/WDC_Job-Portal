@@ -2,7 +2,7 @@ const express = require("express");
 const router = new express.Router();
 const controller = require("../../controllers/Admin_controller/Onboard_CompanyController");
 const {upload}=require('../../middleware/multiple_image_multer');
-const {uploads}=require('../../middleware/ExcelFiles');
+const {uploadss}=require('../../middleware/ExcelFiles');
 
 router.post('/admin/create_company',upload.fields([{ name: 'panImage' },{ name: 'gstImage' },{name:'profile'}]),controller.createOnboardCompany);
 router.get('/admin/get_company',controller.getAllOnboardCompany);
@@ -11,7 +11,7 @@ router.put('/admin/edit_company/:id',upload.fields([{ name: 'panImage' },{ name:
 
 // download Excel and upload Excel Sheets
 router.get('/admin/company/download-excel-template',controller.DownloadExcelTemplete);
-router.post('/admin/company/upload-excel', uploads.single('file'),controller.uploadExcelFile);
+router.post('/admin/company/upload-excel', uploadss.single('file'),controller.uploadExcelFile);
 router.post('/admin/company/send_email',controller.SendEmailImportedCandidate);
 
 module.exports = router;

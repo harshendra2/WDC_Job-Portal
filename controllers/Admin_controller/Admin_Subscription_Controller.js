@@ -126,15 +126,15 @@ exports.createSubscriptionPlane=async(req,res)=>{
 
 //TopUp Plane Code
 exports.CreateNewTopUpPlane=async(req,res)=>{
-    const {Subscription_Name,plane_name,price,search_limit,cv_view_limit,job_posting}=req.body;
+    const {Subscription_Name,plane_name,price,search_limit,cv_view_limit,job_posting,user_access}=req.body;
     try{
-        const topupdata={Subscription_Name,plane_name,price,search_limit,cv_view_limit,job_posting}
+        const topupdata={Subscription_Name,plane_name,price,search_limit,cv_view_limit,job_posting,user_access}
       
         data = await new TopUpPlane(topupdata).save();
 
       if (data) {
         return res.status(201).json({
-          message: "TopUp plane added successfully",
+          message: "TopUp plan created successfully",
           topupdata: data
         });
     }
@@ -145,16 +145,16 @@ exports.CreateNewTopUpPlane=async(req,res)=>{
 }
 
 exports.EditTopUpPlane=async(req,res)=>{
-    const{Subscription_Name,plane_name,price,search_limit,cv_view_limit,job_posting}=req.body;
+    const{Subscription_Name,plane_name,price,search_limit,cv_view_limit,job_posting,user_access}=req.body;
     const {id}=req.params;
     try{
-     const topupdata={Subscription_Name,plane_name,price,search_limit,cv_view_limit,job_posting}
+     const topupdata={Subscription_Name,plane_name,price,search_limit,cv_view_limit,job_posting,user_access}
 
         const data=await TopUpPlane.findByIdAndUpdate(id,topupdata,{new:true});
         if(data){
-            return res.status(200).json({message:"TopUp plane updated Successfully",subscription:data})
+            return res.status(200).json({message:"TopUp plan updated Successfully",subscription:data})
         }else{
-            return res.status(404).json({error:"Topup Plane is not updated"});
+            return res.status(404).json({error:"Topup Plan is not updated"});
         }
     }catch(error){
         return res.status(500).json({error:"Internal server error"});
