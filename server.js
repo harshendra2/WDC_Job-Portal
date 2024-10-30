@@ -48,8 +48,8 @@ const PORT = 4000;
 
 
 // Middleware
-app.use(express.json({ limit: "500mb" })); // Parse JSON bodies with increased limit
-app.use(express.urlencoded({ extended: true, limit: "500mb" })); // Parse URL-encoded bodies with increased limit
+app.use(express.json({ limit: "500mb" })); 
+app.use(express.urlencoded({ extended: true, limit: "500mb" }));
 app.use(cors());
 app.use('/api',router);
 app.use('/api',companyRoute);
