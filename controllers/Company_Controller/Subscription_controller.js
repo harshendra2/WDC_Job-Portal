@@ -121,7 +121,7 @@ exports.payment = async (req, res) => {
             },
             order_meta: {
                 // return_url: "https://didatabank.com/PaymentSuccessfull?order_id=order_"+orderId\
-                return_url:"https://law-tech.co.in/PaymentSuccessfull?order_id=order"
+                return_url:"http://65.20.91.47/main/subscription-plan/subscription"
             },
             order_id:"order_"+orderId,
             order_amount:subscriptions?.price,
@@ -224,7 +224,8 @@ exports.verifyPayment = async (req, res) => {
                 return res.status(201).json({
                     message: "Payment verified and subscription created successfully",
                     paymentData: response.data,
-                    subscriptionData: subdata
+                    subscriptionData: subdata,
+                    orderId:orderId
                 });
             } else {
                 return res.status(404).json({ error: "Subscription plan not found" });
@@ -383,7 +384,7 @@ exports.RenewSubscriptionPlane = async (req, res) => {
                 customer_phone: String(CompanyDate.mobile),
             },
             order_meta: {
-                return_url: "https://didatabank.com/PaymentSuccessfull?order_id=order_"+orderId
+                return_url: "http://65.20.91.47/main/subscription-plan/subscription"
             },
             order_id:"order_"+orderId,
             order_amount:subscriptions?.price,
@@ -459,20 +460,14 @@ exports.RenewPlaneVerifyPayment = async (req, res) => {
                     createdDate:{$lte:new Date()}
                 })
 
-                if (existingSubscriptions.length > 0) {
-                    const existingSubscription = existingSubscriptions[0];
-                    // Reset the limits of the existing subscription
-                    existingSubscription.search_limit = 0;
-                    existingSubscription.user_access = 0;
-                    existingSubscription.cv_view_limit = 0;
-                    existingSubscription.job_posting = 0;
-                    existingSubscription.available_candidate = false;
-                    existingSubscription.download_email_limit = false;
-                    existingSubscription.download_cv_limit = false
-                    existingSubscription.expiresAt=new Date(new Date().setDate(new Date().getDate() - 1));
-                    await existingSubscription.save();
-                }
+                const existingSubscription = existingSubscriptions[0];
+                const createdDate = existingSubscription?.expiresAt
+    ? new Date(existingSubscription.expiresAt.getTime() + 24 * 60 * 60 * 1000) 
+    : new Date();
 
+const expiresAts = new Date(createdDate.getTime() + 30 * 24 * 60 * 60 * 1000); 
+
+            
                 // Create a new subscription for the company
                 const newSubscription = new CompanySubscription({
                     company_id: company_id,
@@ -486,8 +481,8 @@ exports.RenewPlaneVerifyPayment = async (req, res) => {
                     download_email_limit: subscriptionData.download_email_limit,
                     download_cv_limit: subscriptionData.download_cv_limit,
                     job_posting: subscriptionData.job_posting,
-                    createdDate: new Date(),
-                    expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), 
+                    createdDate:createdDate,
+                    expiresAt:expiresAts, 
                 });
                 await newSubscription.save();
 
@@ -498,15 +493,14 @@ exports.RenewPlaneVerifyPayment = async (req, res) => {
                     price:subscriptionData.price,
                     payment_method:paymentMethod,
                     transaction_Id:orderId,
-                    purchesed_data:new Date(),
-                    Expire_date: new Date(Date.now() + 30*24*60*60*1000)
+                    purchesed_data:createdDate,
+                    Expire_date:expiresAts
                 })
                 await transaction.save();
 
                 return res.status(201).json({
                     message: "Payment verified and Subscription plan is renewed successfully",
-                    paymentData: response.data,
-                    subscriptionData: newSubscription
+                    orderId:orderId
                 });
             } else {
                 return res.status(404).json({ error: "Subscription not found" });
@@ -525,22 +519,35 @@ exports.RenewPlaneVerifyPayment = async (req, res) => {
 exports.GetAllTopupPlane = async (req, res) => {
     const { company_id } = req.params;
     try {
-        const currentPlan = await CompanySubscription.findOne({ company_id,expiresAt: { $gte: new Date() },createdDate:{$lte:new Date()} })
+        const currentPlan = await CompanySubscription.findOne({
+            company_id,
+            expiresAt: { $gte: new Date() },
+            createdDate: { $lte: new Date() }
+        });
 
         if (!currentPlan) {
             return res.status(404).json({ error: "No subscription plan found for the company." });
         }
-        const subscriptions=await subscription.findOne({plane_name:currentPlan?.plane_name})
+
+        const subscriptions = await subscription.findOne({ plane_name: currentPlan?.plane_name });
+
         async function getTopUpPlane(fieldName) {
             const fieldValue = subscriptions[fieldName];
+
             if (typeof fieldValue === 'string' && fieldValue === 'Unlimited') {
-                return await TopUpPlane.findOne({ [fieldName]: 'Unlimited' });
-            } else if (typeof fieldValue === 'boolean'&& fieldValue==true) {
-                return await TopUpPlane.findOne({ [fieldName]: true });
-            } else if (typeof fieldValue === 'number' && fieldValue!=0) {
                 return await TopUpPlane.findOne({
-                    [fieldName]: { $exists: true, $ne: 0, $type: 'number' }
-                  });
+                    [fieldName]: { $exists: true, $ne: 0, $ne: null }
+                });
+            } else if (typeof fieldValue === 'boolean' && fieldValue === true) {
+                return await TopUpPlane.findOne({ [fieldName]: true });
+            } else if (typeof fieldValue === 'string'&& fieldValue!='null') {
+                return await TopUpPlane.findOne({
+                    [fieldName]: { $exists: true,$ne:null }
+                });
+            }else if(typeof fieldValue === 'number'&& fieldValue!=0){
+                return await TopUpPlane.findOne({
+                    [fieldName]: { $exists: true, $ne: 0}
+                });
             }
 
             return null;
@@ -549,8 +556,9 @@ exports.GetAllTopupPlane = async (req, res) => {
         let topupArray = [];
 
         function isDuplicate(data) {
-            return topupArray.some(item => item.plane_name == data.plane_name);
+            return topupArray.some(item => item.plane_name === data.plane_name);
         }
+
         const fieldNames = [
             'search_limit',
             'cv_view_limit',
@@ -560,19 +568,22 @@ exports.GetAllTopupPlane = async (req, res) => {
             'download_email_limit',
             'download_cv_limit'
         ];
+
         for (const fieldName of fieldNames) {
             const data = await getTopUpPlane(fieldName);
             if (data && !isDuplicate(data)) {
                 topupArray.push(data);
             }
         }
-    
+
         return res.status(200).json(topupArray);
 
     } catch (error) {
+        console.log(error);
         return res.status(500).json({ error: "Internal server error" });
     }
 };
+
 
 
 exports.TopUpSubscriptionPlane = async (req, res) => {
@@ -598,7 +609,7 @@ exports.TopUpSubscriptionPlane = async (req, res) => {
             order_meta: {
                 // return_url: "https://didatabank.com/PaymentSuccessfull?order_id=order_"+orderId\
                 return_url:
-                    'https://law-tech.co.in/PaymentSuccessfull?order_id=order'
+                    'http://65.20.91.47/main/subscription-plan/top-ups'
             },
             order_id: 'order_' + orderId,
             order_amount: subscription?.price,
@@ -722,7 +733,8 @@ exports.TopUpPlaneVerifyPayment = async (req, res) => {
             return res.status(201).json({
                 message:
                     'Payment verified and top-up plan applied successfully',
-                paymentData: response.data
+                paymentData: response.data,
+                orderId:orderId
             });
         } else {
             return res.status(400).json({ error: 'payment failed' });
@@ -779,7 +791,7 @@ exports.EarlySubscriptionplane=async(req,res)=>{
                 customer_phone: String(CompanyDate.mobile),
             },
             order_meta: {
-                return_url: "https://law-tech.co.in/PaymentSuccessfull?order_id=order_"
+                return_url: "http://65.20.91.47/main/subscription-plan/early-buy"
             },
             order_id:"order_"+orderId,
             order_amount:subscriptions?.price,
@@ -889,8 +901,7 @@ exports.SubscriptionPlaneVerifyPayment = async (req, res) => {
 
             return res.status(201).json({
                 message: "Payment verified and subscription created successfully",
-                paymentData: response.data,
-                subscriptionData: newSubscription
+                orderId:orderId
             });
         } else {
             return res.status(400).json({ error: "Payment not verified or payment failed" });

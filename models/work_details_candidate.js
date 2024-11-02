@@ -77,9 +77,9 @@ const work_details_candidate=new mongoose.Schema({
           End_posistion:{
             type:Boolean
           },
-          reliving_letter:{
-            type:String
-          }
+          employee_type:{
+          type:String
+          },
         }
     ]
 })

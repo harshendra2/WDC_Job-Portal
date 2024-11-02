@@ -10,14 +10,13 @@ function generateOrderId() {
 
 
 exports.CompanyGreenTicks=async(req,res)=>{
-    const { company_id} = req.body;
-    const green_id='66fa96672cecb7576cce9e2f'
+    const { company_id,green_id} = req.body;
     const apiUrl = 'https://sandbox.cashfree.com/pg/orders';
 
     try{
         const companyData=await company.findOne({_id:company_id});
 
-        const subscription = await VerifiedBatchPlaneSchema.findOne({ _id:green_id});
+        const subscription = await VerifiedBatchPlaneSchema.findById(green_id);
         
         if (!subscription) {
             return res.status(404).json({ error: "Subscription plane not found" });
@@ -31,7 +30,7 @@ exports.CompanyGreenTicks=async(req,res)=>{
                 customer_phone: String(companyData.mobile),
             },
             order_meta: {
-                return_url: "https://law-tech.co.in/PaymentSuccessfull?order_id=order_"+orderId
+                return_url: "http://65.20.91.47/main/subscription-plan/subscription"
             },
             order_id:"order_"+orderId,
             order_amount:subscription?.price,
@@ -70,7 +69,6 @@ exports.CompanyGreenTicks=async(req,res)=>{
             };
             res.status(200).json(orderData);
         } else {
-            console.error('Error:', responseData);
             res.status(500).json({ error: "Internal server error" });
         }
 
@@ -104,7 +102,7 @@ exports.GreenTickVerifyPayment = async (req, res) => {
             }
 
 
-            const newExpirationDate = new Date(Date.now() + response?.month * 30 * 24 * 60 * 60 * 1000);
+            const newExpirationDate = new Date(Date.now() + subData?.month * 30 * 24 * 60 * 60 * 1000);
 
                 const verifiedData={
                     batch_name:subData?.batch_name,
@@ -135,8 +133,7 @@ exports.GreenTickVerifyPayment = async (req, res) => {
 
             return res.status(201).json({
                 message: "Payment verified and subscription created successfully",
-                paymentData: response.data,
-                updatedCompanyDetails: updatedWorkDetails
+                orderId:orderId
             });
         } else {
             return res.status(400).json({ error: "Payment not verified or payment failed" });
@@ -146,3 +143,11 @@ exports.GreenTickVerifyPayment = async (req, res) => {
     }
 };
 
+exports.GetallGreenBatch=async(req,res)=>{
+    try{
+        const data=await VerifiedBatchPlaneSchema.find({});
+       return res.status(200).send(data);
+    }catch(error){
+        return res.status(500).json({error:"Internal server error"});
+    }
+}

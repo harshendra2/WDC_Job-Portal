@@ -237,6 +237,10 @@ exports.getCandidateDetails = async (req, res) => {
         if (typeof existsSubscription?.cv_view_limit == 'number') {
             existsSubscription.cv_view_limit -= 1;
             await existsSubscription.save();
+        }else if(typeof existsSubscription?.cv_view_limit == 'string'){
+            let count=Number( existsSubscription.cv_view_limit);
+            existsSubscription.cv_view_limit=count-1;
+            await existsSubscription.save();
         }
 
         const baseUrl = `${req.protocol}://${req.get('host')}`;
@@ -719,6 +723,11 @@ exports.KeywordSearchCandidate = async (req, res) => {
             existsSubscription.search_limit < 0
         ) {
             return res.status(404).json({ error: 'Please top up your plan.' });
+        }else if(typeof existsSubscription.search_limit == 'string' &&
+            existsSubscription.search_limit !='0'){
+                let count = Number(existsSubscription.search_limit);
+                existsSubscription.search_limit = count - 1;
+                await existsSubscription.save();
         } else {
             await historyData.save();
         }
@@ -964,7 +973,7 @@ exports.getSubscriptionCountStatus=async(req,res)=>{
             subscriptionData: formattedSubscriptionData
           });
         } else {
-          returnres.status(404).json({ error: "No subscription data found" });
+          return res.status(404).json({ error: "No subscription data found" });
         }
     }catch(error){
         console.log(error);

@@ -7,6 +7,9 @@ const PromoteJobSchema = new mongoose.Schema({
   },
   price: {
     type: Number
+  },
+  month:{
+    type:Number
   }
 });
 

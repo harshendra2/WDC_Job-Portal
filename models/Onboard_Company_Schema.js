@@ -137,7 +137,7 @@ const CompanySchema = new Schema({
       required: true
     },
     orderId:{
-     type:Number
+     type:String
     },
     ExpireDate:{
       type: Date

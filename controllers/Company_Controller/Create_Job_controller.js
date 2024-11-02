@@ -248,10 +248,10 @@ exports.CreateNewJob = async (req, res) => {
             Peer_Round
         });
 
-        await jobCreated.save();
-
+        await jobCreated.save(existsSubscription.job_posting);
+        let count=Number()
         // Decrease the job_posting count by 1
-        existsSubscription.job_posting -= 1;
+        existsSubscription.job_posting=count-1;
         await existsSubscription.save();
 
         return res.status(201).json({message: "Job created successfully",jobData: jobCreated});
@@ -263,7 +263,7 @@ exports.CreateNewJob = async (req, res) => {
 
 exports.GetPromotedJobDetails=async(req,res)=>{
   try{
-    const data=await PromotePlane.find({});
+    const data=await PromotePlane.findOne({});
     if(data){
       return res.status(200).send(data)
     }else{
@@ -293,7 +293,7 @@ exports.PromoteJobPayment=async(req,res)=>{
       },  
       order_meta: {
         return_url:
-                    'https://law-tech.co.in/PaymentSuccessfull?order_id=order'
+                    'http://65.20.91.47/main/create-job'
       },
       order_id: "order_"+orderId,
       order_amount:promoteJob?promoteJob?.price:999,
@@ -343,6 +343,7 @@ exports.PromoteJobPayment=async(req,res)=>{
 
 exports.CreatePromotesJob=async(req,res)=>{
   const { orderId,company_id,paymentMethod,jobId} = req.body;
+  console.log(orderId,company_id,paymentMethod,jobId)
   //const apiUrl = `https://api.cashfree.com/pg/orders/${orderId}`;
   const apiUrl = `https://sandbox.cashfree.com/pg/orders/${orderId}`;
   const headers = {
@@ -376,14 +377,14 @@ exports.CreatePromotesJob=async(req,res)=>{
         type:'Promote job',
         Plane_name:'Promote job',
         price:promoteJob?promoteJob?.price:999,
-        payment_method:paymentMethod,
+        payment_method:paymentMethod?paymentMethod:'Cashfree',
         transaction_Id:orderId,
         purchesed_data:new Date(),
         Expire_date:currentJob?.job_Expire_Date
     })
     await transaction.save();
 
-      return res.status(201).json({message: "Job promoted successfully"});
+      return res.status(201).json({message: "Job promoted successfully",orderId:orderId});
 
     } else {
         return res.status(400).json({ error: "payment failed" });

@@ -353,7 +353,7 @@ exports.GetCompanyDetails=async(req,res)=>{
    return res.status(400).json({error:"Please provide Company Id"});
   }
 
-  const data = await company.findById(cmpId).select('profile name');
+  const data = await company.findById(cmpId).select('profile name verified_batch');
 return res.status(200).send(data);
 
   }catch(error){

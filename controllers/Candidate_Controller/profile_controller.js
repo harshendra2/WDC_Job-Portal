@@ -31,7 +31,6 @@ const OnboardCandidatePersonalDetails=Joi.object({
   }),
   family_member:Joi.number(),
   father_name:Joi.string().min(3),
-  son_name:Joi.string().min(3),
   spouse_profession:Joi.string()
 })
 
@@ -46,6 +45,15 @@ const OnboardCandidateWorkDetails=Joi.object({
   preferred_location:Joi.string(),
   current_location:Joi.string(),
   country:Joi.string()
+})
+
+const CandidateEducationDetails=Joi.object({
+  school:Joi.string().required(),
+  degree:Joi.string().required(),
+  Field_study:Joi.string().required(),
+  start_date:Joi.date().iso().required(),
+  end_date:Joi.date().iso().required(),
+  grade:Joi.string().required()
 })
 
 
@@ -159,7 +167,6 @@ exports.AddSummaryToCandidate=async(req,res)=>{
       if (!mongoose.Types.ObjectId.isValid(userId)) {
         return res.status(400).json({ error: 'Invalid candidate ID' });
       }
-
       const workDetailsData = {
         designation,employee_type,companyName,location,location_type,reporting_structure,current_workingStatus,notice_period,negotiation_day,start_date,end_date,End_posistion,CTC
       };
@@ -261,31 +268,34 @@ exports.AddSummaryToCandidate=async(req,res)=>{
   }
 
 
-  exports.DeleteWorkDetails=async(req,res)=>{
-    const {work_id,user_id}=req.params;
-    try{
-      const candidateData = await candidate.findOneAndUpdate(
-        { _id: user_id }
-      );
-
-      const workDetails=await work_details.findOneAndUpdate(
-        { _id: candidateData?.work_details },
-        { $pull: { Experience: { _id: work_id } } },
-        { new: true } 
-      )
-  
-      if (!candidateData) {
+  exports.DeleteWorkDetails = async (req, res) => {
+    const { work_id, user_id } = req.params;
+    
+    try {
+      const candidateData = await candidate.findById(user_id);
+      if (!candidateData || !candidateData.work_details) {
         return res.status(404).json({ error: "Candidate or work detail not found" });
       }
   
+      const updatedWorkDetails = await work_details.findByIdAndUpdate(
+        candidateData.work_details,
+        { $pull: { Experience: { _id: work_id } } },
+        { new: true }
+      );
+  
+      if (!updatedWorkDetails) {
+        return res.status(404).json({ error: "Work detail not found" });
+      }
+  
       return res.status(200).json({
-        message: "Work detail deleted successfully",
-        candidateData
+        message: "Work details deleted successfully",
+        updatedWorkDetails
       });
-    }catch(error){
-      return res.status(500).json({error:"Internal server error"});
+    } catch (error) {
+      return res.status(500).json({ error: "Internal server error" });
     }
-  }
+  };
+  
 
 
   exports.GetBasicDetails=async(req,res)=>{
@@ -331,14 +341,14 @@ exports.AddSummaryToCandidate=async(req,res)=>{
          const newCandidate = new candidate({ basic_details: savedBasicDetails._id });
          const savedCandidate = await newCandidate.save();
      
-         return res.status(201).json({ message: "Candidate details added successfully", candidate: savedCandidate });
+         return res.status(201).json({ message: "Candidate basic details saved successfully", candidate: savedCandidate });
         }
 
         const updateData = {
-            name: name || candidate.basic_details.name,
-            email: email || candidate.basic_details.email,
-            mobile: mobile || candidate.basic_details.mobile,
-            linkedIn: linkedIn || candidate.basic_details.linkedIn,
+            name: name || candidate.basic_details?.name,
+            email: email || candidate.basic_details?.email,
+            mobile: mobile || candidate.basic_details?.mobile,
+            linkedIn: linkedIn || candidate.basic_details?.linkedIn,
             other_profile: other_profile
         };
         const updatedBasicDetails = await basic_details.findByIdAndUpdate(
@@ -536,24 +546,28 @@ exports.PanKYCverification=async(req,res)=>{
 
 exports.EditPersonalDetails = async (req, res) => {
   const { user_id } = req.params;
-  const { gender, age, marriag_status, aadhar_number, PAN, family_member, father_name, son_name, spouse_profession, disability, disbility_name,location,country} = req.body;
+  const { gender, age, marriag_status, aadhar_number, PAN, family_member, father_name, son_name, spouse_profession, disability, disbility_name, location, country } = req.body;
 
+  // Validate the input
   const { error } = OnboardCandidatePersonalDetails.validate({
-    gender, age, marriag_status, aadhar_number, PAN, family_member, father_name, son_name, spouse_profession
+    gender, age, marriag_status, aadhar_number, PAN, family_member, father_name, spouse_profession
   });
   if (error) {
     return res.status(400).json({ error: error.details[0].message });
   }
 
   try {
+    // Find the candidate by ID
     let candidateData = await candidate.findById(user_id).populate('personal_details');
 
     if (!candidateData) {
       return res.status(404).json({ error: "Candidate not found" });
     }
+
+    // If personal details do not exist, create them
     if (!candidateData.personal_details) {
       const newPersonalDetails = new personal_details({
-        custom_id:candidateData?.custom_id,
+        custom_id: candidateData?.custom_id,
         gender,
         age,
         marriag_status,
@@ -570,26 +584,31 @@ exports.EditPersonalDetails = async (req, res) => {
       });
 
       const savedPersonalDetails = await newPersonalDetails.save();
-      const newCandidate = new candidate({ _id: user_id, personal_details: savedPersonalDetails._id });
-      const savedCandidate = await newCandidate.save();
 
-      return res.status(201).json({ message: "Candidate created and personal details added successfully", candidate: savedCandidate });
+      // Update the candidate's personal_details reference
+      candidateData.personal_details = savedPersonalDetails._id;
+      await candidateData.save();
+
+      return res.status(201).json({ message: "Personal details added successfully", candidate: candidateData });
     }
+
+    // Update existing personal details
     const updateData = {
-      gender: gender || candidateData.personal_details.gender,
-      age: age || candidateData.personal_details.age,
-      marriag_status: marriag_status || candidateData.personal_details.marriag_status,
-      aadhar_number: aadhar_number || candidateData.personal_details.aadhar_number,
-      PAN: PAN || candidateData.personal_details.PAN,
-      family_member: family_member || candidateData.personal_details.family_member,
-      father_name: father_name || candidateData.personal_details.father_name,
-      son_name: son_name || candidateData.personal_details.son_name,
-      spouse_profession: spouse_profession || candidateData.personal_details.spouse_profession,
-      disability: disability || candidateData.personal_details.disability,
-      disbility_name: disbility_name || candidateData.personal_details.disbility_name,
-      country:country|| candidateData.personal_details.country,
-      location:location|| candidateData.personal_details.location
+      gender: gender || candidateData.personal_details?.gender,
+      age: age || candidateData.personal_details?.age,
+      marriag_status: marriag_status || candidateData.personal_details?.marriag_status,
+      aadhar_number: aadhar_number || candidateData.personal_details?.aadhar_number,
+      PAN: PAN || candidateData.personal_details?.PAN,
+      family_member: family_member || candidateData.personal_details?.family_member,
+      father_name: father_name || candidateData.personal_details?.father_name,
+      son_name: son_name || candidateData.personal_details?.son_name,
+      spouse_profession: spouse_profession || candidateData.personal_details?.spouse_profession,
+      disability: disability || candidateData.personal_details?.disability,
+      disbility_name: disbility_name || candidateData.personal_details?.disbility_name,
+      country: country || candidateData.personal_details?.country,
+      location: location || candidateData.personal_details?.location
     };
+
     const updatedPersonalDetails = await personal_details.findByIdAndUpdate(
       candidateData.personal_details._id,
       { $set: updateData },
@@ -602,6 +621,7 @@ exports.EditPersonalDetails = async (req, res) => {
     });
 
   } catch (error) {
+    console.log(error);
     return res.status(500).json({ error: "Internal server error" });
   }
 };
@@ -712,7 +732,17 @@ exports.AddNewAducation = async (req, res) => {
     grade,
     description
   } = req.body;
-
+  const { error } = CandidateEducationDetails.validate({
+    school,
+    degree,
+    Field_study,
+    start_date,
+    end_date,
+    grade
+  });
+  if (error) {
+    return res.status(400).json({ error: error.details[0].message });
+  }
   try {
     if (!mongoose.Types.ObjectId.isValid(user_id)) {
       return res.status(400).json({ error: 'Invalid candidate ID' });
@@ -780,14 +810,17 @@ exports.EditEducationDetails=async(req,res)=>{
     if (!mongoose.Types.ObjectId.isValid(user_id)) {
       return res.status(400).json({ error: 'Invalid candidate ID' });
     }
-    const certificatesArray = certificates?.map((certificate, index) => {
-      const fileFieldName = `certificates[${index}][image]`;
-      const file = req.files[fileFieldName] ? req.files[fileFieldName][0] : null;
-      return {
-        Certificate: certificate.certificateName,
-        image: file ? file.path : null,
-      };
-    });
+    let certificatesArray
+    if(certificates){
+       certificatesArray = certificates.map((certificate, index) => {
+          const fileFieldName = `certificates[${index}][image]`;
+          const file = req?.files[fileFieldName] ? req?.files[fileFieldName][0] :'';
+          return {
+              Certificate: certificate.certificateName,
+              image: file ? file?.path : null,
+          };
+      });
+    }
 
     const candidateData = await candidate.findById(user_id);
     if (!candidateData) {
@@ -835,6 +868,7 @@ exports.EditEducationDetails=async(req,res)=>{
     });
 
   }catch(error){
+    console.log(error)
     return res.status(500).json({error:"Internal server error"});
   }
 }
