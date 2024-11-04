@@ -27,6 +27,7 @@ const JobListingRoute=require("./Routes/Admin_Panel/Job_listing_routes");
 const adminDashboard=require("./Routes/Admin_Panel/Admin_Dashboard");
 const AdminTransaction=require('./Routes/Admin_Panel/Transaction_routes');
 const credibilityEstablisment=require('./Routes/Admin_Panel/Credibility_Establishment');
+const privacyPolicy=require('./Routes/Admin_Panel/Privacy_policy');
 
 const CompanyCredentialRoute=require("./Routes/Company_Panel/company_routes")
 const companysubscriptionRoute=require("./Routes/Company_Panel/subscription_plane_routes")
@@ -62,6 +63,7 @@ app.use('/api',JobListingRoute);
 app.use('/api',adminDashboard);
 app.use('/api',AdminTransaction);
 app.use('/api',credibilityEstablisment);
+app.use('/api',privacyPolicy);
 app.use('/api',CompanyCredentialRoute);
 app.use('/api',companysubscriptionRoute);
 app.use('/api',companyDashboardRoute);

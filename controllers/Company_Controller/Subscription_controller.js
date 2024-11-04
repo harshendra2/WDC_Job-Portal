@@ -867,7 +867,7 @@ exports.TopUpPlaneVerifyPayment = async (req, res) => {
             //     Date: Date.now(),
             //     paymentMethods:paymentMethod
             // });
-            // await existingSubscription.save();
+             await existingSubscription.save();
 
             const transaction = new CompanyTransaction({
                 company_id: companyId,

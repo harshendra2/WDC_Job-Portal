@@ -218,12 +218,12 @@ exports.KeywordJobSearch = async (req, res) => {
     };
 
     const unappliedJobs = sortedJobs
-      .filter(
-        (job) =>
-          !job.applied_candidates.some(
-            (candidate) => candidate.candidate_id.toString() == userId
-          )
-      )
+      // .filter(
+      //   (job) =>
+      //     !job.applied_candidates.some(
+      //       (candidate) => candidate.candidate_id.toString() == userId
+      //     )
+      // )
       .map((job) => {
         const timeSincePosted = moment(job.createdDate).fromNow();
         const profileUrl = job?.company_details?.profile
@@ -279,12 +279,12 @@ exports.getUnappliedJob = async (req, res) => {
         };
     
         const unappliedJobs = sortedJobs
-          .filter(
-            (job) =>
-              !job.applied_candidates.some(
-                (candidate) => candidate.candidate_id.toString() == id
-              )
-          )
+          // .filter(
+          //   (job) =>
+          //     !job.applied_candidates.some(
+          //       (candidate) => candidate.candidate_id.toString() == id
+          //     )
+          // )
           .map((job) => {
             const timeSincePosted = moment(job.createdDate).fromNow();
             const profileUrl = job?.company_details?.profile
