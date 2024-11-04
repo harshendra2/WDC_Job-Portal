@@ -110,7 +110,7 @@ exports.payment = async (req, res) => {
                 customer_phone: String(candidates?.basic_details?.mobile || 'N/A'),
             },
             order_meta: {
-                return_url: `https://didatabank.com/PaymentSuccessfull?order_id=order_${orderId}`
+                return_url: `http://65.20.91.47/candidate-dashboard/subscription-candidate`
             },
             order_id: `order_${orderId}`,
             order_amount: subscriptions.price,
