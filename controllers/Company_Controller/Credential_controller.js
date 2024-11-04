@@ -463,40 +463,41 @@ exports.NewPassowrd = async (req, res) => {
 
 
 exports.CompanyLogOut = async (req, res) => {
-  const { email } = req.body;
+  const { company_id } = req.body;
   try {
-      const companys = await company.findOne({ email });
+      const companys = await company.findById(company_id);
+      
+      if (!companys) {
+          return res.status(404).json({ error: 'Company not found' });
+      }
+
       if (companys.company_access_count < 1) {
           const existedCompany = await company.findOneAndUpdate(
-              { email },
+              { email:companys?.email },
               { $inc: { company_access_count: 1, Logged_In_count: -1 } }
           );
+          
           if (existedCompany) {
-              return res
-                  .status(200)
-                  .json({ message: 'Company logout successfully' });
+              return res.status(200).json({ message: 'Company logged out successfully' });
           } else {
-              return res.status(400).json({ error: 'Some thing went wrong' });
+              return res.status(400).json({ error: 'Something went wrong' });
           }
       } else {
           await company.findOneAndUpdate(
-              { email },
+              { email:companys?.email },
               { $inc: { Logged_In_count: -1 } }
           );
 
-          const updatedSubscription =
-              await CompanySubscription.findOneAndUpdate(
-                  {
-                      company_id: companys._id,
-                      expiresAt: { $gte: Date.now() }
-                  },
-                  { $inc: { user_access: 1 } }
-              );
+          const updatedSubscription = await CompanySubscription.findOneAndUpdate(
+              {
+                  company_id: companys._id,
+                  expiresAt: { $gte: Date.now() }
+              },
+              { $inc: { user_access: 1 } }
+          );
 
           if (updatedSubscription) {
-              return res
-                  .status(200)
-                  .json({ message: 'Company logged out successfully' });
+              return res.status(200).json({ message: 'Company logged out successfully' });
           } else {
               return res.status(400).json({
                   error: 'No valid subscription found or something went wrong'
