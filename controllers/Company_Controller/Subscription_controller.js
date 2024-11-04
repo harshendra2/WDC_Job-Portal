@@ -41,13 +41,14 @@ exports.getAllSubscriptionPlane=async(req,res)=>{
         //     company_id,
         //     plane_name: { $regex: /^Basic\s*$/, $options: 'i' } 
         // });
-        const CurrentSubscription=await CompanySubscription.aggregate([{
-            $match: {
-              expiresAt: { $gte: new Date() },
-              createdDate:{$lte:new Date()},
-              company_id:company_id
-            }
-          }])
+        // const CurrentSubscription=await CompanySubscription.aggregate([{
+        //     $match: {
+        //       expiresAt: { $gte: new Date() },
+        //       createdDate:{$lte:new Date()},
+        //       company_id:company_id
+        //     }
+        //   }])
+        
 
         //  if(previousPlan){
         // const getSubscriptionPlans = await subscription.aggregate([
@@ -55,11 +56,155 @@ exports.getAllSubscriptionPlane=async(req,res)=>{
         // ]);
         // return res.status(200).send({getSubscriptionPlans,CurrentSubscription});
         //  }else{
+            const CurrentSubscription = await CompanySubscription.aggregate([
+                {
+                    $match: {
+                        company_id: company_id,
+                        expiresAt: { $gte: new Date() },
+                        createdDate: { $lte: new Date() }
+                    }
+                },
+                {
+                    $sort: { createdDate: 1 }
+                },
+                {
+                    $group: {
+                        _id: "$company_id",
+                        subscription_ids: { $push: "$subscription_id" },
+                        plane_name: { $last: "$plane_name" },
+                        total_price: { $sum: "$price" },
+            
+                        combined_search_limit: {
+                            $push: "$search_limit"
+                        },
+                        combined_user_access: {
+                            $push: "$user_access"
+                        },
+                        combined_cv_view_limit: {
+                            $push: "$cv_view_limit"
+                        },
+            
+                        combined_available_candidate: { 
+                            $max: "$available_candidate" 
+                        },
+                        combined_download_email_limit: { 
+                            $max: "$download_email_limit" 
+                        },
+                        combined_download_cv_limit: { 
+                            $max: "$download_cv_limit" 
+                        },
+                        combined_job_posting: { 
+                            $sum: "$job_posting" 
+                        },
+            
+                        earliest_created_date: { $min: "$createdDate" },
+                        latest_expires_at: { $max: "$expiresAt" }
+                    }
+                },
+                {
+                    $addFields: {
+                        search_limit: {
+                            $reduce: {
+                                input: "$combined_search_limit",
+                                initialValue: 0,
+                                in: {
+                                    $cond: [
+                                        { $or: [{ $eq: ["$$value", "Unlimited"] }, { $eq: ["$$this", "Unlimited"] }] },
+                                        "Unlimited",
+                                        { 
+                                            $add: ["$$value", 
+                                                { 
+                                                    $convert: {
+                                                        input: "$$this",
+                                                        to: "int",
+                                                        onError: 0  // Set non-numeric values to 0
+                                                    }
+                                                }
+                                            ]
+                                        }
+                                    ]
+                                }
+                            }
+                        },
+                        user_access: {
+                            $reduce: {
+                                input: "$combined_user_access",
+                                initialValue: 0,
+                                in: {
+                                    $cond: [
+                                        { $or: [{ $eq: ["$$value", "Unlimited"] }, { $eq: ["$$this", "Unlimited"] }] },
+                                        "Unlimited",
+                                        { 
+                                            $add: ["$$value", 
+                                                { 
+                                                    $convert: {
+                                                        input: "$$this",
+                                                        to: "int",
+                                                        onError: 0
+                                                    }
+                                                }
+                                            ]
+                                        }
+                                    ]
+                                }
+                            }
+                        },
+                        cv_view_limit: {
+                            $reduce: {
+                                input: "$combined_cv_view_limit",
+                                initialValue: 0,
+                                in: {
+                                    $cond: [
+                                        { $or: [{ $eq: ["$$value", "Unlimited"] }, { $eq: ["$$this", "Unlimited"] }] },
+                                        "Unlimited",
+                                        { 
+                                            $add: ["$$value", 
+                                                { 
+                                                    $convert: {
+                                                        input: "$$this",
+                                                        to: "int",
+                                                        onError: 0
+                                                    }
+                                                }
+                                            ]
+                                        }
+                                    ]
+                                }
+                            }
+                        }
+                    }
+                },
+                {
+                    $project: {
+                        _id: 0,
+                        company_id: "$_id",
+                        subscription_ids: 1,
+                        plane_name: 1,
+                        total_price: 1,
+                        search_limit: 1,
+                        available_candidate: "$combined_available_candidate",
+                        user_access: 1,
+                        cv_view_limit: 1,
+                        download_email_limit: "$combined_download_email_limit",
+                        download_cv_limit: "$combined_download_cv_limit",
+                        job_posting: "$combined_job_posting",
+                        createdDate: "$earliest_created_date",
+                        expiresAt: "$latest_expires_at"
+                    }
+                }
+            ]);
+            
+           
+            
+            
+
+
             const getSubscriptionPlans = await subscription.find({})
             return res.status(200).send({getSubscriptionPlans,CurrentSubscription});
         //  } 
 
     }catch(error){
+        console.log(error)
         return res.status(500).json({error:"Internal Server error"});
     }
 }
@@ -519,17 +664,23 @@ const expiresAts = new Date(createdDate.getTime() + 30 * 24 * 60 * 60 * 1000);
 exports.GetAllTopupPlane = async (req, res) => {
     const { company_id } = req.params;
     try {
-        const currentPlan = await CompanySubscription.findOne({
+        const currentPlan = await CompanySubscription.find({
             company_id,
             expiresAt: { $gte: new Date() },
             createdDate: { $lte: new Date() }
-        });
+        })
+        .sort({ expiresAt: -1 })
+        .limit(1);
 
-        if (!currentPlan) {
+        if (!currentPlan || currentPlan.length === 0) {
             return res.status(404).json({ error: "No subscription plan found for the company." });
         }
 
-        const subscriptions = await subscription.findOne({ plane_name: currentPlan?.plane_name });
+        const subscriptions = await subscription.findOne({ plane_name: currentPlan[0].plane_name });
+        
+        if (!subscriptions) {
+            return res.status(404).json({ error: "No subscription details found for the current plan." });
+        }
 
         async function getTopUpPlane(fieldName) {
             const fieldValue = subscriptions[fieldName];
@@ -540,13 +691,13 @@ exports.GetAllTopupPlane = async (req, res) => {
                 });
             } else if (typeof fieldValue === 'boolean' && fieldValue === true) {
                 return await TopUpPlane.findOne({ [fieldName]: true });
-            } else if (typeof fieldValue === 'string'&& fieldValue!='null') {
+            } else if (typeof fieldValue === 'string') {
                 return await TopUpPlane.findOne({
-                    [fieldName]: { $exists: true,$ne:null }
+                    [fieldName]: { $exists: true }
                 });
-            }else if(typeof fieldValue === 'number'&& fieldValue!=0){
+            } else if (typeof fieldValue === 'number' && fieldValue !== 0) {
                 return await TopUpPlane.findOne({
-                    [fieldName]: { $exists: true, $ne: 0}
+                    [fieldName]: { $exists: true, $ne: 0 }
                 });
             }
 
@@ -864,11 +1015,7 @@ exports.SubscriptionPlaneVerifyPayment = async (req, res) => {
                 return res.status(404).json({ error: "Subscription plan not found" });
             }
             const companyId=new mongoose.Types.ObjectId(company_id)
-            const previousPlan = await CompanySubscription.findOne({ company_id: companyId,expiresAt: { $gte: new Date()},createdDate:{$lte:new Date()}})
-
-            const newExpirationDate = previousPlan
-                ? new Date(previousPlan.expiresAt).getTime() + 30 * 24 * 60 * 60 * 1000
-                : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+            const newExpirationDate =new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
 
             const newSubscription = new CompanySubscription({
                 company_id: company_id,
@@ -883,8 +1030,8 @@ exports.SubscriptionPlaneVerifyPayment = async (req, res) => {
                 download_email_limit: subData.download_email_limit,
                 download_cv_limit: subData.download_cv_limit,
                 job_posting: subData.job_posting,
-                createdDate: new Date(previousPlan.expiresAt),
-                expiresAt: new Date(newExpirationDate)
+                createdDate: new Date(),
+                expiresAt:newExpirationDate
             });
             await newSubscription.save();
             const transaction=new CompanyTransaction({
@@ -895,7 +1042,7 @@ exports.SubscriptionPlaneVerifyPayment = async (req, res) => {
                 payment_method:paymentMethod,
                 transaction_Id:orderId,
                 purchesed_data:new Date(),
-                Expire_date:new Date(newExpirationDate)
+                Expire_date:newExpirationDate
             })
             await transaction.save();
 
@@ -907,7 +1054,6 @@ exports.SubscriptionPlaneVerifyPayment = async (req, res) => {
             return res.status(400).json({ error: "Payment not verified or payment failed" });
         }
     } catch (error) {
-        console.log(error);
         return res.status(500).json({ error: "Internal server error" });
     }
 };

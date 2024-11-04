@@ -11,7 +11,7 @@ exports.GetAllTransaction=async(req,res)=>{
         const data = await CompanyTransaction.aggregate([
             {$match:{company_id:objectId}},
            
-        ]).sort({Expire_date:1})
+        ]).sort({Expire_date:-1})
         if (data.length > 0) {
             return res.status(200).send(data);
         } else {

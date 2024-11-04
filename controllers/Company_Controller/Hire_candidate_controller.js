@@ -224,9 +224,28 @@ exports.getCandidateDetails = async (req, res) => {
             await candidateToUpdate.save();
         }
         const comnId = new mongoose.Types.ObjectId(companyId);
-        const existsSubscription = await CompanySubscription.findOne({
+        // const existsSubscription = await CompanySubscription.findOne({
+        //     company_id: comnId,
+        //     expiresAt: { $gte: new Date() }
+        // });
+        const possibleSubscriptions = await CompanySubscription.find({
             company_id: comnId,
-            expiresAt: { $gte: new Date() }
+            expiresAt: { $gte: new Date() },
+            createdDate: { $lte: new Date() },
+            $or: [
+                { cv_view_limit: "Unlimited" },
+                { cv_view_limit: { $exists: true } }
+            ]
+        })
+        const existsSubscription = possibleSubscriptions.find(subscription => {
+            if (subscription.cv_view_limit === "Unlimited") return true;
+        
+            // Handle numeric strings or numbers greater than 0
+            const searchLimitValue = typeof subscription.cv_view_limit === "string"
+                ? parseFloat(subscription.cv_view_limit)
+                : subscription.cv_view_limit;
+        
+            return searchLimitValue > 0;
         });
 
         if (!existsSubscription) {
@@ -238,9 +257,11 @@ exports.getCandidateDetails = async (req, res) => {
             existsSubscription.cv_view_limit -= 1;
             await existsSubscription.save();
         }else if(typeof existsSubscription?.cv_view_limit == 'string'){
+            if(existsSubscription?.cv_view_limit!='Unlimited'){
             let count=Number( existsSubscription.cv_view_limit);
             existsSubscription.cv_view_limit=count-1;
             await existsSubscription.save();
+            }
         }
 
         const baseUrl = `${req.protocol}://${req.get('host')}`;
@@ -403,6 +424,7 @@ exports.KeywordSearchCandidate = async (req, res) => {
             expiresAt: { $gte: new Date() },
             createdDate:{$lte:new Date()}
         });
+        
         if (!existsSubscription) {
             return res.status(404).json({
                 error: 'Subscription not found, please purchase a new subscription plan.'
@@ -692,10 +714,29 @@ exports.KeywordSearchCandidate = async (req, res) => {
         ]);
 
         const comnId = new mongoose.Types.ObjectId(companyId);
-        const existsSubscription = await CompanySubscription.findOne({
+        // const existsSubscription = await CompanySubscription.findOne({
+        //     company_id: comnId,
+        //     expiresAt: { $gte: new Date() },
+        //     createdDate:{$lte:new Date()}
+        // });
+        const possibleSubscriptions = await CompanySubscription.find({
             company_id: comnId,
             expiresAt: { $gte: new Date() },
-            createdDate:{$lte:new Date()}
+            createdDate: { $lte: new Date() },
+            $or: [
+                { search_limit: "Unlimited" },
+                { search_limit: { $exists: true } }
+            ]
+        })
+        
+        const existsSubscription = possibleSubscriptions.find(subscription => {
+            if (subscription.search_limit === "Unlimited") return true;
+        
+            const searchLimitValue = typeof subscription.search_limit === "string"
+                ? parseFloat(subscription.search_limit)
+                : subscription.search_limit;
+        
+            return searchLimitValue > 0;
         });
         if (!existsSubscription) {
             return res.status(404).json({
@@ -724,10 +765,12 @@ exports.KeywordSearchCandidate = async (req, res) => {
         ) {
             return res.status(404).json({ error: 'Please top up your plan.' });
         }else if(typeof existsSubscription.search_limit == 'string' &&
-            existsSubscription.search_limit !='0'){
+            existsSubscription.search_limit =='0'){
+                if(existsSubscription.search_limit!='Unlimited'){
                 let count = Number(existsSubscription.search_limit);
                 existsSubscription.search_limit = count - 1;
                 await existsSubscription.save();
+                }
         } else {
             await historyData.save();
         }
@@ -770,6 +813,7 @@ exports.KeywordSearchCandidate = async (req, res) => {
                 .json({ error: 'No candidates found' });
         }
     } catch (error) {
+        console.log(error)
         return res.status(500).json({ error: 'Internal server error' });
     }
 };
@@ -939,7 +983,7 @@ exports.getSubscriptionCountStatus=async(req,res)=>{
         }
         const objectId = new mongoose.Types.ObjectId(companyId);
 
-        const [subscriptionData, jobData] = await Promise.all([
+        const [subscriptionData] = await Promise.all([
           CompanySubscription.aggregate([
             { $match: { company_id: objectId, expiresAt: { $gte: new Date() } } },
             {
@@ -951,30 +995,11 @@ exports.getSubscriptionCountStatus=async(req,res)=>{
               },
             },
           ]),
-          CompanyJob.find({ company_id: objectId }),
+          //CompanyJob.find({ company_id: objectId }),
         ]);
-        if (subscriptionData && subscriptionData.length > 0) {
-          const formattedSubscriptionData = subscriptionData.map((subscription) => {
-            
-            if (
-              Array.isArray(subscription.topUp) &&
-              subscription.topUp.length > 0
-            ) {
-              subscription.topUp = subscription.topUp.map((topUp) => {
-                
-                return topUp;
-              });
-            }
-    
-            return subscription;
+        return res.status(200).json({
+            subscriptionData: subscriptionData
           });
-          
-          return res.status(200).json({
-            subscriptionData: formattedSubscriptionData
-          });
-        } else {
-          return res.status(404).json({ error: "No subscription data found" });
-        }
     }catch(error){
         console.log(error);
         return res.status(500).json({error:"Internal server error"});

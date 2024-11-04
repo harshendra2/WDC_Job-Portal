@@ -154,7 +154,8 @@ exports.GetCreatedJobStatus = async (req, res) => {
               {
                   $match: {
                       company_id: objectId,
-                      expiresAt: { $gte: new Date() }
+                      expiresAt: { $gte: new Date() },
+                      createdDate: { $lte: new Date() }
                   }
               },
               {
@@ -207,8 +208,16 @@ exports.CreateNewJob = async (req, res) => {
         if(GreenBatch?.verified_batch.length!=0){
           Batch=true;
         }
-        const existsSubscription = await companySubscription.findOne({ company_id: objectId, expiresAt: { $gte: new Date() },createdDate:{$lte:new Date()}})
-
+        //const existsSubscription = await companySubscription.findOne({ company_id: objectId, expiresAt: { $gte: new Date() },createdDate:{$lte:new Date()}})
+        const existsSubscription = await companySubscription.findOne({
+          company_id: objectId,
+          expiresAt: { $gte: new Date() },
+          createdDate: { $lte: new Date() },
+          job_posting: { $gt: 0 }
+      })
+      .sort({ createdDate: -1 }) 
+      .limit(1); 
+      
         if (!existsSubscription) {
             return res.status(404).json({ error: "Subscription not found,Please buy new Subscription plane" });
         }
@@ -249,7 +258,7 @@ exports.CreateNewJob = async (req, res) => {
         });
 
         await jobCreated.save(existsSubscription.job_posting);
-        let count=Number()
+        let count=Number( existsSubscription.job_posting)
         // Decrease the job_posting count by 1
         existsSubscription.job_posting=count-1;
         await existsSubscription.save();

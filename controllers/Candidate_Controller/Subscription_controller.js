@@ -207,8 +207,7 @@ exports.verifyPayment = async (req, res) => {
 
                 return res.status(201).json({
                     message: "Payment verified and subscription created successfully",
-                    paymentData: response.data,
-                    subscriptionData: subdata
+                    orderId:orderId
                 });
             } else {
                 return res.status(404).json({ error: "Subscription plan not found" });
