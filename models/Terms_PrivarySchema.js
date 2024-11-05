@@ -5,8 +5,7 @@ const TermsPrivacySchema = new mongoose.Schema({
     type: String
   },
   privacy_image: {
-    type: Number,
-    required: true
+    type:String
   }
 });
 

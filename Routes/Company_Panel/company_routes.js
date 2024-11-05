@@ -15,5 +15,7 @@ router.post('/company/forgotpassword',controller.forgotPassword);
 router.post('/company/newpassword',controller.NewPassowrd)
 
 router.post('/company/logout',controller.CompanyLogOut);
+//Terms and Privacy Images
+router.get('/company/get/terms_privacy',controller.GetTermsAndPrivacy);
 
 module.exports=router;

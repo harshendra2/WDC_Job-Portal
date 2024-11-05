@@ -187,7 +187,7 @@ exports.GetAllSubscriptionplane = async (req, res) => {
         },
       })
 
-    } else if (calendar === 'This week') {
+    } else if (calendar === 'Thisweek') {
       const weekStart = moment().startOf('isoWeek').toDate();
       const weekEnd = moment().endOf('isoWeek').toDate();
 
@@ -204,7 +204,7 @@ exports.GetAllSubscriptionplane = async (req, res) => {
           $lt: weekEnd,
         },
       })
-    } else if (calendar === 'This month') {
+    } else if (calendar === 'Thismonth') {
       const monthStart = moment().startOf('month').toDate();
       const monthEnd = moment().endOf('month').toDate();
 
@@ -221,7 +221,7 @@ exports.GetAllSubscriptionplane = async (req, res) => {
           $lt: monthEnd,
         },
       })
-    } else if (calendar === 'This year') {
+    } else if (calendar === 'Thisyear') {
       const yearStart = moment().startOf('year').toDate();
       const yearEnd = moment().endOf('year').toDate();
 

@@ -9,7 +9,8 @@ const { email } = require("../../config/emailConfig");
 const company = require("../../models/Onboard_Company_Schema");
 const CompanySubscription = require("../../models/Company_SubscriptionSchema");
 const basic_details = require("../../models/Basic_details_CandidateSchema");
-const candidate=require('../../models/Onboard_Candidate_Schema')
+const candidate = require('../../models/Onboard_Candidate_Schema')
+const TarmsPrivacy = require('../../models/Terms_PrivarySchema');
 
 const companyRegistration = Joi.object({
   email: Joi.string().email().required(),
@@ -83,9 +84,9 @@ exports.CompanyRegistration = async (req, res) => {
     if (alreadyexisted) {
       return res.status(400).json({ error: "This email already exists" });
     }
-    const existedCandidate=await basic_details.findOne({email:email});
-    if(existedCandidate){
-       return res.status(400).json({error:"This email is already associated with an existing Candidate."})
+    const existedCandidate = await basic_details.findOne({ email: email });
+    if (existedCandidate) {
+      return res.status(400).json({ error: "This email is already associated with an existing Candidate." })
     }
     const data = { email, password };
     return res.status(200).json({ message: "registration successfully", data });
@@ -176,93 +177,93 @@ exports.Login = async (req, res) => {
 
   const { error } = companylogin.validate({ email, password });
   if (error) {
-      return res.status(400).json({ error: error.details[0].message });
+    return res.status(400).json({ error: error.details[0].message });
   }
   try {
-      const [existedCompany, existUser] = await Promise.all([
-          company.findOne({ email }).lean(),
-          basic_details.findOne({ email }).lean()
-      ]);
+    const [existedCompany, existUser] = await Promise.all([
+      company.findOne({ email }).lean(),
+      basic_details.findOne({ email }).lean()
+    ]);
 
-      if (existedCompany) {
-          const subscriptionExists = await CompanySubscription.findOne({
-              company_id: existedCompany._id,
-              expiresAt: { $gte: Date.now() },
-              $or: [{ user_access: { $gt: 0 } }, { user_access: 'Unlimited' }]
-          }).lean();
-          if (subscriptionExists) {
-              const passwordMatch = await bcrypt.compare(
-                  password,
-                  existedCompany.password
-              );
-              if (!passwordMatch) {
-                  return res.status(400).json({ error: 'Invalid password' });
-              }
+    if (existedCompany) {
+      const subscriptionExists = await CompanySubscription.findOne({
+        company_id: existedCompany._id,
+        expiresAt: { $gte: Date.now() },
+        $or: [{ user_access: { $gt: 0 } }, { user_access: 'Unlimited' }]
+      }).lean();
+      if (subscriptionExists) {
+        const passwordMatch = await bcrypt.compare(
+          password,
+          existedCompany.password
+        );
+        if (!passwordMatch) {
+          return res.status(400).json({ error: 'Invalid password' });
+        }
 
-              const OTP = generateOTP();
+        const OTP = generateOTP();
 
-              // If subscription exists, send OTP
-              if (subscriptionExists) {
-                  await sendEmail(email, OTP);
-                  return res.status(200).json({
-                      message: 'OTP sent successfully',
-                      companyOTP: OTP
-                  });
-              }
-          }
-
-          if (existedCompany.company_access_count > 0) {
-              const passwordMatch = await bcrypt.compare(
-                  password,
-                  existedCompany.password
-              );
-              if (!passwordMatch) {
-                  return res.status(400).json({ error: 'Invalid password' });
-              }
-              const OTP = generateOTP();
-
-              await sendEmail(email, OTP);
-              return res.status(200).json({
-                  message: 'OTP sent successfully',
-                  companyOTP: OTP
-              });
-          }
-
-          return res
-              .status(400)
-              .json({ error: 'No login access available for this company' });
+        // If subscription exists, send OTP
+        if (subscriptionExists) {
+          await sendEmail(email, OTP);
+          return res.status(200).json({
+            message: 'OTP sent successfully',
+            companyOTP: OTP
+          });
+        }
       }
 
-      if (existUser) {
-          const passwordMatch = await bcrypt.compare(
-              password,
-              existUser.password
-          );
-          if (!passwordMatch) {
-              return res.status(400).json({ error: 'Invalid password' });
-          }
+      if (existedCompany.company_access_count > 0) {
+        const passwordMatch = await bcrypt.compare(
+          password,
+          existedCompany.password
+        );
+        if (!passwordMatch) {
+          return res.status(400).json({ error: 'Invalid password' });
+        }
+        const OTP = generateOTP();
 
-          const candiateID = await candidate.findOne({
-              basic_details: existUser._id
-          });
-
-          const token = jwt.sign(
-              { _id: candiateID._id},
-              process.env.CANDIDATESECRET_KEY,
-              { expiresIn: '30d' }
-          );
-          return res.status(200).json({
-              message: 'User Login Successfully',
-              CandidateToken: token
-          });
+        await sendEmail(email, OTP);
+        return res.status(200).json({
+          message: 'OTP sent successfully',
+          companyOTP: OTP
+        });
       }
 
       return res
-          .status(400)
-          .json({ error: 'This Email ID does not exist in our Database' });
+        .status(400)
+        .json({ error: 'No login access available for this company' });
+    }
+
+    if (existUser) {
+      const passwordMatch = await bcrypt.compare(
+        password,
+        existUser.password
+      );
+      if (!passwordMatch) {
+        return res.status(400).json({ error: 'Invalid password' });
+      }
+
+      const candiateID = await candidate.findOne({
+        basic_details: existUser._id
+      });
+
+      const token = jwt.sign(
+        { _id: candiateID._id },
+        process.env.CANDIDATESECRET_KEY,
+        { expiresIn: '30d' }
+      );
+      return res.status(200).json({
+        message: 'User Login Successfully',
+        CandidateToken: token
+      });
+    }
+
+    return res
+      .status(400)
+      .json({ error: 'This Email ID does not exist in our Database' });
   } catch (error) {
-      console.log(error);
-      return res.status(500).json({ error: 'Internal Server Error' });
+    console.log(error);
+    return res.status(500).json({ error: 'Internal Server Error' });
   }
 };
 
@@ -279,12 +280,12 @@ exports.CompanyOTP = async (req, res) => {
       company_id: existedCompany._id,
       expiresAt: { $gte: Date.now() },
       $or: [
-        { user_access: { $gt: 0 } }, 
-        { user_access: "Unlimited" }  
+        { user_access: { $gt: 0 } },
+        { user_access: "Unlimited" }
       ]
     }).lean();
 
-    if (typeof subscriptionExists?.user_access=='number') {
+    if (typeof subscriptionExists?.user_access == 'number') {
       // Update user_access_Login_count and Logged_In_count
       await CompanySubscription.updateOne(
         { _id: subscriptionExists._id },
@@ -298,13 +299,13 @@ exports.CompanyOTP = async (req, res) => {
 
       // Generate JWT token for the company
       const token = jwt.sign(
-        { _id: existedCompany._id},
+        { _id: existedCompany._id },
         process.env.COMPANYSECRET_KEY,
         { expiresIn: "30d" }
       );
 
       return res.status(200).json({ message: "Company login successfully", companyToken: token });
-    }else if(typeof subscriptionExists?.user_access=='string'){
+    } else if (typeof subscriptionExists?.user_access == 'string') {
       await company.updateOne(
         { _id: existedCompany._id },
         { $inc: { Logged_In_count: 1 } }
@@ -346,40 +347,40 @@ exports.CompanyOTP = async (req, res) => {
 };
 
 
-exports.GetCompanyDetails=async(req,res)=>{
-  const {cmpId}=req.params
-  try{
- if(!cmpId){
-   return res.status(400).json({error:"Please provide Company Id"});
-  }
+exports.GetCompanyDetails = async (req, res) => {
+  const { cmpId } = req.params
+  try {
+    if (!cmpId) {
+      return res.status(400).json({ error: "Please provide Company Id" });
+    }
 
-  const data = await company.findById(cmpId).select('profile name verified_batch');
-return res.status(200).send(data);
+    const data = await company.findById(cmpId).select('profile name verified_batch');
+    return res.status(200).send(data);
 
-  }catch(error){
-    return res.status(500).json({error:"Internal server error"});
+  } catch (error) {
+    return res.status(500).json({ error: "Internal server error" });
   }
 }
 
-exports.GetCandidateDetails=async(req,res)=>{
-  const {userId}=req.params;
-  try{
-    if(!userId){
-      return res.status(400).json({error:"Please provide User ID"})
+exports.GetCandidateDetails = async (req, res) => {
+  const { userId } = req.params;
+  try {
+    if (!userId) {
+      return res.status(400).json({ error: "Please provide User ID" })
     }
     const candidateDetails = await candidate
-    .findById(userId)
-    .populate({
-      path: 'basic_details',
-      select: 'name',
-  })
-    .select('profile'); 
+      .findById(userId)
+      .populate({
+        path: 'basic_details',
+        select: 'name',
+      })
+      .select('profile');
 
-return res.status(200).send(candidateDetails);
+    return res.status(200).send(candidateDetails);
 
-  }catch(error){
+  } catch (error) {
     console.log(error);
-    return res.status(500).json({error:'Internal server error'});
+    return res.status(500).json({ error: 'Internal server error' });
   }
 }
 
@@ -409,7 +410,7 @@ exports.forgotPassword = async (req, res) => {
 
       await transporter.sendMail(mailOptions);
 
-      return res.status(200).json({ message: "Email sent successfully. Please check your inbox for OTP.",OTP,email });
+      return res.status(200).json({ message: "Email sent successfully. Please check your inbox for OTP.", OTP, email });
     }
 
     return res.status(404).json({ error: "This email ID does not exist in our database." });
@@ -451,7 +452,7 @@ exports.NewPassowrd = async (req, res) => {
 
     if (existedUser) {
       existedUser.password = newPass;
-      await existedUser.save(); 
+      await existedUser.save();
 
       return res.status(201).json({ status: 200, message: "Password updated successfully" });
     }
@@ -465,46 +466,63 @@ exports.NewPassowrd = async (req, res) => {
 exports.CompanyLogOut = async (req, res) => {
   const { company_id } = req.body;
   try {
-      const companys = await company.findById(company_id);
-      
-      if (!companys) {
-          return res.status(404).json({ error: 'Company not found' });
-      }
+    const companys = await company.findById(company_id);
 
-      if (companys.company_access_count < 1) {
-          const existedCompany = await company.findOneAndUpdate(
-              { email:companys?.email },
-              { $inc: { company_access_count: 1, Logged_In_count: -1 } }
-          );
-          
-          if (existedCompany) {
-              return res.status(200).json({ message: 'Company logged out successfully' });
-          } else {
-              return res.status(400).json({ error: 'Something went wrong' });
-          }
+    if (!companys) {
+      return res.status(404).json({ error: 'Company not found' });
+    }
+
+    if (companys.company_access_count < 1) {
+      const existedCompany = await company.findOneAndUpdate(
+        { email: companys?.email },
+        { $inc: { company_access_count: 1, Logged_In_count: -1 } }
+      );
+
+      if (existedCompany) {
+        return res.status(200).json({ message: 'Company logged out successfully' });
       } else {
-          await company.findOneAndUpdate(
-              { email:companys?.email },
-              { $inc: { Logged_In_count: -1 } }
-          );
-
-          const updatedSubscription = await CompanySubscription.findOneAndUpdate(
-              {
-                  company_id: companys._id,
-                  expiresAt: { $gte: Date.now() }
-              },
-              { $inc: { user_access: 1 } }
-          );
-
-          if (updatedSubscription) {
-              return res.status(200).json({ message: 'Company logged out successfully' });
-          } else {
-              return res.status(400).json({
-                  error: 'No valid subscription found or something went wrong'
-              });
-          }
+        return res.status(400).json({ error: 'Something went wrong' });
       }
+    } else {
+      await company.findOneAndUpdate(
+        { email: companys?.email },
+        { $inc: { Logged_In_count: -1 } }
+      );
+
+      const updatedSubscription = await CompanySubscription.findOneAndUpdate(
+        {
+          company_id: companys._id,
+          expiresAt: { $gte: Date.now() }
+        },
+        { $inc: { user_access: 1 } }
+      );
+
+      if (updatedSubscription) {
+        return res.status(200).json({ message: 'Company logged out successfully' });
+      } else {
+        return res.status(400).json({
+          error: 'No valid subscription found or something went wrong'
+        });
+      }
+    }
   } catch (error) {
-      return res.status(500).json({ error: 'Internal server error' });
+    return res.status(500).json({ error: 'Internal server error' });
   }
 };
+
+
+exports.GetTermsAndPrivacy = async (req, res) => {
+  try {
+    const baseUrl = `${req.protocol}://${req.get("host")}`;
+    const data = await TarmsPrivacy.findOne();
+    let TermsImage = {
+      TermsImage: `${baseUrl}/${data?.terms_image.replace(/\\/g, "/")}`,
+      privacy_image: `${baseUrl}/${data?.privacy_image.replace(/\\/g, "/")}`,
+    }
+
+    return res.status(200).send(TermsImage);
+
+  } catch (error) {
+    return res.status(500).json({ error: "Intarnal server error" });
+  }
+}

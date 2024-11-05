@@ -1,4 +1,3 @@
-const { required } = require("joi");
 const mongoose=require("mongoose");
 
 const education_details_candidate=new mongoose.Schema({

@@ -705,20 +705,41 @@ exports.EditWorkDetails = async (req, res) => {
 };
 
 
-exports.GetEducationDetails=async(req,res)=>{
-  const {user_id}=req.params;
-  try{
-const data=await candidate.findById(user_id).populate('education_details');
-if(data){
-  return res.status(200).send(data);
-}else{
-  return res.status(400).json({error:"Education details not found"});
-}
+exports.GetEducationDetails = async (req, res) => {
+  const { user_id } = req.params;
+  try {
+    const data = await candidate.findById(user_id).populate('education_details');
+    const baseUrl = `${req.protocol}://${req.get("host")}`;
+    if (data && data.education_details && data.education_details.certificates) {
+      const formattedCertificates = data.education_details.certificates.map((certificate) => {
+        if (certificate.image) {
+          return {
+            ...certificate,
+            image: `${baseUrl}/${certificate.image.replace(/\\/g, "/")}`,
+            Certificate:certificate.Certificate
 
-  }catch(error){
-    return res.status(500).json({error:"Internal server error"});
+          };
+        }
+        return certificate;
+      });
+
+      const responseData = {
+        ...data.toObject(),  
+        education_details: {
+          ...data.education_details.toObject(),
+          certificates: formattedCertificates 
+        }
+      };
+
+      return res.status(200).send(responseData);
+    } else {
+      return res.status(400).json({ error: "Education details not found" });
+    }
+
+  } catch (error) {
+    return res.status(500).json({ error: "Internal server error" });
   }
-}
+};
 
 
 exports.AddNewAducation = async (req, res) => {
@@ -810,17 +831,19 @@ exports.EditEducationDetails=async(req,res)=>{
     if (!mongoose.Types.ObjectId.isValid(user_id)) {
       return res.status(400).json({ error: 'Invalid candidate ID' });
     }
-    let certificatesArray
+    const EduDatails=await candidate.findById(user_id).populate('education_details')
+    let certificatesArray  
     if(certificates){
        certificatesArray = certificates.map((certificate, index) => {
           const fileFieldName = `certificates[${index}][image]`;
           const file = req?.files[fileFieldName] ? req?.files[fileFieldName][0] :'';
           return {
               Certificate: certificate.certificateName,
-              image: file ? file?.path : null,
+              image: file ? file?.path :EduDatails?. education_details?.certificates[index].image,
           };
       });
-    }
+    };
+
 
     const candidateData = await candidate.findById(user_id);
     if (!candidateData) {
