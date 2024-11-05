@@ -79,13 +79,11 @@ exports.getProfilePercentageStatus = async (req, res) => {
         'highest_education', 'board_represent'
       ];
       const workFields = [
-           'industry', 'aspiring_position',
-        'work_experience','career_highlight',
-         'functions', 'preferred_location', 'current_location', 'resume','skill'
+          'aspiring_position',
+        'current_location', 'resume'
       ];
       const personalFields = [
-        'gender', 'age', 'marriag_status', 'aadhar_number', 'PAN',
-        'family_member', 'spouse_profession','Pan_verified_status','Aadhar_verified_status','location','country'
+        'gender', 'age', 'aadhar_number', 'PAN', 'spouse_profession','Pan_verified_status','Aadhar_verified_status','location','country'
       ];
 
       const calculateFilledFields = (details, fields) => {
@@ -384,6 +382,7 @@ exports.GetPersonlDetails=async(req,res)=>{
 
 exports.AadharVerification=async(req,res)=>{
   const {aadhar_number}=req.body;
+  console.log(aadhar_number)
   const apiUrl = 'https://sandbox.cashfree.com/verification/offline-aadhaar/otp';
   const requestData = {
     aadhaar_number: aadhar_number,

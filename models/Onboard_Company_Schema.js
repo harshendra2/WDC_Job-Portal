@@ -129,12 +129,10 @@ const CompanySchema = new Schema({
   verified_batch:[
   {
     batch_name: {
-      type: String,
-      required: true
+      type: String
     },
     price: {
-      type: Number,
-      required: true
+      type: Number
     },
     orderId:{
      type:String

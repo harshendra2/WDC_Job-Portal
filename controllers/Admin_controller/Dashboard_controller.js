@@ -220,6 +220,7 @@ exports.GetAllSubscriptionplane = async (req, res) => {
     
     const TopUpCount = {};
     const PromotJob = { price: 0, count: 0 };
+    const VerifitionBadge={ price: 0, count: 0 };
     let companyEarning = 0;
     const CompanySub=await CompanySubs.find({});
 
@@ -252,6 +253,12 @@ exports.GetAllSubscriptionplane = async (req, res) => {
         subscriptionCount[planName].totalPrice += item?.price || 0;
         companyEarning += item?.price || 0;
       }
+
+      if (item?.type === 'Green Batch plane') {
+        VerifitionBadge.count += 1;
+        VerifitionBadge.price += item?.price || 0;
+        companyEarning += item?.price || 0;
+      }
     });
 
     let CandidateSubscriptionCount = {};
@@ -277,6 +284,7 @@ exports.GetAllSubscriptionplane = async (req, res) => {
       subscriptionCount,
       TopUpCount,
       PromotJob,
+      VerifitionBadge,
       companyEarning,
       CandidateSubscriptionCount,
       CandidateEarning,

@@ -47,22 +47,22 @@ exports.getCompanyDetails = async (req, res) => {
             "MMMM Do YYYY, h:mm:ss a"
           );
         }
-        if (
-          Array.isArray(subscription.topUp) &&
-          subscription.topUp.length > 0
-        ) {
-          subscription.topUp = subscription.topUp.map((topUp) => {
-            if (topUp.Date) {
-              topUp.Date = moment(topUp.Date).format("MMMM Do YYYY, h:mm:ss a");
-            }
-            if (topUp.ExpireDate) {
-              topUp.ExpireDate = moment(topUp.ExpireDate).format(
-                "MMMM Do YYYY, h:mm:ss a"
-              );
-            }
-            return topUp;
-          });
-        }
+        // if (
+        //   Array.isArray(subscription.topUp) &&
+        //   subscription.topUp.length > 0
+        // ) {
+        //   subscription.topUp = subscription.topUp.map((topUp) => {
+        //     if (topUp.Date) {
+        //       topUp.Date = moment(topUp.Date).format("MMMM Do YYYY, h:mm:ss a");
+        //     }
+        //     if (topUp.ExpireDate) {
+        //       topUp.ExpireDate = moment(topUp.ExpireDate).format(
+        //         "MMMM Do YYYY, h:mm:ss a"
+        //       );
+        //     }
+        //     return topUp;
+        //   });
+        // }
 
         return subscription;
       });
