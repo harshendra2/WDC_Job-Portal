@@ -6,11 +6,25 @@ const companyTransaction=require('../../models/CompanyTransactionSchema');
 const CandidateTransaction=require('../../models/CandidateTransactionSchema');
 const Support=require('../../models/Issue_Schema');
 const Admin=require('../../models/adminSchema');
+const CandidateSubs=require('../../models/Candidate_SubscriptionSchema')
+const CompanySubs=require('../../models/SubscriptionSchema')
 
 exports.getCountofCandidate = async (req, res) => {
   try {
-      const companyCount = await Company.countDocuments({});
-      const candidateCount = await candidate.countDocuments({});
+    let companyData = await Company.find({});
+    let candidateData = await candidate.find({}).populate('personal_details');
+    
+    let companyCount = companyData.length;
+    let candidateCount = candidateData.length;
+    
+    let verifiedCompany = companyData.filter((temp) => temp.status === "approve").length;
+    
+    let verifiedCandidate = candidateData.filter(
+      (item) => item.personal_details?.Aadhar_verified_status === true &&
+                item.personal_details?.Pan_verified_status === true
+    ).length;
+  
+
       const jobCount=await companyjob.countDocuments({});
       const data = await companyjob.aggregate([
         {
@@ -146,6 +160,8 @@ exports.getCountofCandidate = async (req, res) => {
       return res.status(200).send({
           companyCount,
           candidateCount,
+          verifiedCompany,
+          verifiedCandidate,
           Accepted,
           Rejected,
           Processing,
@@ -155,158 +171,119 @@ exports.getCountofCandidate = async (req, res) => {
           adminTeam
       });
 
+
   } catch (error) {
       console.log(error);
       return res.status(500).json({ error: "Internal server error" });
   }
 };
 
-
 exports.GetAllSubscriptionplane = async (req, res) => {
   const { calendar } = req.params;
   try {
-    let data;
-    let candidateData;
-    if (calendar == 'All'||calendar==null) {
+    let data = [];
+    let candidateData = [];
+
+    if (calendar === 'All' || calendar === null) {
       data = await companyTransaction.find({});
-      candidateData=await CandidateTransaction.find({});
+      candidateData = await CandidateTransaction.find({});
     } else if (calendar === 'Today') {
       const todayStart = moment().startOf('day').toDate();
       const todayEnd = moment().endOf('day').toDate();
 
-      data = await companyTransaction.find({
-        purchesed_data: {
-          $gte: todayStart,
-          $lt: todayEnd,
-        },
-      });
-      candidateData=await CandidateTransaction.find({
-        purchesed_data: {
-          $gte: todayStart,
-          $lt: todayEnd,
-        },
-      })
-
+      data = await companyTransaction.find({ purchesed_data: { $gte: todayStart, $lt: todayEnd } });
+      candidateData = await CandidateTransaction.find({ purchesed_data: { $gte: todayStart, $lt: todayEnd } });
     } else if (calendar === 'Thisweek') {
       const weekStart = moment().startOf('isoWeek').toDate();
       const weekEnd = moment().endOf('isoWeek').toDate();
 
-      data = await companyTransaction.find({
-        purchesed_data: {
-          $gte: weekStart,
-          $lt: weekEnd,
-        },
-      });
-
-      candidateData=await CandidateTransaction.find({
-        purchesed_data: {
-          $gte: weekStart,
-          $lt: weekEnd,
-        },
-      })
+      data = await companyTransaction.find({ purchesed_data: { $gte: weekStart, $lt: weekEnd } });
+      candidateData = await CandidateTransaction.find({ purchesed_data: { $gte: weekStart, $lt: weekEnd } });
     } else if (calendar === 'Thismonth') {
       const monthStart = moment().startOf('month').toDate();
       const monthEnd = moment().endOf('month').toDate();
 
-      data = await companyTransaction.find({
-        purchesed_data: {
-          $gte: monthStart,
-          $lt: monthEnd,
-        },
-      });
-
-      candidateData=await CandidateTransaction.find({
-        purchesed_data: {
-          $gte: monthStart,
-          $lt: monthEnd,
-        },
-      })
+      data = await companyTransaction.find({ purchesed_data: { $gte: monthStart, $lt: monthEnd } });
+      candidateData = await CandidateTransaction.find({ purchesed_data: { $gte: monthStart, $lt: monthEnd } });
     } else if (calendar === 'Thisyear') {
       const yearStart = moment().startOf('year').toDate();
       const yearEnd = moment().endOf('year').toDate();
 
-      data = await companyTransaction.find({
-        purchesed_data: {
-          $gte: yearStart,
-          $lt: yearEnd,
-        },
-      });
-      candidateData=await CandidateTransaction.find({
-        purchesed_data: {
-          $gte: yearStart,
-          $lt: yearEnd,
-        },
-      })
+      data = await companyTransaction.find({ purchesed_data: { $gte: yearStart, $lt: yearEnd } });
+      candidateData = await CandidateTransaction.find({ purchesed_data: { $gte: yearStart, $lt: yearEnd } });
     } else {
       return res.status(400).json({ error: 'Invalid calendar filter' });
     }
 
+    const CandidateSub = await CandidateSubs.find();
     const subscriptionCount = {};
+    
     const TopUpCount = {};
-    const PromotJob = {
-      price: 0,
-      count: 0,
-    };
-    let companyEarning=0;
-    data.map((item) => {
+    const PromotJob = { price: 0, count: 0 };
+    let companyEarning = 0;
+    const CompanySub=await CompanySubs.find({});
+
+    CompanySub.forEach((item) => {
+      const planName = item?.plane_name;
+      subscriptionCount[planName] = { count: 0, totalPrice: 0 };
+    });
+    data.forEach((item) => {
       if (item?.type === 'Promote job') {
         PromotJob.count += 1;
         PromotJob.price += item?.price || 0;
-        companyEarning+=item?.price || 0;
+        companyEarning += item?.price || 0;
       }
 
       if (item?.type === 'TopUp plane') {
         const planName = item?.Plane_name;
-
         if (!TopUpCount[planName]) {
-          TopUpCount[planName] = {
-            count: 0,
-            totalPrice: 0,
-          };
+          TopUpCount[planName] = { count: 0, totalPrice: 0 };
         }
 
         TopUpCount[planName].count += 1;
         TopUpCount[planName].totalPrice += item?.price || 0;
-        companyEarning+=item?.price || 0;
+        companyEarning += item?.price || 0;
       }
 
       if (item?.type === 'Subscription') {
         const planName = item?.Plane_name;
-
-        if (!subscriptionCount[planName]) {
-          subscriptionCount[planName] = {
-            count: 0,
-            totalPrice: 0,
-          };
-        }
 
         subscriptionCount[planName].count += 1;
         subscriptionCount[planName].totalPrice += item?.price || 0;
-        companyEarning+=item?.price || 0;
+        companyEarning += item?.price || 0;
       }
     });
+
     let CandidateSubscriptionCount = {};
-    let CandidateEarning=0;
-    candidateData.map((item)=>{
+    let CandidateEarning = 0;
+    CandidateSub.forEach((item) => {
+      const planName = item?.plane_name;
+      CandidateSubscriptionCount[planName] = { count: 0, totalPrice: 0 };
+    });
+
+    candidateData.forEach((item) => {
       if (item?.type === 'Subscription') {
         const planName = item?.Plane_name;
-
-        if (!CandidateSubscriptionCount[planName]) {
-          CandidateSubscriptionCount[planName] = {
-            count: 0,
-            totalPrice: 0,
-          };
-        }
-
+       
         CandidateSubscriptionCount[planName].count += 1;
         CandidateSubscriptionCount[planName].totalPrice += item?.price || 0;
-        CandidateEarning+=item?.price || 0;
+        CandidateEarning += item?.price || 0;
       }
-    })
-     let TotalEarning=companyEarning+CandidateEarning
+    });
 
-    return res.status(200).send({ subscriptionCount, TopUpCount, PromotJob,companyEarning,CandidateSubscriptionCount,TotalEarning});
+    let TotalEarning = companyEarning + CandidateEarning;
+
+    return res.status(200).send({
+      subscriptionCount,
+      TopUpCount,
+      PromotJob,
+      companyEarning,
+      CandidateSubscriptionCount,
+      CandidateEarning,
+      TotalEarning
+    });
   } catch (error) {
+    console.log(error);
     return res.status(500).json({ error: 'Internal server error' });
   }
 };
