@@ -354,7 +354,7 @@ exports.GetCompanyDetails = async (req, res) => {
       return res.status(400).json({ error: "Please provide Company Id" });
     }
 
-    const data = await company.findById(cmpId).select('profile name verified_batch');
+    const data = await company.findById(cmpId).select('profile company_name verified_batch');
     return res.status(200).send(data);
 
   } catch (error) {
@@ -467,7 +467,6 @@ exports.CompanyLogOut = async (req, res) => {
   const { company_id } = req.body;
   try {
     const companys = await company.findById(company_id);
-
     if (!companys) {
       return res.status(404).json({ error: 'Company not found' });
     }
@@ -500,8 +499,8 @@ exports.CompanyLogOut = async (req, res) => {
       if (updatedSubscription) {
         return res.status(200).json({ message: 'Company logged out successfully' });
       } else {
-        return res.status(400).json({
-          error: 'No valid subscription found or something went wrong'
+        return res.status(200).json({
+         message: 'Company logged out successfully'
         });
       }
     }
