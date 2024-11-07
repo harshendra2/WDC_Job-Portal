@@ -2,7 +2,7 @@ const Joi = require("joi");
 const twilio = require("twilio");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
-const { sendEmail } = require('../../Service/sendMail');
+const { sendEmail,sendMailToReg} = require('../../Service/sendMail');
 const { generateOTP } = require('../../Service/generateOTP');
 const nodemailer = require("nodemailer");
 const { email } = require("../../config/emailConfig");
@@ -30,9 +30,7 @@ const OnboardRegistration = Joi.object({
     .required()
     .valid(Joi.ref("password"))
     .messages({ "any.only": "Password and set password do not match" }),
-  company_name: Joi.string().min(3).required(),
-  mobile: Joi.number().min(10).required(),
-  location: Joi.string().required(),
+  company_name: Joi.string().min(3).required()
 });
 
 const ForgotPasswordValidation = Joi.object({
@@ -96,7 +94,7 @@ exports.CompanyRegistration = async (req, res) => {
 };
 
 exports.getOTP = async (req, res) => {
-  const { mobile } = req.body;
+  const { email } = req.body;
 
   const generateOTP = () => {
     return Math.floor(100000 + Math.random() * 900000).toString();
@@ -105,39 +103,32 @@ exports.getOTP = async (req, res) => {
   const OTP = generateOTP();
 
   try {
-    const message = await client.messages.create({
-      body: `Dear user, your DI Data Bank verification code is ${OTP}. Please use this code to complete your registration or login process. This code is valid for the next 10 minutes. Do not share this code with anyone for security reasons.`,
-      to: mobile,
-      from: "+19252755516",
-    });
+    let Message=await sendMailToReg(email, OTP);
 
-    if (message) {
+    if (Message) {
       return res
         .status(200)
-        .json({ message: "Message sent successfully", OTP });
+        .json({ message: "OTP has been sent successfully. Please check your email.", OTP });
     } else {
       return res
         .status(400)
         .json({
-          error: "Failed to send message. Please check the mobile number",
+          error: "Failed to send OTP. Please verify the email ID and try again.",
         });
     }
   } catch (error) {
-    console.log(error);
     return res.status(500).json({ error: "Internal Server Error" });
   }
 };
 
 exports.Registration = async (req, res) => {
-  const { email, password, company_name, mobile, location, setpassword } =
+  const { email, password, company_name, setpassword } =
     req.body;
   const { error } = OnboardRegistration.validate({
     email,
     password,
     setpassword,
-    company_name,
-    mobile,
-    location,
+    company_name
   });
 
   if (error) {
@@ -157,9 +148,7 @@ exports.Registration = async (req, res) => {
     const companydata = new company({
       email,
       password: hashedPassword,
-      company_name,
-      mobile,
-      location,
+      company_name
     });
     const data = await companydata.save();
 

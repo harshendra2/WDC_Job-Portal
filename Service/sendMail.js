@@ -52,3 +52,30 @@ DI Data Bank Team`,
 
   await transporter.sendMail(mailOptions);
 }
+
+
+
+exports.sendMailToReg=async(email,OTP)=>{
+  const mailOptions = {
+    from: process.env.EMAIL_USER,
+    to: email,
+    subject: "One-Time Password (OTP) for Company Registration",
+    text: `Dear Valued User,
+Thank you for registering your company with DI Data Bank. To complete your registration, please use the following One-Time Password (OTP):
+
+OTP: ${OTP}
+
+Please note that this OTP is valid for a limited time and should not be shared with anyone.
+
+If you did not initiate this request, please disregard this email.
+
+Best regards,  
+The DI Data Bank Team
+
+---
+Email: ${email}
+Contact Us: support@didatabank.com`,
+};
+
+  await transporter.sendMail(mailOptions);
+}

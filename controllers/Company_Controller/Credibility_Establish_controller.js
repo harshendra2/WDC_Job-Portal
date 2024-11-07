@@ -1,4 +1,5 @@
 const CompanyJob=require('../../models/JobSchema');
+
 exports.OfferVerifier = async (req, res) => {
   const { companyId, PAN } = req.params;
   try {
