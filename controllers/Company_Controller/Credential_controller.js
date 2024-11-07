@@ -105,17 +105,11 @@ exports.getOTP = async (req, res) => {
   try {
     let Message=await sendMailToReg(email, OTP);
 
-    if (Message) {
+    
       return res
         .status(200)
         .json({ message: "OTP has been sent successfully. Please check your email.", OTP });
-    } else {
-      return res
-        .status(400)
-        .json({
-          error: "Failed to send OTP. Please verify the email ID and try again.",
-        });
-    }
+    
   } catch (error) {
     return res.status(500).json({ error: "Internal Server Error" });
   }
