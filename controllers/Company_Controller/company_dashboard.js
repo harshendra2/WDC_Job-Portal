@@ -93,10 +93,87 @@ exports.getCompanyDetails = async (req, res) => {
 exports.AllSubscriptionCount=async(req,res)=>{
   const {cmpId,Time}=req.params;
   try{
+    let data;
+    let count;
+    if(Time=='Today'){
+      const todayStart = moment().startOf('day').toDate();
+      const todayEnd = moment().endOf('day').toDate();
+      let temp =await CompanyStatusCount(todayStart,todayEnd,cmpId);
+      data=temp?.data;
+      count=temp?.count
+      }else if(Time=='Thisweek'){
+        const weekStart = moment().startOf('isoWeek').toDate();
+        const weekEnd = moment().endOf('isoWeek').toDate();
+        let temp=await CompanyStatusCount(weekStart,weekEnd,cmpId);
+        data=temp?.data;
+        count=temp?.count
+      
+      }else if(Time=='Thismonth'){
+        const monthStart = moment().startOf('month').toDate();
+        const monthEnd = moment().endOf('month').toDate();
+        let temp =await CompanyStatusCount(monthStart,monthEnd,cmpId);
+        data=temp?.data;
+        count=temp?.count
+      }else if(Time=='Thisyear'){
+        const yearStart = moment().startOf('year').toDate();
+        const yearEnd = moment().endOf('year').toDate();
+        let temp =await CompanyStatusCount(yearStart,yearEnd,cmpId);
+        data=temp?.data;
+        count=temp?.count
+      }else if(Time=='All'){
+        const yearStart = new Date(0)
+        let temp =await CompanyStatusCount(yearStart,new Date(),cmpId);
+        data=temp?.data;
+        count=temp?.count
+      }
+
+      return res.status(200).send({data,count})
 
   }catch(error){
     return res.status(500).json({error:"Internal server error"});
   }
+}
+
+async function CompanyStatusCount(start,end,CmpID){
+  const ObjectId=new mongoose.Types.ObjectId(CmpID)
+  const data = await CompanyJob.aggregate([
+    { $match: {company_id: ObjectId } },
+    {
+      $project: {
+        jobCreated: { $cond: [{ $ifNull: ["$job_title", false] }, 1, 0] },
+        promotedJob: { $cond: [{ $eq: ["$promote_job", true] }, 1, 0] },
+        unpromotedJob: { $cond: [{ $eq: ["$promote_job", false] }, 1, 0] },
+        hiredCount: "$hired_Candidate",
+        appliedCandidateCount: { $size: "$applied_candidates" },
+        shortlistedCount: { $size: "$Shortlisted" },
+        offerLetterCount: {
+          $size: {
+            $filter: {
+              input: "$Shortlisted",
+              as: "shortlisted",
+              cond: { $ne: ["$$shortlisted.short_Candidate.offer_letter", null] }
+            }
+          }
+        },
+      },
+    },
+  
+    // Step 3: Group and accumulate counts
+    {
+      $group: {
+        _id: null,
+        totalJobs: { $sum: "$jobCreated" },
+        totalPromotedJobs: { $sum: "$promotedJob" },
+        totalUnpromotedJobs: { $sum: "$unpromotedJob" },
+        totalHiredCandidates: { $sum: "$hiredCount" },
+        totalAppliedCandidates: { $sum: "$appliedCandidateCount" },
+        totalShortlistedCandidates: { $sum: "$shortlistedCount" },
+        totalOfferLetters: { $sum: "$offerLetterCount" },
+      },
+    },
+  ]); 
+  let count=0;
+  return {data,count}
 }
 
 

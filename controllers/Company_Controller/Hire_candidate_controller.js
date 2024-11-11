@@ -29,6 +29,7 @@ exports.getAllAppliedCandidate = async (req, res) => {
                     as: 'personalDetails'
                 }
             },
+            {$match:{'personalDetails.Aadhar_verified_status':true,'personalDetails.Pan_verified_status':true}},
             {
                 $lookup: {
                     from: 'candidate_work_details',
@@ -283,9 +284,11 @@ exports.getCandidateDetails = async (req, res) => {
         };
 
         const bindUrlOrPath = url => {
+            if(url){
             return isGoogleDriveLink(url)
                 ? url
                 : `${baseUrl}/${url.replace(/\\/g, '/')}`;
+            }
         };
 
         const updatedData = data.map(candidate => {
@@ -347,6 +350,7 @@ exports.KeywordSearchCandidate = async (req, res) => {
                     as: 'personalDetails'
                 }
             },
+            {$match:{'personalDetails.Aadhar_verified_status':true,'personalDetails.Pan_verified_status':true}},
             {
                 $lookup: {
                     from: 'candidate_work_details',
@@ -630,6 +634,7 @@ exports.KeywordSearchCandidate = async (req, res) => {
                     as: 'personalDetails'
                 }
             },
+            {$match:{'personalDetails.Aadhar_verified_status':true,'personalDetails.Pan_verified_status':true}},
             {
                 $lookup: {
                     from: 'candidate_work_details',

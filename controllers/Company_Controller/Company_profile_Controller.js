@@ -60,7 +60,7 @@ exports.GetCompanyProfile = async (req, res) => {
         'company_name', 'email', 'mobile', 'overView',
         'industry', 'company_size', 'GST', 'GST_image', 'PAN',
         'PAN_image', 'website_url', 'location', 'contact_email',
-        'contact_No', 'headQuater_add', 'profile'
+        'contact_No', 'headQuater_add'
       ];
       const PanVerifyingField = 'status';
 

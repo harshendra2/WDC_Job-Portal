@@ -146,10 +146,6 @@ const CompanyJobSchema = new mongoose.Schema({
     },
     },
   ],
-  // apply_status: {
-  //   type: Boolean,
-  //   default: false,
-  // },
   job_title: {
     type: String,
   },

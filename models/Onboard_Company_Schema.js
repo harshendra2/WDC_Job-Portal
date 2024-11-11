@@ -161,6 +161,30 @@ const CompanySchema = new Schema({
       type:String
      }
     }
+  ],
+  resume_download_count:[
+    {
+     download_count:{
+      type:Number,
+      default:0
+     },
+     Date:{
+      type:Date,
+      default: Date.now
+     }
+    }
+  ],
+  view_CV:[
+    {
+      View:{
+        type:Number,
+        default:0
+      },
+      Date:{
+        type:Date,
+        default: Date.now
+       }
+    }
   ]
 });
 

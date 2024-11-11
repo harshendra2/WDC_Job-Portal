@@ -24,14 +24,13 @@ const PAN_REGEX = /^[A-Z]{5}[0-9]{4}[A-Z]{1}$/;
 const OnboardCandidatePersonalDetails=Joi.object({
   gender: Joi.string().valid('Male', 'Female', 'Other'),
   age:Joi.number(),
-  marriag_status:Joi.string().valid('Single','Married'),
   aadhar_number: Joi.number(),
   PAN: Joi.string().pattern(PAN_REGEX).messages({
     'string.pattern.base': 'PAN number is invalid'
   }),
-  family_member:Joi.number(),
-  father_name:Joi.string().min(3),
-  spouse_profession:Joi.string()
+  spouse_profession:Joi.string(),
+  location:Joi.string().min(3),
+  country:Joi.string().min(3)
 })
 
 const OnboardCandidateWorkDetails=Joi.object({
@@ -56,6 +55,14 @@ const CandidateEducationDetails=Joi.object({
   grade:Joi.string().required()
 })
 
+const OnboardCandidate = Joi.object({
+  name: Joi.string().required(),
+  email: Joi.string().email().required(),
+  mobile: Joi.number().min(10).required(),
+  linkedIn: Joi.string().min(10),
+  contact_email: Joi.string().email().required(),
+});
+
 
 exports.getProfilePercentageStatus = async (req, res) => {
   const { id } = req.params;
@@ -73,7 +80,7 @@ exports.getProfilePercentageStatus = async (req, res) => {
 
       // Fields to be checked
       const basicFields = [
-        'name', 'email', 'mobile', 'linkedIn'
+        'name', 'email', 'mobile', 'linkedIn','contact_email'
       ];
       const educationFields = [
         'highest_education', 'board_represent'
@@ -314,6 +321,13 @@ exports.AddSummaryToCandidate=async(req,res)=>{
     const { user_id } = req.params;
     const { name, email, mobile, linkedIn, other_profile,contact_email} = req.body;
 
+    const { error } = OnboardCandidate.validate({
+      name, email, mobile, linkedIn,contact_email
+    });
+  
+    if (error) {
+      return res.status(400).json({ error: error.details[0].message });
+    }
     try {
         const candidates = await candidate.findById(user_id).populate('basic_details');
 
@@ -547,7 +561,7 @@ exports.EditPersonalDetails = async (req, res) => {
 
   // Validate the input
   const { error } = OnboardCandidatePersonalDetails.validate({
-    gender, age, marriag_status, aadhar_number, PAN, family_member, father_name, spouse_profession
+    gender, age, aadhar_number, PAN, spouse_profession,location, country
   });
   if (error) {
     return res.status(400).json({ error: error.details[0].message });
