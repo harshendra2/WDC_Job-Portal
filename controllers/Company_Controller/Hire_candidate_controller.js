@@ -1,5 +1,5 @@
 const mongoose = require('mongoose');
-const { createObjectCsvStringifier } = require('csv-writer');
+const moment=require('moment');
 const JSZip = require('jszip');
 const path = require('path');
 const fs = require('fs');
@@ -213,16 +213,25 @@ exports.getCandidateDetails = async (req, res) => {
         if (!candidateToUpdate) {
             return res.status(404).json({ error: 'Candidate not found' });
         }
-
+        
+        const monthStart = moment().startOf('month').toDate();
+        const monthEnd = moment().endOf('month').toDate();
+        
         const existingCompany = candidateToUpdate.profile_view_company.find(
-            company => company.company_id == companyId
+            company =>
+                company.company_id == companyId &&
+                company.view_date >= monthStart &&
+                company.view_date <= monthEnd
         );
+        
         if (!existingCompany) {
             candidateToUpdate.profile_view_company.push({
-                company_id: companyId
+                company_id: companyId,
+                view_date: new Date()
             });
             await candidateToUpdate.save();
         }
+        
         const comnId = new mongoose.Types.ObjectId(companyId);
         // const existsSubscription = await CompanySubscription.findOne({
         //     company_id: comnId,
@@ -424,7 +433,7 @@ exports.KeywordSearchCandidate = async (req, res) => {
             expiresAt: { $gte: new Date() },
             createdDate:{$lte:new Date()}
         });
-        
+       
         if (!existsSubscription) {
             return res.status(404).json({
                 error: 'Subscription not found, please purchase a new subscription plan.'

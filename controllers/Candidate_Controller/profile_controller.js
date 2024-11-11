@@ -138,12 +138,9 @@ exports.AddSummaryToCandidate=async(req,res)=>{
   const {userId}=req.params;
   const {summary}=req.body
   try{
-    if(!req.file){
-      return res.status(400).json({error:"Please upload profile image"}); 
-    }
     const data=await candidate.findByIdAndUpdate(userId,{profile:req.file?.path,summary})
     if(data){
-      return res.status(200).json({message:"Profile updated"});
+      return res.status(200).json({message:"Profile updated successfully"});
     }else{
       return res.status(400).json({error:"profile is not updated"});
     }
@@ -315,7 +312,7 @@ exports.AddSummaryToCandidate=async(req,res)=>{
 
   exports.EditBasicDetails = async (req, res) => {
     const { user_id } = req.params;
-    const { name, email, mobile, linkedIn, other_profile } = req.body;
+    const { name, email, mobile, linkedIn, other_profile,contact_email} = req.body;
 
     try {
         const candidates = await candidate.findById(user_id).populate('basic_details');
@@ -331,7 +328,7 @@ exports.AddSummaryToCandidate=async(req,res)=>{
            return res.status(400).json({error:"This mobile number already exists in our data base"});
           }
           const candidateData = {
-            name, email, mobile, linkedIn
+            name, email, mobile, linkedIn,contact_email,other_profile
           };
          const newBasicDetails = new basic_details(candidateData);
          const savedBasicDetails = await newBasicDetails.save();
@@ -347,7 +344,8 @@ exports.AddSummaryToCandidate=async(req,res)=>{
             email: email || candidate.basic_details?.email,
             mobile: mobile || candidate.basic_details?.mobile,
             linkedIn: linkedIn || candidate.basic_details?.linkedIn,
-            other_profile: other_profile
+            other_profile: other_profile|| candidate.basic_details?.other_profile,
+            contact_email:contact_email|| candidate.basic_details?.contact_email
         };
         const updatedBasicDetails = await basic_details.findByIdAndUpdate(
             candidates.basic_details._id,

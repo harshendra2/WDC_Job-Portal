@@ -58,6 +58,9 @@ const CandidateShema=new mongoose.Schema({
             is_read:{
                 type:Boolean,
                 default:false
+            },
+            view_date:{
+              type:Date
             }
         }
     ],

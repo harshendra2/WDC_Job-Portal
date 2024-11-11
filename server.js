@@ -46,6 +46,7 @@ const CandidateAppliedJobRoute=require("./Routes/Candidate_Panel/Job_applied");
 const CandidteProfile=require('./Routes/Candidate_Panel/Candidate_profile');
 const CandidateSupport=require('./Routes/Candidate_Panel/Support_routes');
 const CandidateSubscriptionPlane=require('./Routes/Candidate_Panel/Subscription_routes');
+const CandidateDashboard=require('./Routes/Candidate_Panel/Dashbord_routes');
 const PORT = 4000;
 
 
@@ -81,6 +82,7 @@ app.use('/api',CandidateAppliedJobRoute);
 app.use('/api',CandidteProfile);
 app.use('/api',CandidateSupport);
 app.use('/api',CandidateSubscriptionPlane);
+app.use('/api',CandidateDashboard);
 
 app.use('/Images', express.static(path.join(__dirname, 'Images')));
 const server=app.listen(PORT, () => {

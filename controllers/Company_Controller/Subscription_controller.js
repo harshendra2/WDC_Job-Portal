@@ -37,25 +37,7 @@ exports.getAllSubscriptionPlane=async(req,res)=>{
     const {companyId}=req.params;
     try{
         const company_id=new mongoose.Types.ObjectId(companyId);
-        // const previousPlan = await CompanySubscription.findOne({
-        //     company_id,
-        //     plane_name: { $regex: /^Basic\s*$/, $options: 'i' } 
-        // });
-        // const CurrentSubscription=await CompanySubscription.aggregate([{
-        //     $match: {
-        //       expiresAt: { $gte: new Date() },
-        //       createdDate:{$lte:new Date()},
-        //       company_id:company_id
-        //     }
-        //   }])
-        
-
-        //  if(previousPlan){
-        // const getSubscriptionPlans = await subscription.aggregate([
-        //     { $match: { _id: { $ne: previousPlan.subscription_id } } }
-        // ]);
-        // return res.status(200).send({getSubscriptionPlans,CurrentSubscription});
-        //  }else{
+        const previousPlan=await CompanyTransaction.findOne({company_id,type:"Subscription",Plane_name:"Basic"})
             const CurrentSubscription = await CompanySubscription.aggregate([
                 {
                     $match: {
@@ -199,9 +181,17 @@ exports.getAllSubscriptionPlane=async(req,res)=>{
             
 
 
-            const getSubscriptionPlans = await subscription.find({})
+         let getSubscriptionPlans;
+             if(previousPlan){
+         getSubscriptionPlans = await subscription.aggregate([
+            { $match: {plane_name: { $ne: previousPlan.Plane_name } } }
+        ]);
+    }else{
+    getSubscriptionPlans = await subscription.find({})
+    }
+        
             return res.status(200).send({getSubscriptionPlans,CurrentSubscription});
-        //  } 
+
 
     }catch(error){
         console.log(error)
@@ -348,6 +338,7 @@ exports.verifyPayment = async (req, res) => {
                     download_email_limit: data.download_email_limit,
                     download_cv_limit: data.download_cv_limit,
                     job_posting: data.job_posting,
+                    Credibility_Search:data.Credibility_Search,
                     createdDate: new Date(),
                     expiresAt: new Date(Date.now() + 30*24*60*60*1000), // Set expiration date to 30 days from now
                 });
@@ -494,15 +485,17 @@ exports.GetReNewSubscriptionPlan = async (req, res) => {
     const { company_id } = req.params;
 
     try {
-        const previousPlan = await CompanySubscription.findOne({
-            company_id,
-            plane_name: { $regex: /^Basic\s*$/, $options: 'i' } 
-        });
+        const previousPlan=await CompanyTransaction.findOne({company_id,type:"Subscription",Plane_name:"Basic"})
+        // const previousPlan = await CompanySubscription.findOne({
+        //     company_id,
+        //     plane_name: { $regex: /^Basic\s*$/, $options: 'i' } 
+        // });
         const objectId=new mongoose.Types.ObjectId(company_id);
        // const previousSubscription=await CompanySubscription.aggregate([{ $match: { company_id: objectId, expiresAt: { $gte: new Date() },createdDate:{$lte:new Date()}} }])
          if(previousPlan){
         const getSubscriptionPlans = await subscription.aggregate([
-            { $match: { _id: { $ne: previousPlan.subscription_id } } }
+            { $match: {plane_name: { $ne: previousPlan.Plane_name } } }
+            //{ $match: { _id: { $ne: previousPlan.subscription_id } } }
         ]);
         return res.status(200).send({getSubscriptionPlans});
          }else{
@@ -626,6 +619,7 @@ const expiresAts = new Date(createdDate.getTime() + 30 * 24 * 60 * 60 * 1000);
                     download_email_limit: subscriptionData.download_email_limit,
                     download_cv_limit: subscriptionData.download_cv_limit,
                     job_posting: subscriptionData.job_posting,
+                    Credibility_Search:subscriptionData.Credibility_Search,
                     createdDate:createdDate,
                     expiresAt:expiresAts, 
                 });
@@ -717,7 +711,8 @@ exports.GetAllTopupPlane = async (req, res) => {
             'available_candidate',
             'user_access',
             'download_email_limit',
-            'download_cv_limit'
+            'download_cv_limit',
+            'Credibility_Search'
         ];
 
         for (const fieldName of fieldNames) {
@@ -849,6 +844,7 @@ exports.TopUpPlaneVerifyPayment = async (req, res) => {
             existingSubscription.user_access += TopupData.user_access || 0;
             existingSubscription.cv_view_limit += TopupData.cv_view_limit || 0;
             existingSubscription.job_posting += TopupData.job_posting || 0;
+            existingSubscription.Credibility_Search+=TopupData.Credibility_Search ||0;
 
             if (TopupData.available_candidate) {
                 existingSubscription.available_candidate = true;
@@ -901,16 +897,18 @@ exports.GetEarySubscriptionplane=async(req,res)=>{
     const {company_id}=req.params;
     try{
 
-        const previousPlan = await CompanySubscription.findOne({
-            company_id,
-            plane_name: { $regex: /^Basic\s*$/, $options: 'i' } 
-        });
+        // const previousPlan = await CompanySubscription.findOne({
+        //     company_id,
+        //     plane_name: { $regex: /^Basic\s*$/, $options: 'i' } 
+        // });
+        const previousPlan=await CompanyTransaction.findOne({company_id,type:"Subscription",Plane_name:"Basic"})
 
         const objectId=new mongoose.Types.ObjectId(company_id);
         //const previousSubscription=await CompanySubscription.aggregate([{ $match: { company_id: objectId, expiresAt: { $gte: new Date() },createdDate:{$lte:new Date()}} }])
          if(previousPlan){
         const getSubscriptionPlans = await subscription.aggregate([
-            { $match: { _id: { $ne: previousPlan.subscription_id } } }
+            { $match: {plane_name: { $ne: previousPlan.Plane_name } } }
+           // { $match: { _id: { $ne: previousPlan.subscription_id } } }
         ]);
         return res.status(200).send({getSubscriptionPlans});
          }else{
@@ -1030,6 +1028,7 @@ exports.SubscriptionPlaneVerifyPayment = async (req, res) => {
                 download_email_limit: subData.download_email_limit,
                 download_cv_limit: subData.download_cv_limit,
                 job_posting: subData.job_posting,
+                Credibility_Search:subData.Credibility_Search,
                 createdDate: new Date(),
                 expiresAt:newExpirationDate
             });

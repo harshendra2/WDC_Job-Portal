@@ -36,6 +36,10 @@ const SubscriptionPlaneSchema = new mongoose.Schema({
   job_posting: {
     type: Number,
     default: 0
+  },
+  Credibility_Search:{
+    type:Number,
+    default:0
   }
 });
 

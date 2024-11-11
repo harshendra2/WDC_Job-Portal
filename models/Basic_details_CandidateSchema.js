@@ -10,6 +10,9 @@ const basic_details_candidate=new mongoose.Schema({
     email:{
         type:String
     },
+    contact_email:{
+        type:String
+    },
     mobile:{
         type:Number
     },

@@ -90,6 +90,15 @@ exports.getCompanyDetails = async (req, res) => {
 };
 
 
+exports.AllSubscriptionCount=async(req,res)=>{
+  const {cmpId,Time}=req.params;
+  try{
+
+  }catch(error){
+    return res.status(500).json({error:"Internal server error"});
+  }
+}
+
 
 //Upgrade plane
 exports.GetUpgradeSubscriptionPlane = async (req, res) => {

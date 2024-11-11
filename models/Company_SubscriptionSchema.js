@@ -49,6 +49,10 @@ const CompanySubscriptionPlaneSchema = new mongoose.Schema({
     type: Number,
     default: 0
   },
+  Credibility_Search:{
+    type:Number,
+    default:0
+  },
   createdDate:{
     type:Date,
     default: Date.now,

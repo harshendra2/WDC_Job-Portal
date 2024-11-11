@@ -25,7 +25,6 @@ exports.getCountofCandidate = async (req, res) => {
     ).length;
   
 
-      const jobCount=await companyjob.countDocuments({});
       const data = await companyjob.aggregate([
         {
           $lookup: {
