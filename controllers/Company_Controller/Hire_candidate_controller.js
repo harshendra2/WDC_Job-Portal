@@ -6,6 +6,9 @@ const fs = require('fs');
 const axios = require('axios');
 const CompanyJob = require('../../models/JobSchema');
 const candidate = require('../../models/Onboard_Candidate_Schema');
+const OnboardCompany=require('../../models/Onboard_Company_Schema');
+const BasicDetails=require('../../models/Basic_details_CandidateSchema');
+const WorkDetails=require('../../models/work_details_candidate')
 const CompanySubscription = require('../../models/Company_SubscriptionSchema');
 const searchhistory = require('../../models/Search_historySchema');
 
@@ -214,6 +217,8 @@ exports.getCandidateDetails = async (req, res) => {
         if (!candidateToUpdate) {
             return res.status(404).json({ error: 'Candidate not found' });
         }
+
+        const CompanyView=await OnboardCompany.findOne({_id:companyId});
         
         const monthStart = moment().startOf('month').toDate();
         const monthEnd = moment().endOf('month').toDate();
@@ -232,6 +237,24 @@ exports.getCandidateDetails = async (req, res) => {
             });
             await candidateToUpdate.save();
         }
+
+        const existCandidate=CompanyView.view_CV.find(
+            company=>
+                company.Date>=monthStart&&
+                company.Date<=monthEnd
+        )
+
+        if (!existCandidate) {
+            CompanyView.view_CV.push({
+                View: 1,
+                Date: new Date()
+            });
+        } else {
+            existCandidate.View += 1;
+        }
+        
+        // Save the updated document
+        await CompanyView.save();
         
         const comnId = new mongoose.Types.ObjectId(companyId);
         // const existsSubscription = await CompanySubscription.findOne({
@@ -1053,3 +1076,170 @@ exports.DownloadSingleFiles = async (req, res) => {
       return res.status(500).json({ error: "Internal server error" });
     }
   };
+
+
+exports.DownloadmultipleEmail=async(req,res)=>{
+    const { selectedCandidates } = req.body;
+    try{
+       
+ // Aggregating candidate data
+const data=await BasicDetails.aggregate([{
+    $match: {
+        custom_id: { $in: selectedCandidates }
+    }
+}]);
+
+// Extract unique emails and names
+const uniqueEmails = [...new Set(data.map(candidate => ({
+    email: candidate.email,
+    name: candidate.name
+})))];
+
+const csvHeader = "Email,Name\n";  // Corrected header for separate email and name columns
+const csvRows = uniqueEmails.map(candidate => `${candidate.email},${candidate.name}`).join('\n');
+const csvData = csvHeader + csvRows;
+
+// Send the CSV file as response
+res.header('Content-Type', 'text/csv');
+res.attachment('selected_emails.csv');
+res.send(csvData);
+    }catch(error){
+        return res.status(500).json({error:"Internal server error"});
+    }
+}
+
+exports.DownloadMultipleAIResume=async(req,res)=>{
+    const { selectedCandidates } = req.body;
+    try{
+        const data = await candidate.aggregate([
+            {
+                $match: {
+                    custom_id: { $in: selectedCandidates }
+                }
+            },
+            {
+                $lookup: {
+                    from: 'candidate_work_details',
+                    localField: 'work_details',
+                    foreignField: '_id',
+                    as: 'WorkDetails'
+                }
+            },
+            { $unwind: '$WorkDetails' },
+            {
+                $lookup: {
+                    from: 'candidate_basic_details',
+                    localField: 'basic_details',
+                    foreignField: '_id',
+                    as: 'BasicDetails'
+                }
+            },
+            { $unwind: '$BasicDetails' }
+        ]);
+
+        const resumes = data.map(candidate => ({
+            resumeUrl: candidate.resume,
+            Name: candidate.BasicDetails.name
+        }));
+
+        const zip = new JSZip();
+
+        for (const resume of resumes) {
+            if (resume.resumeUrl) {
+                let fileContent;
+                if (resume.resumeUrl.includes('drive.google.com')) {
+                    const fileId = extractGoogleDriveFileId(resume.resumeUrl);
+                    const downloadUrl = `https://drive.google.com/uc?export=download&id=${fileId}`;
+
+                    try {
+                        const response = await axios.get(downloadUrl, { responseType: 'arraybuffer' });
+                        fileContent = response.data;
+                    } catch (err) {
+                        continue;
+                    }
+                } else {
+                    const fileName = path.basename(resume.resumeUrl); 
+                    const filePath = path.join(__dirname, '../../Images', fileName);
+
+                    if (fs.existsSync(filePath)) {
+                        fileContent = await fs.promises.readFile(filePath);
+                    } else {
+                        continue;
+                    }
+                }
+
+                const fileName = `${resume.Name}.pdf`;
+                zip.file(fileName, fileContent);
+            }
+        }
+        const zipContent = await zip.generateAsync({ type: 'nodebuffer' });
+        res.header('Content-Type', 'application/zip');
+        res.attachment('selected_resumes.zip');
+        res.send(zipContent);
+    }catch(error){
+        return res.status(500).json({error:"Internal server error"});
+    }
+}
+
+exports.getAICandidateDetails=async(req,res)=>{
+    const {custom_Id}=req.params;
+    try{
+
+        const datas = await candidate.find({ custom_id: custom_Id })
+        .populate('basic_details')
+        .populate('personal_details')
+        .populate('work_details')
+        .populate('education_details')
+    
+        const baseUrl = `${req.protocol}://${req.get('host')}`;
+        const isGoogleDriveLink = url => {
+            return (
+                url &&
+                (url.includes('drive.google.com') ||
+                    url.includes('docs.google.com'))
+            );
+        };
+
+        const bindUrlOrPath = url => {
+            if(url){
+            return isGoogleDriveLink(url)
+                ? url
+                : `${baseUrl}/${url.replace(/\\/g, '/')}`;
+            }
+        };
+
+        const updatedData = datas.map(candidate => {
+            const resumeUrl = candidate.work_details.resume
+                ? bindUrlOrPath(candidate.work_details.resume)
+                : null;
+
+            const profileUrl = candidate?.profile
+                ? bindUrlOrPath(candidate?.profile)
+                : null;
+
+            const certificates = candidate?.education_details?.certificates.map(
+                cert => ({
+                    ...cert,
+                    image: bindUrlOrPath(cert.image)
+                })
+            );
+
+            return {
+                ...candidate,
+                profile: profileUrl,
+                workDetails: {
+                    ...candidate.work_details,
+                    resume: resumeUrl
+                },
+                educationDetails: {
+                    ...candidate?.education_details,
+                    certificates
+                }
+            };
+        });
+
+        return res.status(200).json(datas);
+    }catch(error){
+        return res.status(500).json({error:"Internal server error"});
+    }
+}

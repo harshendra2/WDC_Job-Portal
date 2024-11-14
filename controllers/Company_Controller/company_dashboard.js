@@ -95,18 +95,21 @@ exports.AllSubscriptionCount=async(req,res)=>{
   try{
     let data;
     let count;
+    let cv_view_count;
     if(Time=='Today'){
       const todayStart = moment().startOf('day').toDate();
       const todayEnd = moment().endOf('day').toDate();
       let temp =await CompanyStatusCount(todayStart,todayEnd,cmpId);
       data=temp?.data;
       count=temp?.count
+      cv_view_count=temp?.cvCount
       }else if(Time=='Thisweek'){
         const weekStart = moment().startOf('isoWeek').toDate();
         const weekEnd = moment().endOf('isoWeek').toDate();
         let temp=await CompanyStatusCount(weekStart,weekEnd,cmpId);
         data=temp?.data;
         count=temp?.count
+        cv_view_count=temp?.cvCount
       
       }else if(Time=='Thismonth'){
         const monthStart = moment().startOf('month').toDate();
@@ -114,67 +117,190 @@ exports.AllSubscriptionCount=async(req,res)=>{
         let temp =await CompanyStatusCount(monthStart,monthEnd,cmpId);
         data=temp?.data;
         count=temp?.count
+        cv_view_count=temp?.cvCount
       }else if(Time=='Thisyear'){
         const yearStart = moment().startOf('year').toDate();
         const yearEnd = moment().endOf('year').toDate();
         let temp =await CompanyStatusCount(yearStart,yearEnd,cmpId);
         data=temp?.data;
         count=temp?.count
+        cv_view_count=temp?.cvCount
       }else if(Time=='All'){
         const yearStart = new Date(0)
         let temp =await CompanyStatusCount(yearStart,new Date(),cmpId);
         data=temp?.data;
         count=temp?.count
+        cv_view_count=temp?.cvCount
       }
 
-      return res.status(200).send({data,count})
+      return res.status(200).send({data,count,cv_view_count})
 
   }catch(error){
     return res.status(500).json({error:"Internal server error"});
   }
 }
 
-async function CompanyStatusCount(start,end,CmpID){
-  const ObjectId=new mongoose.Types.ObjectId(CmpID)
-  const data = await CompanyJob.aggregate([
-    { $match: {company_id: ObjectId } },
+async function CompanyStatusCount(start, end, CmpID) {
+  const ObjectId = new mongoose.Types.ObjectId(CmpID);
+
+  const datas = await CompanyJob.aggregate([
+    { 
+      $match: {
+        company_id: ObjectId,
+        createdDate: { $gte: start, $lte: end }  // Filter by createdDate
+      } 
+    },
     {
       $project: {
         jobCreated: { $cond: [{ $ifNull: ["$job_title", false] }, 1, 0] },
         promotedJob: { $cond: [{ $eq: ["$promote_job", true] }, 1, 0] },
         unpromotedJob: { $cond: [{ $eq: ["$promote_job", false] }, 1, 0] },
-        hiredCount: "$hired_Candidate",
-        appliedCandidateCount: { $size: "$applied_candidates" },
-        shortlistedCount: { $size: "$Shortlisted" },
+      }
+    },
+    {
+      $group: {
+        _id: null,
+        totalJobs: { $sum: { $ifNull: ["$jobCreated", 0] } },
+        totalPromotedJobs: { $sum: { $ifNull: ["$promotedJob", 0] } },
+        totalUnpromotedJobs: { $sum: { $ifNull: ["$unpromotedJob", 0] } }
+      }
+    },
+    {
+      // This ensures we always get a result with 0s if there are no matches
+      $project: {
+        totalJobs: { $ifNull: ["$totalJobs", 0] },
+        totalPromotedJobs: { $ifNull: ["$totalPromotedJobs", 0] },
+        totalUnpromotedJobs: { $ifNull: ["$totalUnpromotedJobs", 0] }
+      }
+    }
+  ]);
+
+  const count = await CompanyJob.aggregate([
+    {
+      $project: {
+        appliedCount: {
+          $size: {
+            $filter: {
+              input: "$applied_candidates",
+              as: "candidate",
+              cond: {
+                $and: [
+                  { $gte: ["$$candidate.applied_date", start] },
+                  { $lte: ["$$candidate.applied_date", end] }
+                ]
+              }
+            }
+          }
+        },
+        shortlistCount: {
+          $size: {
+            $filter: {
+              input: "$Shortlisted",
+              as: "shortlisted",
+              cond: {
+                $and: [
+                  { $gte: ["$$shortlisted.sortlisted_date", start] },
+                  { $lte: ["$$shortlisted.sortlisted_date", end] }
+                ]
+              }
+            }
+          }
+        },
         offerLetterCount: {
           $size: {
             $filter: {
               input: "$Shortlisted",
               as: "shortlisted",
-              cond: { $ne: ["$$shortlisted.short_Candidate.offer_letter", null] }
+              cond: {
+                $and: [
+                  { $ne: ["$$shortlisted.short_Candidate.offer_letter", null] },
+                  { $gte: ["$$shortlisted.short_Candidate.offer_date", start] },
+                  { $lte: ["$$shortlisted.short_Candidate.offer_date", end] }
+                ]
+              }
             }
           }
         },
-      },
+        HiredCount: {
+          $size: {
+            $filter: {
+              input: "$Shortlisted",
+              as: "shortlisted",
+              cond: {
+                $and: [
+                  { $ne: ["$$shortlisted.short_Candidate.hired_date", null] },
+                  { $gte: ["$$shortlisted.short_Candidate.hired_date", start] },
+                  { $lte: ["$$shortlisted.short_Candidate.hired_date", end] }
+                ]
+              }
+            }
+          }
+        },
+      }
     },
-  
     // Step 3: Group and accumulate counts
     {
       $group: {
         _id: null,
-        totalJobs: { $sum: "$jobCreated" },
-        totalPromotedJobs: { $sum: "$promotedJob" },
-        totalUnpromotedJobs: { $sum: "$unpromotedJob" },
-        totalHiredCandidates: { $sum: "$hiredCount" },
-        totalAppliedCandidates: { $sum: "$appliedCandidateCount" },
-        totalShortlistedCandidates: { $sum: "$shortlistedCount" },
-        totalOfferLetters: { $sum: "$offerLetterCount" },
-      },
+        
+        totalHiredCandidates: { $sum: "$HiredCount" },
+        totalAppliedCandidates: { $sum: "$appliedCount" },
+        totalShortlistedCandidates: { $sum: "$shortlistCount" },
+        totalOfferLetters: { $sum: "$offerLetterCount" }
+      }
+    }
+  ]);
+  
+  
+  const result = await Company.aggregate([
+    {
+        $match: {
+            "view_CV.Date": { $gte: start, $lte: end },
+            "resume_download_count.Date": { $gte: start, $lte: end }
+        }
     },
-  ]); 
-  let count=0;
-  return {data,count}
+    {
+        $project: {
+            view_CV: {
+                $filter: {
+                    input: "$view_CV",
+                    as: "view",
+                    cond: {
+                        $and: [
+                            { $gte: ["$$view.Date", start] },
+                            { $lte: ["$$view.Date", end] }
+                        ]
+                    }
+                }
+            },
+            resume_download_count: {
+                $filter: {
+                    input: "$resume_download_count",
+                    as: "download",
+                    cond: {
+                        $and: [
+                            { $gte: ["$$download.Date", start] },
+                            { $lte: ["$$download.Date", end] }
+                        ]
+                    }
+                }
+            }
+        }
+    },
+    {
+        $group: {
+            _id: null,
+            totalViewCV: { $sum: { $sum: "$view_CV.View" } },
+            totalDownloadCount: { $sum: { $sum: "$resume_download_count.download_count" } }
+        }
+    }
+]);
+  
+  let data= datas.length ? datas[0] : { totalJobs: 0, totalPromotedJobs: 0, totalUnpromotedJobs: 0 };
+  let cvCount=result[0] || { totalViewCV: 0, totalDownloadCount: 0 }
+  return {data,count,cvCount};
 }
+
 
 
 //Upgrade plane

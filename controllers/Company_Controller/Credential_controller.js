@@ -172,6 +172,7 @@ exports.Login = async (req, res) => {
       const subscriptionExists = await CompanySubscription.findOne({
         company_id: existedCompany._id,
         expiresAt: { $gte: Date.now() },
+        createdDate:{$lte:Date.now()},
         $or: [{ user_access: { $gt: 0 } }, { user_access: 'Unlimited' }]
       }).lean();
       if (subscriptionExists) {
@@ -261,6 +262,7 @@ exports.CompanyOTP = async (req, res) => {
 
     const subscriptionExists = await CompanySubscription.findOne({
       company_id: existedCompany._id,
+      createdDate:{$lte:Date.now()},
       expiresAt: { $gte: Date.now() },
       $or: [
         { user_access: { $gt: 0 } },
@@ -289,19 +291,45 @@ exports.CompanyOTP = async (req, res) => {
 
       return res.status(200).json({ message: "Company login successfully", companyToken: token });
     } else if (typeof subscriptionExists?.user_access == 'string') {
-      await company.updateOne(
-        { _id: existedCompany._id },
-        { $inc: { Logged_In_count: 1 } }
-      );
+      
+      if(subscriptionExists?.user_access!=='Unlimited'){
+        const count = parseInt(subscriptionExists.user_access, 10) || 0;
+        const logcount = count - 1;
+        await CompanySubscription.updateOne(
+          { _id: subscriptionExists._id },
+          { $set: { user_access:logcount} }
+        );
 
-      // Generate JWT token for the company
-      const token = jwt.sign(
-        { _id: existedCompany._id, email: existedCompany.email },
-        process.env.COMPANYSECRET_KEY,
-        { expiresIn: "30d" }
-      );
-
-      return res.status(200).json({ message: "Company login successfully", companyToken: token });
+        await company.updateOne(
+          { _id: existedCompany._id },
+          { $inc: { Logged_In_count: 1 } }
+        );
+      
+        // Generate JWT token for the company
+        const token = jwt.sign(
+          { _id: existedCompany._id, email: existedCompany.email },
+          process.env.COMPANYSECRET_KEY,
+          { expiresIn: "30d" }
+        );
+  
+        return res.status(200).json({ message: "Company login successfully", companyToken: token });
+      }else{
+        await company.updateOne(
+          { _id: existedCompany._id },
+          { $inc: { Logged_In_count: 1 } }
+        );
+      
+        // Generate JWT token for the company
+        const token = jwt.sign(
+          { _id: existedCompany._id, email: existedCompany.email },
+          process.env.COMPANYSECRET_KEY,
+          { expiresIn: "30d" }
+        );
+  
+        return res.status(200).json({ message: "Company login successfully", companyToken: token });
+      }
+       
+      
     }
 
     if (existedCompany.company_access_count > 0) {
@@ -479,7 +507,7 @@ exports.CompanyLogOut = async (req, res) => {
       return res.status(404).json({ error: 'Company not found' });
     }
 
-    if (companys.company_access_count < 1) {
+    if (companys.company_access_count ==0) {
       const existedCompany = await company.findOneAndUpdate(
         { email: companys?.email },
         { $inc: { company_access_count: 1, Logged_In_count: -1 } }
@@ -496,21 +524,43 @@ exports.CompanyLogOut = async (req, res) => {
         { $inc: { Logged_In_count: -1 } }
       );
 
-      const updatedSubscription = await CompanySubscription.findOneAndUpdate(
-        {
-          company_id: companys._id,
-          expiresAt: { $gte: Date.now() }
-        },
-        { $inc: { user_access: 1 } }
-      );
+      const subscriptionExists = await CompanySubscription.findOne({
+        company_id: companys._id,
+        createdDate:{$lte:Date.now()},
+        expiresAt: { $gte: Date.now() },
+        $or: [
+          { user_access: { $gt: 0 } },
+          { user_access: "Unlimited" }
+        ]
+      }).lean();
 
-      if (updatedSubscription) {
-        return res.status(200).json({ message: 'Company logged out successfully' });
-      } else {
-        return res.status(200).json({
-         message: 'Company logged out successfully'
-        });
+      if(subscriptionExists){
+        if(typeof subscriptionExists?.user_access=='number' ){
+          await CompanySubscription.updateOne(
+            { _id: subscriptionExists._id },
+            { $inc: { user_access: 1 } }
+          );
+        }else if(typeof subscriptionExists?.user_access=='string'){
+          if(subscriptionExists?.user_access!=='Unlimited'){
+              const count = parseInt(subscriptionExists.user_access, 10) || 0;
+              const logcount = count + 1;
+              await CompanySubscription.updateOne(
+                { _id: subscriptionExists._id },
+                { $set: { user_access:logcount} }
+              );
+    
+        
+              return res.status(200).json({ message: "Company logged out successfully"});
+            }else{  
+              return res.status(200).json({ message: "Company login successfully"});
+            }
+          
+        }
+
+      }else{
+        return res.status(200).json({message:"Company logged out successfully"})
       }
+
     }
   } catch (error) {
     console.log(error)

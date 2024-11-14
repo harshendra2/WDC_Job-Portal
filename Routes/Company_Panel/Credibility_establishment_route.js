@@ -5,5 +5,4 @@ const controller=require('../../controllers/Company_Controller/Credibility_Estab
 router.get('/company/credibility/status/:cmpId',controller.GetCredibilityStatus);
 router.get('/company/offer_verifier/:companyId/:PAN',controller.OfferVerifier);
 
-
 module.exports=router;

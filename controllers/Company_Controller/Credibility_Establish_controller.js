@@ -198,7 +198,8 @@ exports.OfferVerifier = async (req, res) => {
           data
         });
       } else {
-        return res.status(200).json({ message: "No job offer found for this candidate." });
+        return res.status(200).json({ message: "No job offer found for this candidate." , creditScore:0,
+          data});
       }
     } catch (error) {
       console.log(error);
