@@ -120,3 +120,43 @@ exports.sendMailToReg=async(email,OTP)=>{
 
   await transporter.sendMail(mailOptions);
 }
+
+
+// Send OTP fro Reject Offer letter 
+exports.sendMailToRejectOffer = async (email, OTP) => {
+  const mailOptions = {
+    from: process.env.EMAIL_USER,
+    to: email,
+    subject: "One-Time Password (OTP) to Confirm Offer Rejection",
+    html: `
+      <div style="font-family: Arial, sans-serif; color: #333;">
+        <div style="background-color: #f5f7fa; padding: 20px; border-radius: 10px; max-width: 600px; margin: auto;">
+          <h2 style="color: #3b96e1; text-align: center;">DI Data Bank</h2>
+          <p style="font-size: 16px; color: #333;">Dear Valued Candidate,</p>
+          <p style="font-size: 16px; color: #333;">
+            We understand that you are considering rejecting the offer. For security purposes, please confirm your decision by entering the following One-Time Password (OTP) to proceed with rejecting your offer letter.
+          </p>
+          
+          <div style="text-align: center; margin: 20px 0;">
+            <span style="display: inline-block; background-color: #3b96e1; color: #fff; padding: 10px 20px; border-radius: 5px; font-size: 24px; font-weight: bold;">${OTP}</span>
+          </div>
+          
+          <p style="font-size: 16px; color: #333;">
+            Please note that this OTP is valid for a limited time and should <strong>not be shared</strong> with anyone. Confirming your decision with this OTP will finalize the rejection process.
+          </p>
+          <p style="font-size: 16px; color: #333;">If you did not intend to reject the offer, please disregard this email.</p>
+          
+          <p style="font-size: 16px; color: #3b96e1; margin-top: 30px; border-top: 1px solid #ddd; padding-top: 20px;">
+            Best regards,<br>
+            <strong>The DI Data Bank Team</strong>
+          </p>
+          <div style="font-size: 14px; color: #888;">
+            <p>Contact Us: <a href="mailto:support@didatabank.com" style="color: #3b96e1;">support@didatabank.com</a></p>
+          </div>
+        </div>
+      </div>
+    `,
+  };
+
+  await transporter.sendMail(mailOptions);
+};

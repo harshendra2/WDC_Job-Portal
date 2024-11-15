@@ -12,5 +12,8 @@ router.put('/candidate/applicent/feed_back/:jobId/:userId',controller.AddCompany
 router.put('/candidate/applicent/reject_offer/:jobId/:userId',controller.OfferLetterRejected);
 //offer letter Accepted
 router.put('/candidate/applicent/accept_offer/:jobId/:userId',controller.OfferLetterAccepted);
+//Second time offer letter Reject
+router.get('/candidate/offer/reject/otp/:jobId/:userId',controller.GetOfferRejectOTP);
+router.put('/candidate/offer/rejected/otp/confirm/:jobId/:userId',controller.VerifyOfferOTP);
 
 module.exports=router;

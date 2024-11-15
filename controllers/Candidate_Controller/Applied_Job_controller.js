@@ -1,5 +1,6 @@
 const mongoose=require('mongoose');
 const moment = require('moment');
+const { sendMailToRejectOffer} = require('../../Service/sendMail');
 const CompanyJob=require("../../models/JobSchema");
 const company=require("../../models/Onboard_Company_Schema");
 const Candidate=require('../../models/Onboard_Candidate_Schema');
@@ -410,3 +411,97 @@ exports.OfferLetterAccepted = async (req, res) => {
         return res.status(500).json({ error: "Internal server error." });
     }
 };
+
+
+exports.GetOfferRejectOTP = async (req, res) => {
+    const { userId} = req.params;
+  
+    try {
+      if (!mongoose.Types.ObjectId.isValid(userId)) {
+        return res.status(400).json({ error: "Invalid user ID" });
+      }
+  
+      const ObjectId = mongoose.Types.ObjectId(userId);
+      const candidate = await Candidate.findById(ObjectId).populate('basic_details');
+  
+      if (!candidate) {
+        return res.status(404).json({ error: "Candidate not found" });
+      }
+  
+      const generateOTP = () => Math.floor(100000 + Math.random() * 900000).toString();
+  
+      const OTP = generateOTP();
+  
+      const email = candidate?.basic_details?.email;
+      if (!email) {
+        return res.status(400).json({ error: "Candidate email not found" });
+      }
+  
+      const message = await sendMailToRejectOffer(email, OTP);
+      candidate.OTP = OTP;
+      await candidate.save();
+  
+      return res.status(200).json({ message: "OTP sent successfully" });
+    } catch (error) {
+      return res.status(500).json({ error: "Internal server error" });
+    }
+  };
+
+
+  exports.VerifyOfferOTP = async (req, res) => {
+    const { userId, jobId } = req.params;
+    const { OTP } = req.body;
+  
+    try {
+      if (!mongoose.Types.ObjectId.isValid(userId)) {
+        return res.status(400).json({ error: "Invalid user ID" });
+      }
+  
+      if (!mongoose.Types.ObjectId.isValid(jobId)) {
+        return res.status(400).json({ error: "Invalid job ID" });
+      }
+  
+      if (!OTP) {
+        return res.status(400).json({ error: "OTP is required" });
+      }
+  
+      const userObjectId = mongoose.Types.ObjectId(userId);
+      const jobObjectId = mongoose.Types.ObjectId(jobId);
+  
+      // Find candidate and validate OTP
+      const candidate = await Candidate.findById(userObjectId).populate('basic_details');
+      if (!candidate) {
+        return res.status(404).json({ error: "Candidate not found" });
+      }
+  
+      if (OTP !== candidate.OTP) {
+        return res.status(400).json({ error: "OTP is incorrect. Please provide a valid OTP." });
+      }
+  
+      // Update offer status
+      const updateResult = await CompanyJob.updateOne(
+        { _id: jobObjectId, 'Shortlisted.candidate_id': userObjectId },
+        { 
+          $set: { 
+            'Shortlisted.$.short_Candidate.offer_accepted_status': "Rejected",
+            'Shortlisted.$.short_Candidate.hired_date': new Date(),
+          } 
+        }
+      );
+  
+      if (updateResult.modifiedCount === 0) {
+        return res.status(400).json({ 
+          error: "Offer rejection failed. Candidate not found in job or already updated." 
+        });
+      }
+  
+      candidate.OTP = null; 
+      await candidate.save();
+  
+      return res.status(200).json({ message: "Offer letter rejected successfully" });
+  
+    } catch (error) {
+      return res.status(500).json({ error: "Internal server error" });
+    }
+  };
+  

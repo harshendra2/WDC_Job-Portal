@@ -18,6 +18,9 @@ const CandidateShema=new mongoose.Schema({
         type:mongoose.Schema.Types.ObjectId,
         ref:'candidate_education_details'
     },
+    OTP:{
+      type:Number
+    },
     status:{
         type:String,
         default:"Processing"

@@ -6,7 +6,6 @@ exports.GetAllOnboardCompany = async (req, res) => {
   try {
       const companies = await company.find({ status: 'processing' }).sort({ createdAt: -1 });
 
-      if (companies.length > 0) {
           const baseUrl = `${req.protocol}://${req.get('host')}`;
           const isGoogleDriveLink = (url) => {
               return url && (url.includes('drive.google.com') || url.includes('docs.google.com'));
@@ -26,9 +25,6 @@ exports.GetAllOnboardCompany = async (req, res) => {
           }));
 
           return res.status(200).json(updatedCompanies);
-      } else {
-          return res.status(404).json({ error: "No companies found with 'Processing' status" });
-      }
 
   } catch (error) {
       return res.status(500).json({ error: "Internal Server Error" });

@@ -96,9 +96,10 @@ exports.OfferVerifier = async (req, res) => {
             offers: {
               $push: {
                 company_id: "$company_id",
-                company_name:'companyDetails.company_name',
-                email:'companyDetails.email',
+                company_name:'$companyDetails.company_name',
+                email:'$companyDetails.email',
                 offer_date: "$Shortlisted.short_Candidate.offer_date",
+                offer_validity:"$Shortlisted.short_Candidate.offer_letter_validity",
                 offer_status: "$Shortlisted.short_Candidate.offer_accepted_status",
                 hired_date: "$Shortlisted.short_Candidate.hired_date"
               }
