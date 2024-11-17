@@ -90,7 +90,7 @@ exports.getProfilePercentageStatus = async (req, res) => {
         'current_location', 'resume'
       ];
       const personalFields = [
-        'gender', 'age', 'aadhar_number', 'PAN', 'spouse_profession','Pan_verified_status','Aadhar_verified_status','location','country'
+        'gender', 'age', 'aadhar_number', 'PAN','Pan_verified_status','Aadhar_verified_status','location','country'
       ];
 
       const calculateFilledFields = (details, fields) => {
@@ -998,5 +998,79 @@ exports.GetAllCompanyReview = async (req, res) => {
     }
   } catch (error) {
       return res.status(500).json({ error: "Internal server error" });
+  }
+};
+
+exports.GetProfilePercentage = async (req, res) => {
+  const { userId } = req.params;
+  try {
+    const data = await candidate.findById(userId)
+      .populate("basic_details")
+      .populate("education_details")
+      .populate("work_details")
+      .populate("personal_details");
+
+    if (!data) {
+      return res.status(404).json({ error: "Candidate not found" });
+    }
+
+    // Fields to check for each section
+    const basicFields = ["name", "email", "mobile", "linkedIn", "contact_email"];
+    const educationFields = ["highest_education", "board_represent"];
+    const workFields = ["aspiring_position", "current_location", "resume"];
+    const personalFields = [
+      "gender",
+      "age",
+      "aadhar_number",
+      "PAN",
+      "Pan_verified_status",
+      "Aadhar_verified_status",
+      "location",
+      "country",
+    ];
+
+    // Utility function to calculate filled fields
+    const calculateFilledFields = (details, fields) => {
+      let filled = 0;
+      if (!details) return filled;
+
+      fields.forEach((field) => {
+        if (details[field] !== undefined && details[field] !== null && details[field] !== "" && details[field] !== false) {
+          filled++;
+        }
+      });
+      return filled;
+    };
+
+    // Calculate percentages for each section
+    const calculatePercentage = (filled, total) => {
+      return total > 0 ? Math.round((filled / total) * 100) : 0;
+    };
+
+    const totalBasicFields = basicFields.length;
+    const filledBasicFields = calculateFilledFields(data.basic_details, basicFields);
+
+    const totalEducationFields = educationFields.length;
+    const filledEducationFields = calculateFilledFields(data.education_details, educationFields);
+
+    const totalWorkFields = workFields.length;
+    const filledWorkFields = calculateFilledFields(data.work_details, workFields);
+
+    const totalPersonalFields = personalFields.length;
+    const filledPersonalFields = calculateFilledFields(data.personal_details, personalFields);
+
+    const basicDetails = calculatePercentage(filledBasicFields, totalBasicFields);
+    const educationDetails = calculatePercentage(filledEducationFields, totalEducationFields);
+    const workDetails = calculatePercentage(filledWorkFields, totalWorkFields);
+    const personalDetails = calculatePercentage(filledPersonalFields, totalPersonalFields);
+
+    return res.status(200).json({
+      basicDetails,
+      educationDetails,
+      workDetails,
+      personalDetails,
+    });
+  } catch (error) {
+    return res.status(500).json({ error: "Internal server error" });
   }
 };

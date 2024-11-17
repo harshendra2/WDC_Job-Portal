@@ -37,8 +37,8 @@ router.put('/candidate/profile/add_summary/:userId',upload.single('file'),contro
  router.delete('/candidate/profile/delete_education/:user_id/:education_id',controller.DeleteEducation);
  //Reviews
  router.get('/candidate/review/:user_id',controller.GetAllCompanyReview);
-
-
+ //Candidate Profile percenteage
+ router.get('/candidate/profile/percentage/:userId',controller.GetProfilePercentage);
 
 
 module.exports=router;
