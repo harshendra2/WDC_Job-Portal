@@ -160,3 +160,43 @@ exports.sendMailToRejectOffer = async (email, OTP) => {
 
   await transporter.sendMail(mailOptions);
 };
+
+exports.sendMailToCompany = async (email, reason, companyName, candidateName, jobTitle) => {
+  const mailOptions = {
+    from: process.env.EMAIL_USER,
+    to: email,
+    subject: `Notification: Offer Rejected by ${candidateName}`,
+    html: `
+      <div style="font-family: Arial, sans-serif; color: #333;">
+        <div style="background-color: #f5f7fa; padding: 20px; border-radius: 10px; max-width: 600px; margin: auto;">
+          <h2 style="color: #3b96e1; text-align: center;">${companyName}</h2>
+          <p style="font-size: 16px; color: #333;">Dear ${companyName},</p>
+          
+          <p style="font-size: 16px; color: #333;">
+            We would like to inform you that the candidate, <strong>${candidateName}</strong>, has decided to reject the offer letter for the position of <strong>${jobTitle}</strong>. Below are the details for your reference:
+          </p>
+
+          <div style="margin: 20px 0; padding: 15px; background-color: #fff; border-radius: 10px; border: 1px solid #ddd;">
+            <p style="font-size: 16px; margin: 5px 0;"><strong>Candidate Name:</strong> ${candidateName}</p>
+            <p style="font-size: 16px; margin: 5px 0;"><strong>Job Title:</strong> ${jobTitle}</p>
+            <p style="font-size: 16px; margin: 5px 0;"><strong>Rejection Reason:</strong> ${reason}</p>
+          </div>
+
+          <p style="font-size: 16px; color: #333;">
+            While the candidate has chosen to pursue other opportunities, we appreciate your efforts in offering them a position.
+          </p>
+
+          <p style="font-size: 16px; color: #333;">
+            If you need further assistance or wish to discuss this matter, please do not hesitate to contact us.
+          </p>
+          
+          <p style="font-size: 16px; color: #3b96e1; margin-top: 30px; border-top: 1px solid #ddd; padding-top: 20px;">
+            Best regards,<br>
+            DI Data bank Team<br>
+          </p>
+        </div>
+      </div>
+    `,
+  };
+    await transporter.sendMail(mailOptions);
+};

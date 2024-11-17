@@ -197,7 +197,7 @@ exports.GetSuggestionJobDescription=async(req,res)=>{
 exports.CreateNewJob = async (req, res) => {
     const { id } = req.params;
     const {job_title,No_openings,industry,salary,experience,location,country,job_type,work_type,skills,education,description,Phone_Screening,HR_Round,Technical_Round,Managerial_Round,Panel_Round,Leadership_Round,Project_Round,GD_Round,Behavioral_Testing,Peer_Round} = req.body;
-
+console.log(HR_Round)
     try {
       if(!id){
         return res.status(400).json({error:"Please provide Id"});
@@ -1044,7 +1044,7 @@ exports.GetUserDetailsForOffer = async (req, res) => {
     const data = await CompanyJob.aggregate([
       { $match: { _id: jobIds } }, 
       { $unwind: '$Shortlisted' },
-      { $match: { 'Shortlisted.candidate_id': userIds,'Shortlisted.shorted_status':true} },
+      { $match: { 'Shortlisted.candidate_id': userIds,'Shortlisted.shorted_status':false} },
       {
         $lookup: {
           from: 'candidates',
@@ -1081,6 +1081,7 @@ exports.GetUserDetailsForOffer = async (req, res) => {
         }
       }
     ]);
+
     const isGoogleDriveLink = (url) => {
       return url && (url.includes('drive.google.com') || url.includes('docs.google.com'));
     };
@@ -1091,8 +1092,7 @@ exports.GetUserDetailsForOffer = async (req, res) => {
         ? url
         : `${baseUrl}/${url.replace(/\\/g, '/')}`;
     };
-    if (data && data.length > 0) {
-
+   
       const updatedData = data.map((company) => {
         return {
           ...company,
@@ -1104,11 +1104,7 @@ exports.GetUserDetailsForOffer = async (req, res) => {
           :null
         };
       });
-
       return res.status(200).json(updatedData);
-    } else {
-      return res.status(404).json({ message: "No shortlisted applicants found" });
-    }
   } catch (error) {
     return res.status(500).json({ error: "Internal server error" });
   }
