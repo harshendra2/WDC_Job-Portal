@@ -174,6 +174,18 @@ const CompanySchema = new Schema({
      }
     }
   ],
+  Email_download_count:[
+    {
+     download_count:{
+      type:Number,
+      default:0
+     },
+     Date:{
+      type:Date,
+      default: Date.now
+     }
+    }
+  ],
   view_CV:[
     {
       View:{

@@ -8,14 +8,16 @@ const Support=require('../../models/Issue_Schema');
 const Admin=require('../../models/adminSchema');
 const CandidateSubs=require('../../models/Candidate_SubscriptionSchema')
 const CompanySubs=require('../../models/SubscriptionSchema')
+const CurrentCandidateSub=require('../../models/Current_Candidate_SubscriptionSchema');
+const CurrentCompanySub=require('../../models/Company_SubscriptionSchema');
 
 exports.getCountofCandidate = async (req, res) => {
   try {
     let companyData = await Company.find({});
     let candidateData = await candidate.find({}).populate('personal_details');
     
-    let companyCount = companyData.length;
-    let candidateCount = candidateData.length;
+    let companyCount = companyData.length;  //This is one fils
+    let candidateCount = candidateData.length;// this is on e
     
     let verifiedCompany = companyData.filter((temp) => temp.status === "approve").length;
     
@@ -161,18 +163,19 @@ exports.getCountofCandidate = async (req, res) => {
           candidateCount,
           verifiedCompany,
           verifiedCandidate,
-          Accepted,
-          Rejected,
-          Processing,
-          TotalOfferReleased,
+          adminTeam,
+           //
+          Accepted, // remove
+          Rejected, // remove
+          Processing,// remove
+          TotalOfferReleased, // remove
+          //
           Job,
           SupportData,
-          adminTeam
       });
 
 
   } catch (error) {
-      console.log(error);
       return res.status(500).json({ error: "Internal server error" });
   }
 };
@@ -182,34 +185,49 @@ exports.GetAllSubscriptionplane = async (req, res) => {
   try {
     let data = [];
     let candidateData = [];
-
+    let PainAndUnpaidUser;
+    let credibilityEstablish
+  
     if (calendar === 'All' || calendar === null) {
-      data = await companyTransaction.find({});
-      candidateData = await CandidateTransaction.find({});
+      const yearStart = new Date(0)
+    let temp=await GetALLfilterData(yearStart,new Date());
+    data=temp?.data;
+    candidateData=temp?.candidateData;
+    PainAndUnpaidUser=temp?.PainAndUnpaidUser;
+    credibilityEstablish=temp?.credibilityEstablish
     } else if (calendar === 'Today') {
       const todayStart = moment().startOf('day').toDate();
       const todayEnd = moment().endOf('day').toDate();
-
-      data = await companyTransaction.find({ purchesed_data: { $gte: todayStart, $lt: todayEnd } });
-      candidateData = await CandidateTransaction.find({ purchesed_data: { $gte: todayStart, $lt: todayEnd } });
+      let temp=await GetALLfilterData(todayStart,todayEnd);
+      data=temp?.data;
+      candidateData=temp?.candidateData;
+      PainAndUnpaidUser=temp?.PainAndUnpaidUser;
+      credibilityEstablish=temp?.credibilityEstablish;
     } else if (calendar === 'Thisweek') {
       const weekStart = moment().startOf('isoWeek').toDate();
       const weekEnd = moment().endOf('isoWeek').toDate();
-
-      data = await companyTransaction.find({ purchesed_data: { $gte: weekStart, $lt: weekEnd } });
-      candidateData = await CandidateTransaction.find({ purchesed_data: { $gte: weekStart, $lt: weekEnd } });
+      let temp=await GetALLfilterData(weekStart,weekEnd);
+      data=temp?.data;
+      candidateData=temp?.candidateData;
+      PainAndUnpaidUser=temp?.PainAndUnpaidUser;
+      credibilityEstablish=temp?.credibilityEstablish
     } else if (calendar === 'Thismonth') {
       const monthStart = moment().startOf('month').toDate();
       const monthEnd = moment().endOf('month').toDate();
-
-      data = await companyTransaction.find({ purchesed_data: { $gte: monthStart, $lt: monthEnd } });
-      candidateData = await CandidateTransaction.find({ purchesed_data: { $gte: monthStart, $lt: monthEnd } });
+      let temp=await GetALLfilterData(monthStart,monthEnd);
+      data=temp?.data;
+      candidateData=temp?.candidateData;
+      PainAndUnpaidUser=temp?.PainAndUnpaidUser;
+      credibilityEstablish=temp?.credibilityEstablish
     } else if (calendar === 'Thisyear') {
       const yearStart = moment().startOf('year').toDate();
       const yearEnd = moment().endOf('year').toDate();
 
-      data = await companyTransaction.find({ purchesed_data: { $gte: yearStart, $lt: yearEnd } });
-      candidateData = await CandidateTransaction.find({ purchesed_data: { $gte: yearStart, $lt: yearEnd } });
+      let temp=await GetALLfilterData(yearStart,yearEnd);
+      data=temp?.data;
+      candidateData=temp?.candidateData;
+      PainAndUnpaidUser=temp?.PainAndUnpaidUser;
+      credibilityEstablish=temp?.credibilityEstablish
     } else {
       return res.status(400).json({ error: 'Invalid calendar filter' });
     }
@@ -287,10 +305,180 @@ exports.GetAllSubscriptionplane = async (req, res) => {
       companyEarning,
       CandidateSubscriptionCount,
       CandidateEarning,
-      TotalEarning
+      TotalEarning,
+
+      //Paid and Unpaid User
+      PainAndUnpaidUser,
+      //credibility establishment
+      credibilityEstablish
     });
   } catch (error) {
     console.log(error);
     return res.status(500).json({ error: 'Internal server error' });
   }
 };
+
+async function GetALLfilterData(start,end){
+  let data = await companyTransaction.find({ purchesed_data: { $gte:start, $lt:end } });
+     let candidateData = await CandidateTransaction.find({ purchesed_data: { $gte:start, $lt:end } });
+     
+     //Get Paid and Unpain User
+     
+    const [candidateStats, totalCandidates] = await Promise.all([
+      CurrentCandidateSub.aggregate([
+        { $match: { createdDate: { $gte:start, $lt:end } } },
+        { $group: { _id: '$candidate_id' } },
+        { $count: 'total' }
+      ]),
+      candidate.countDocuments()
+    ]);
+
+    const CandidatePaidCount = candidateStats.length > 0 ? candidateStats[0].total : 0;
+    const UnpaidCount = totalCandidates - CandidatePaidCount;
+
+    // Aggregating paid and unpaid counts for companies
+    const [companyStats, totalCompanies] = await Promise.all([
+      CurrentCompanySub.aggregate([
+        { $match: { createdDate: { $gte:start, $lt:end } } },
+        { $group: { _id: '$company_id' } },
+        { $count: 'total' }
+      ]),
+      Company.countDocuments()
+    ]);
+
+    const CompanyPaidCount = companyStats.length > 0 ? companyStats[0].total : 0;
+    const UnpaidCompanyCount = totalCompanies - CompanyPaidCount;
+    let PainAndUnpaidUser={ CandidatePaidCount, 
+      UnpaidCount, 
+      CompanyPaidCount, 
+      UnpaidCompanyCount }
+
+  //Credibility establishment code 
+
+   // Aggregation for shortlisted candidates
+   const offersData = await companyjob.aggregate([
+    { $unwind: "$Shortlisted" },
+    {
+      $match: {
+        "Shortlisted.short_Candidate": { $exists: true, $ne: null },
+        "Shortlisted.short_Candidate.offer_date": { $gte:start, $lt:end },
+      },
+    },
+    {
+      $group: {
+        _id: null,
+        totalOffersCount: { $sum: 1 },
+        acceptedOffersCount: {
+          $sum: {
+            $cond: [
+              { $eq: ["$Shortlisted.short_Candidate.offer_accepted_status", "Accepted"] },
+              1,
+              0,
+            ],
+          },
+        },
+        rejectedOffersCount: {
+          $sum: {
+            $cond: [
+              { $eq: ["$Shortlisted.short_Candidate.offer_accepted_status", "Rejected"] },
+              1,
+              0,
+            ],
+          },
+        },
+        processingOffersCount: {
+          $sum: {
+            $cond: [
+              { $eq: ["$Shortlisted.short_Candidate.offer_accepted_status", "Processing"] },
+              1,
+              0,
+            ],
+          },
+        },
+      },
+    },
+    {
+      $project: {
+        _id: 0,
+        totalOffersCount: 1,
+        acceptedOffersCount: 1,
+        rejectedOffersCount: 1,
+        processingOffersCount: 1,
+      },
+    },
+  ]);
+
+  const {
+    totalOffersCount = 0,
+    acceptedOffersCount = 0,
+    rejectedOffersCount = 0,
+    processingOffersCount = 0,
+  } = offersData.length > 0 ? offersData[0] : {};
+
+  // Aggregation for CV views, downloads, and email downloads
+  const viewDownloadStats = await Company.aggregate([
+    {
+      $project: {
+        view_CV: {
+          $filter: {
+            input: "$view_CV",
+            as: "view",
+            cond: {
+              $and: [
+                { $gte: ["$$view.Date",start] },
+                { $lte: ["$$view.Date", end] },
+              ],
+            },
+          },
+        },
+        resume_download_count: {
+          $filter: {
+            input: "$resume_download_count",
+            as: "download",
+            cond: {
+              $and: [
+                { $gte: ["$$download.Date",start] },
+                { $lte: ["$$download.Date",end] },
+              ],
+            },
+          },
+        },
+        Email_download_count: {
+          $filter: {
+            input: "$Email_download_count",
+            as: "email",
+            cond: {
+              $and: [
+                { $gte: ["$$email.Date",start] },
+                { $lte: ["$$email.Date",end] },
+              ],
+            },
+          },
+        },
+      },
+    },
+    {
+      $group: {
+        _id: null,
+        totalViewCV: { $sum: { $sum: "$view_CV.View" } },
+        totalDownloadCount: { $sum: { $sum: "$resume_download_count.download_count" } },
+        totalEmailDownloadCount: { $sum: { $sum: "$Email_download_count.download_count" } },
+      },
+    },
+  ]);
+
+  const {
+    totalViewCV = 0,
+    totalDownloadCount = 0,
+    totalEmailDownloadCount = 0,
+  } = viewDownloadStats.length > 0 ? viewDownloadStats[0] : {};
+let credibilityEstablish={ totalOffersCount,
+  acceptedOffersCount,
+  rejectedOffersCount,
+  processingOffersCount,
+  totalViewCV,
+  totalDownloadCount,
+  totalEmailDownloadCount}
+
+     return {data,candidateData,PainAndUnpaidUser,credibilityEstablish};
+}

@@ -890,6 +890,26 @@ exports.DownloadMultipleEmailId = async (req, res) => {
             return res.status(404).json({ error: 'No candidates found' });
         }
 
+        const CompanyView=await OnboardCompany.findOne({_id:objectId});
+        
+        const todayStart = moment().startOf('day').toDate();
+        const todayEnd = moment().endOf('day').toDate();
+        const existCandidate=CompanyView.Email_download_count.find(
+            company=>
+                company.Date>=todayStart&&
+                company.Date<=todayEnd
+        )
+
+        if (!existCandidate) {
+            CompanyView.Email_download_count.push({
+                download_count:selectedCandidates.length,
+                Date: new Date()
+            });
+        } else {
+            existCandidate.download_count +=selectedCandidates.length;
+        }
+        await CompanyView.save();
+
         // Extract unique emails and names
         const uniqueEmails = [...new Set(data.map(candidate => ({
             email: candidate.basicDetails.email,
@@ -954,6 +974,26 @@ exports.DownloadMultipleResume = async (req, res) => {
         if (!data || data.length === 0) {
             return res.status(404).json({ error: 'No candidates found' });
         }
+
+        const CompanyView=await OnboardCompany.findOne({_id:objectId});
+        
+        const todayStart = moment().startOf('day').toDate();
+        const todayEnd = moment().endOf('day').toDate();
+        const existCandidate=CompanyView.resume_download_count.find(
+            company=>
+                company.Date>=todayStart&&
+                company.Date<=todayEnd
+        )
+
+        if (!existCandidate) {
+            CompanyView.resume_download_count.push({
+                download_count:selectedCandidates.length,
+                Date: new Date()
+            });
+        } else {
+            existCandidate.download_count +=selectedCandidates.length;
+        }
+        await CompanyView.save();
 
         const resumes = data.map(candidate => ({
             resumeUrl: candidate.WorkDetails.resume,

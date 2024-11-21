@@ -176,6 +176,7 @@ async function CompanyStatusCount(start, end, CmpID) {
   ]);
 
   const count = await CompanyJob.aggregate([
+    {$match:{company_id:ObjectId}},
     {
       $project: {
         appliedCount: {
@@ -253,12 +254,7 @@ async function CompanyStatusCount(start, end, CmpID) {
   
   
   const result = await Company.aggregate([
-    {
-        $match: {
-            "view_CV.Date": { $gte: start, $lte: end },
-            "resume_download_count.Date": { $gte: start, $lte: end }
-        }
-    },
+    {$match:{_id:ObjectId}},
     {
         $project: {
             view_CV: {
@@ -284,20 +280,33 @@ async function CompanyStatusCount(start, end, CmpID) {
                         ]
                     }
                 }
-            }
+            },
+            Email_download_count: {
+              $filter: {
+                  input: "$Email_download_count",
+                  as: "download",
+                  cond: {
+                      $and: [
+                          { $gte: ["$$download.Date", start] },
+                          { $lte: ["$$download.Date", end] }
+                      ]
+                  }
+              }
+          }
         }
     },
     {
         $group: {
             _id: null,
             totalViewCV: { $sum: { $sum: "$view_CV.View" } },
-            totalDownloadCount: { $sum: { $sum: "$resume_download_count.download_count" } }
+            totalDownloadCount: { $sum: { $sum: "$resume_download_count.download_count" } },
+            totalEmailDownloadCount: { $sum: { $sum: "$Email_download_count.download_count" } }
         }
     }
 ]);
   
   let data= datas.length ? datas[0] : { totalJobs: 0, totalPromotedJobs: 0, totalUnpromotedJobs: 0 };
-  let cvCount=result[0] || { totalViewCV: 0, totalDownloadCount: 0 }
+  let cvCount=result[0] || { totalViewCV: 0, totalDownloadCount: 0 ,totalEmailDownloadCount:0}
   return {data,count,cvCount};
 }
 
