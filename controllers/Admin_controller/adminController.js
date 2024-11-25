@@ -131,24 +131,61 @@ exports.forgotPassword=async(req,res)=>{
       const mailOptions = {
         from: process.env.EMAIL_USER,
         to: email,
-        subject: 'Password Reset OTP',
-        text:`Dear User,
-
-You have requested to reset your password. Please use the OTP below to proceed with the reset process:
-
-OTP: ${OTP}
-
-This OTP is valid for the next 10 minutes. If you did not request a password reset, please ignore this email, and no changes will be made to your account.
-
-Thank you`,
+        subject: "Password Reset OTP",
+        html: `
+    <div style="font-family: Arial, sans-serif; color: #333;">
+      <div style="max-width: 600px; margin: auto; padding: 20px; background-color: #f7f8fa; border-radius: 8px; box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1);">
+        <h2 style="text-align: center; color: #1a73e8;">Password Reset OTP</h2>
+        <p style="font-size: 16px; color: #333;">
+          Hello,
+        </p>
+        <p style="font-size: 16px; color: #333;">
+          You requested an OTP to reset your password. Please use the code below to proceed with resetting your password:
+        </p>
+        
+        <div style="text-align: center; background-color: #e3f2fd; padding: 15px; border-radius: 5px; margin: 20px 0;">
+          <p style="font-size: 24px; color: #333; margin: 0;"><strong>${OTP}</strong></p>
+        </div>
+        
+        <p style="font-size: 16px; color: #333;">
+          This OTP is valid for <strong>10 minutes</strong>. If you did not request this, please ignore this email to keep your account secure.
+        </p>
+        
+        <p style="font-size: 16px; color: #1a73e8; margin-top: 30px; border-top: 1px solid #ddd; padding-top: 20px;">
+          Thank you,<br>
+          <strong>The Support Team</strong>
+        </p>
+      </div>
+    </div>
+  `,
       };
-  
+      const OTPExp_time = new Date(Date.now() + 10 * 60 * 1000); 
       await transporter.sendMail(mailOptions);
-  
-      return res.status(201).json({ message: "Email sent successfully", OTP,email});
-
+      existedEmail.OTP=OTP;
+      existedEmail.EXP_OTP_Time=OTPExp_time;
+      existedEmail.save()
+      return res.status(201).json({ message: "Email sent successfully",email});
   }catch(error){
       return res.status(500).json({error:"Internal Server Error"});
+  }
+}
+
+exports.VerifyOTP=async(req,res)=>{
+  const {OTP,email}=req.body;
+  try{
+    const verifyOTP=await admin.findOne({email});
+    const now = new Date();
+    if (now > verifyOTP.EXP_OTP_Time) {
+      return res.status(400).json({ error: 'OTP has expired' });
+    }
+    
+    if (OTP != verifyOTP.OTP) {
+      return res.status(400).json({ error: 'Invalid OTP' });
+    }
+    return res.status(200).json({message:"OTP verify successfully"});
+  }catch(error){
+    console.log(error)
+    return res.status(500).json({error:"Internal server error"});
   }
 }
 
@@ -159,14 +196,11 @@ exports.NewPassword = async (req, res) => {
   if (error) {
     return res.status(400).json({ error: error.details[0].message });
   }
-
   try {
     const validAdmin = await admin.findOne({ email });
     if (!validAdmin) {
       return res.status(401).json({ status: 401, message: "Admin does not exist" });
     }
-
-    // const newPass = await bcrypt.hash(password, 12);
 
     validAdmin.password = password;
     await validAdmin.save();

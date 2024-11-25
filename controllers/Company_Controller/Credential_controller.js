@@ -164,7 +164,7 @@ exports.Login = async (req, res) => {
   }
   try {
     const [existedCompany, existUser] = await Promise.all([
-      company.findOne({ email }).lean(),
+      company.findOne({ email }),
       basic_details.findOne({ email }).lean()
     ]);
 
@@ -185,13 +185,14 @@ exports.Login = async (req, res) => {
         }
 
         const OTP = generateOTP();
-
+        existedCompany.OTP=OTP;
+        existedCompany.OTPExp_time=new Date(Date.now() + 10 * 60 * 1000);
+        existedCompany.save()
         // If subscription exists, send OTP
         if (subscriptionExists) {
           await sendEmail(email, OTP);
           return res.status(200).json({
             message: 'OTP sent successfully',
-            companyOTP: OTP
           });
         }
       }
@@ -205,11 +206,12 @@ exports.Login = async (req, res) => {
           return res.status(400).json({ error: 'Invalid password' });
         }
         const OTP = generateOTP();
-
+        existedCompany.OTP=OTP;
+        existedCompany.OTPExp_time=new Date(Date.now() + 10 * 60 * 1000);
+        existedCompany.save()
         await sendEmail(email, OTP);
         return res.status(200).json({
-          message: 'OTP sent successfully',
-          companyOTP: OTP
+          message: 'OTP sent successfully'
         });
       }
 
@@ -251,13 +253,41 @@ exports.Login = async (req, res) => {
   }
 };
 
+exports.ResendLoginOTP=async(req,res)=>{
+  const { email} = req.body;
+  try{
+
+    const ExistedCompany=await company.findOne({email:email});
+    if(!ExistedCompany){
+      return res.status(400).json({error:"This company not existed in our data base"});  
+    }
+    const OTP = generateOTP();
+    ExistedCompany.OTP=OTP;
+    ExistedCompany.OTPExp_time=new Date(Date.now() + 10 * 60 * 1000);
+    ExistedCompany.save()
+    await sendEmail(email, OTP);
+    return res.status(200).json({
+      message: 'OTP sent successfully'
+    });
+  }catch(error){
+    return res.status(500).json({error:"Internal server error"});
+  }
+}
+
 exports.CompanyOTP = async (req, res) => {
-  const { email } = req.body;
+  const { email ,OTP} = req.body;
   try {
     const existedCompany = await company.findOne({ email }).lean();
-
     if (!existedCompany) {
       return res.status(400).json({ error: "Company not found" });
+    }
+
+    if(existedCompany?.OTP!=OTP){
+      return res.status(400).json({ error: 'Invalid OTP' });
+    }
+    const now = new Date();
+    if(existedCompany?.OTPExp_time<now){
+      return res.status(400).json({ error: 'OTP has expired' });
     }
 
     const subscriptionExists = await CompanySubscription.findOne({
@@ -279,7 +309,8 @@ exports.CompanyOTP = async (req, res) => {
 
       await company.updateOne(
         { _id: existedCompany._id },
-        { $inc: { Logged_In_count: 1 } }
+        {$set:{OTP:null},
+        $inc: {Logged_In_count: 1 } }
       );
 
       // Generate JWT token for the company
@@ -302,7 +333,8 @@ exports.CompanyOTP = async (req, res) => {
 
         await company.updateOne(
           { _id: existedCompany._id },
-          { $inc: { Logged_In_count: 1 } }
+          {$set:{OTP:null},
+          $inc: { Logged_In_count: 1 } }
         );
       
         // Generate JWT token for the company
@@ -316,7 +348,8 @@ exports.CompanyOTP = async (req, res) => {
       }else{
         await company.updateOne(
           { _id: existedCompany._id },
-          { $inc: { Logged_In_count: 1 } }
+          {$set:{OTP:null},
+          $inc: {Logged_In_count: 1 } }
         );
       
         // Generate JWT token for the company
@@ -336,7 +369,8 @@ exports.CompanyOTP = async (req, res) => {
       // Update company_access_count and Logged_In_count
       await company.updateOne(
         { _id: existedCompany._id },
-        { $inc: { company_access_count: -1, Logged_In_count: 1 } }
+        {$set:{OTP:null},
+        $inc: { company_access_count: -1, Logged_In_count: 1 } }
       );
 
       // Generate JWT token for the company
@@ -405,13 +439,12 @@ exports.forgotPassword = async (req, res) => {
 
   try {
     const [existedCompany, existedUser] = await Promise.all([
-      company.findOne({ email }).lean(),
-      basic_details.findOne({ email }).lean()
+      company.findOne({ email }),
+      basic_details.findOne({ email })
     ]);
-
+   
     if (existedCompany || existedUser) {
       const OTP = generateOTP();
-
       const mailOptions = {
         from: process.env.EMAIL_USER,
         to: email,
@@ -445,8 +478,20 @@ exports.forgotPassword = async (req, res) => {
       };
 
       await transporter.sendMail(mailOptions);
+      const OTPExp_time = new Date(Date.now() + 10 * 60 * 1000); 
+      if(existedCompany){
+        existedCompany.FG_OTP=OTP
+        existedCompany.FG_OTP_EXP=OTPExp_time
+        existedCompany.save()
+      }
 
-      return res.status(200).json({ message: "Email sent successfully. Please check your inbox for OTP.", OTP, email });
+      if(existedUser){
+        existedUser.FG_OTP=OTP
+        existedUser.FG_OTP_EXP=OTPExp_time
+        existedUser.save()
+      }
+
+      return res.status(200).json({ message: "Email sent successfully. Please check your inbox for OTP.", email });
     }
 
     return res.status(404).json({ error: "This email ID does not exist in our database." });
@@ -456,9 +501,42 @@ exports.forgotPassword = async (req, res) => {
   }
 };
 
+exports.VerifyForgetPassword=async(req,res)=>{
+  const {email,OTP}=req.body;
+  try{
+    const [existedCompany, existedUser] = await Promise.all([
+      company.findOne({ email }),
+      basic_details.findOne({ email })
+    ]);
+    if (!existedCompany && !existedUser) {
+      return res.status(404).json({ status: 404, message: "Company or User does not exist" });
+    }
+    const now = new Date();
+    if(existedCompany){
+      if (now > existedCompany.FG_OTP_EXP) {
+        return res.status(400).json({ error: 'OTP has expired' });
+      }
+      
+      if (OTP != existedCompany.FG_OTP) {
+        return res.status(400).json({ error: 'Invalid OTP' });
+      }
+    }
+    if(existedUser){
+      if (now > existedUser.FG_OTP_EXP) {
+        return res.status(400).json({ error: 'OTP has expired' });
+      }
+      if (OTP != existedUser.FG_OTP) {
+        return res.status(400).json({ error: 'Invalid OTP' });
+      } 
+    }
+    return res.status(200).json({message:"OTP is verified"});
+  }catch(error){
+    return res.status(500).json({error:"Inaternal server error"});
+  }
+}
 
 exports.NewPassowrd = async (req, res) => {
-  const { email, password, confirmpassword } = req.body;
+  const { email, password, confirmpassword,OTP } = req.body;
 
   const { error } = forgotPasswordConfirmation.validate({
     email,
@@ -477,27 +555,23 @@ exports.NewPassowrd = async (req, res) => {
     if (!existedCompany && !existedUser) {
       return res.status(404).json({ status: 404, message: "Company or User does not exist" });
     }
-
+  
+    
     const newPass = await bcrypt.hash(password, 12);
     if (existedCompany) {
       existedCompany.password = newPass;
       await existedCompany.save();
-
       return res.status(201).json({ status: 200, message: "Password updated successfully" });
     }
-
     if (existedUser) {
       existedUser.password = newPass;
       await existedUser.save();
-
       return res.status(201).json({ status: 200, message: "Password updated successfully" });
     }
   } catch (error) {
     return res.status(500).json({ error: "Internal Server Error" });
   }
 };
-
-
 
 exports.CompanyLogOut = async (req, res) => {
   const { company_id } = req.body;

@@ -38,6 +38,12 @@ tokens: [
     type:Boolean,
     default:false
   },
+  OTP:{
+    type:Number
+  },
+  EXP_OTP_Time:{
+     type:Date
+  },
   createdAt: {
     type: Date,
     default: Date.now,

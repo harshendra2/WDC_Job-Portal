@@ -31,7 +31,13 @@ const basic_details_candidate=new mongoose.Schema({
                 type:String
             }
         }
-    ]
+    ],
+    FG_OTP:{
+        type:Number
+      },
+      FG_OTP_EXP:{
+       type:Date
+      },
 })
 
 // Method to generate auth token

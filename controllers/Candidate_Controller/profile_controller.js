@@ -836,7 +836,7 @@ exports.AddNewAducation = async (req, res) => {
 
 exports.EditEducationDetails=async(req,res)=>{
   const {user_id}=req.params;
-  const {highest_education,board_represent,articles,certificates}=req.body;
+  const {highest_education,highest_education_discipline,board_represent,articles,certificates}=req.body;
   try{
 
     if (!mongoose.Types.ObjectId.isValid(user_id)) {
@@ -865,6 +865,7 @@ exports.EditEducationDetails=async(req,res)=>{
       const newEducationDetails = new education_details({
         custom_id: candidateData?.custom_id,
         highest_education,
+        highest_education_discipline,
         board_represent,
         articles,
         certificates: certificatesArray || [] 

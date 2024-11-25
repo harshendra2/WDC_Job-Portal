@@ -122,10 +122,6 @@ const CompanySchema = new Schema({
       ref:'admin'
     }
  }],
-  createdAt: {
-    type: Date,
-    default: Date.now,
-  },
   verified_batch:[
   {
     batch_name: {
@@ -197,7 +193,23 @@ const CompanySchema = new Schema({
         default: Date.now
        }
     }
-  ]
+  ],
+  OTP:{
+    type:Number
+  },
+  OTPExp_time:{
+    type:Date
+  },
+  FG_OTP:{
+    type:Number
+  },
+  FG_OTP_EXP:{
+   type:Date
+  },
+  createdAt: {
+    type: Date,
+    default: Date.now,
+  },
 });
 
 // Method to generate auth token

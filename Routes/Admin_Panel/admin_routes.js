@@ -6,6 +6,7 @@ router.post("/admin/register", controller.adminregister);
 router.post("/admin/login", controller.adminLogin);
 router.put('/admin/logout/:id',controller.LogOut);
 router.post('/admin/forgotpassword',controller.forgotPassword);
+router.put('/admin/verify/otp',controller.VerifyOTP);
 router.post('/admin/newpassword',controller.NewPassword);
 
 module.exports=router;
