@@ -35,6 +35,9 @@ router.put('/company/reject_applicent/:jobId/:userId',controller.RejectApplicent
 router.get('/company/get_user_offer/:jobId/:userId',controller.GetUserDetailsForOffer);
 router.put('/company/job_offer/:jobId/:userId',upload.single('file'),controller.OfferJobToCandidate);
 //hire Candidate
-router.get('/company/get_user_detail/hire/:jobId/:userId',controller.GetUserDetailswithofferStatus); 
+router.get('/company/get_user_detail/hire/:jobId/:userId',controller.GetUserDetailswithofferStatus);
+
+//Offer a offer letter to new candidate
+router.post('/company/offer_letter/newcandidate/:cmpId/:jobId',upload.single('file'),controller.NewOfferLetterOfferedCandidate);
 
 module.exports=router;

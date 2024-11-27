@@ -20,6 +20,7 @@ router.get('/admin/candidate/subscription',controller.GetAllCandidateSubscriptio
 router.post('/admin/create/candidateSub',controller.CreateCandidateSubscription);
 router.get('/admin/candidate_subscriptionname/:id',controller.GetCandidateSubscriptionName);
 router.get('/admin/get_singlesub/:id',controller.GetSingleCandidateSubscription);
+router.put('/admin/edit_candidate/subscription/:id',controller.EditCandidateSubscription);
 
 
 //Green batch subscription plane 

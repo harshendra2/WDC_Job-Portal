@@ -298,7 +298,7 @@ exports.CompanyOTP = async (req, res) => {
         { user_access: { $gt: 0 } },
         { user_access: "Unlimited" }
       ]
-    }).lean();
+    })
 
     if (typeof subscriptionExists?.user_access == 'number') {
       // Update user_access_Login_count and Logged_In_count
@@ -626,7 +626,7 @@ exports.CompanyLogOut = async (req, res) => {
         
               return res.status(200).json({ message: "Company logged out successfully"});
             }else{  
-              return res.status(200).json({ message: "Company login successfully"});
+              return res.status(200).json({ message: "Company logged out successfully"});
             }
           
         }

@@ -256,6 +256,29 @@ exports.GetSingleCandidateSubscription=async(req,res)=>{
     }
 }
 
+exports.EditCandidateSubscription=async(req,res)=>{
+    const {plane_name,price,top_candidate}=req.body;
+    const {id}=req.params;
+
+    const { error } = EditSubscriptionPlane.validate({plane_name,price});
+  if (error) {
+    return res.status(400).json({ error: error.details[0].message });
+  }
+
+    try{
+        const subscriptiondata={plane_name,price,top_candidate}
+       
+        const data=await CandidateSub.findByIdAndUpdate(id,subscriptiondata,{new:true});
+        if(data){
+            return res.status(200).json({message:"Subscription updated Successfully",subscription:data})
+        }else{
+            return res.status(404).json({error:"Subscription Plane is not updated"});
+        }
+    }catch(error){
+        return res.status(500).json({error:"Internal Server Error"});
+    }
+}
+
 exports.GetAllGreenBatchSubscription=async(req,res)=>{
     try{
         const data=await GreenBatch.find({});

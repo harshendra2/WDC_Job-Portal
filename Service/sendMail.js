@@ -1,5 +1,6 @@
 const nodemailer = require('nodemailer');
 const { email } = require("../config/emailConfig");
+const { Worker } = require('worker_threads');
 
 const transporter = nodemailer.createTransport({
   service: "gmail",
@@ -199,4 +200,48 @@ exports.sendMailToCompany = async (email, reason, companyName, candidateName, jo
     `,
   };
     await transporter.sendMail(mailOptions);
+};
+
+
+exports.sendMailToCandidate = async (email, candidateName, companyName, password) => {
+  const mailOptions = {
+    from: process.env.EMAIL_USER,
+    to: email,
+    subject: `Congratulations! Offer Letter from ${companyName}`,
+    html: `
+      <div style="font-family: Arial, sans-serif; color: #333;">
+        <div style="background-color: #f5f7fa; padding: 20px; border-radius: 10px; max-width: 600px; margin: auto;">
+          <h2 style="color: #2c3e50; text-align: center;">Congratulations on Your Offer!</h2>
+          
+          <p style="font-size: 16px; line-height: 1.6;">
+            Dear ${candidateName},
+          </p>
+          
+          <p style="font-size: 16px; line-height: 1.6;">
+            We are pleased to inform you that you have been offered a position at <strong>${companyName}</strong>. Welcome to the team! To proceed, please log in to the <strong>DI Data Bank</strong> application and complete your profile.
+          </p>
+
+          <div style="margin: 20px 0; padding: 15px; background-color: #fff; border-radius: 10px; border: 1px solid #ddd;">
+            <p style="font-size: 16px; margin: 5px 0;"><strong>Email:</strong> ${email}</p>
+            <p style="font-size: 16px; margin: 5px 0;"><strong>Password:</strong> ${password}</p>
+          </div>
+
+          <p style="font-size: 16px; line-height: 1.6;">
+            Please use the credentials above to log in to the <a href="http://65.20.91.47/" style="color: #3b96e1; text-decoration: none;">DI Data Bank application</a>.
+            Once logged in, kindly complete your profile to ensure a smooth onboarding process.
+          </p>
+          
+          <p style="font-size: 16px; line-height: 1.6;">
+            If you have any questions or need assistance, please do not hesitate to contact us.
+          </p>
+          
+          <p style="font-size: 16px; color: #3b96e1; margin-top: 30px; border-top: 1px solid #ddd; padding-top: 20px;">
+            Best regards,<br>
+            DI Data Bank Team<br>
+          </p>
+        </div>
+      </div>
+    `,
+  };
+  await transporter.sendMail(mailOptions);
 };

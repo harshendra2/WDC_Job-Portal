@@ -2,13 +2,28 @@ const mongoose=require("mongoose");
 const crypto=require("crypto");
 const moment = require('moment');
 const Joi=require('joi');
+const bcrypt=require('bcryptjs');
+const Counter=require('../../models/CounterSchema');
 const CompanyJob=require("../../models/JobSchema");
 const company=require('../../models/Onboard_Company_Schema');
 const companySubscription=require("../../models/Company_SubscriptionSchema");
 const companyTransaction=require('../../models/CompanyTransactionSchema');
-const Candidate=require('../../models/Onboard_Candidate_Schema')
+const Candidate=require('../../models/Onboard_Candidate_Schema');
+const BasicDetails=require('../../models/Basic_details_CandidateSchema');
+const PersonalDetails=require('../../models/Personal_details_candidateSchema');
 const PromotePlane=require('../../models/Promote_Job_Schema');
+const {sendMailToCandidate}=require('../../Service/sendMail');
 
+
+async function getNextCustomId() {
+  const result = await Counter.findOneAndUpdate(
+    {_id:'collection'},
+      { $inc: { sequence_value: 1 } },
+      { new: true, upsert: true }
+  );
+
+  return result.sequence_value;
+}
 
 function generateOrderId() {
     return crypto.randomBytes(6).toString('hex');
@@ -1230,5 +1245,125 @@ exports.GetUserDetailswithofferStatus = async (req, res) => {
     }
   } catch (error) {
     return res.status(500).json({ error: "Internal server error" });
+  }
+};
+
+exports.NewOfferLetterOfferedCandidate = async (req, res) => {
+  const { Name, email, PAN, validity, status, offer_date, hired_date, mobile } = req.body;
+  const { cmpId, jobId } = req.params;
+
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: "Please upload the offer letter." });
+    }
+    const existingJob = await CompanyJob.findById(jobId);
+    if (!existingJob) {
+      return res.status(400).json({ error: "This job is not available in our database." });
+    }
+
+    const existingUser = await BasicDetails.findOne({ email });
+
+    if (existingUser) {
+      const userId = await Candidate.findOne({ basic_details:existingUser._id });
+
+      if (!userId) {
+        return res.status(400).json({ error: "Candidate data is incomplete in the system." });
+      }
+
+      const appliedCandidateData = {
+        candidate_id: userId._id,
+        longlist: true,
+        Shortlist_status: true,
+      };
+
+      const shortlistData = {
+        candidate_id: userId._id,
+        shorted_status: true,
+        Candidate_feed_back_Status: true,
+        short_Candidate: {
+          offer_accepted_status: status,
+          offer_date,
+          offer_letter: req.file.path,
+          offer_letter_validity: validity,
+          hired_date,
+        },
+      };
+
+      await CompanyJob.findByIdAndUpdate(
+        jobId,
+        {
+          $push: {
+            applied_candidates: appliedCandidateData,
+            Shortlisted: shortlistData,
+          },
+        },
+        { new: true }
+      );
+
+      return res.status(200).json({ message: "Offer letter uploaded successfully." });
+    } else {
+      const customId = await getNextCustomId('candidates');
+      const hashedPassword = await bcrypt.hash("Candidate#123", 12);
+
+      const newBasicDetails = new BasicDetails({
+        name: Name,
+        email,
+        mobile,
+        custom_id: customId,
+        password: hashedPassword,
+      });
+      const savedBasicDetails = await newBasicDetails.save();
+
+      const newPersonalDetails = new PersonalDetails({
+        PAN,
+        custom_id: customId,
+      });
+      const savedPersonalDetails = await newPersonalDetails.save();
+
+      const newCandidate = new Candidate({
+        custom_id: customId,
+        basic_details: savedBasicDetails._id,
+        personal_details: savedPersonalDetails._id,
+      });
+      const savedCandidate = await newCandidate.save();
+
+      const appliedCandidateData = {
+        candidate_id: savedCandidate._id,
+        longlist: true,
+        Shortlist_status: true,
+      };
+
+      const shortlistData = {
+        candidate_id: savedCandidate._id,
+        shorted_status: true,
+        Candidate_feed_back_Status: true,
+        short_Candidate: {
+          offer_accepted_status: status,
+          offer_date,
+          offer_letter: req.file.path,
+          offer_letter_validity: validity,
+          hired_date,
+        },
+      };
+
+      // Update the job with new candidate data
+      await CompanyJob.findByIdAndUpdate(
+        jobId,
+        {
+          $push: {
+            applied_candidates: appliedCandidateData,
+            Shortlisted: shortlistData,
+          },
+        },
+        { new: true }
+      );
+      const companies=await company.findById(cmpId)
+      let defaultPassword='Candidate#123';
+      await sendMailToCandidate(email, Name,companies.company_name, defaultPassword)
+
+      return res.status(200).json({ message: "New candidate added and offer letter uploaded successfully." });
+    }
+  } catch (error) {
+    return res.status(500).json({ error: "Internal server error." });
   }
 };
