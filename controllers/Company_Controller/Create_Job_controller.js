@@ -212,7 +212,6 @@ exports.GetSuggestionJobDescription=async(req,res)=>{
 exports.CreateNewJob = async (req, res) => {
     const { id } = req.params;
     const {job_title,No_openings,industry,salary,experience,location,country,job_type,work_type,skills,education,description,Phone_Screening,HR_Round,Technical_Round,Managerial_Round,Panel_Round,Leadership_Round,Project_Round,GD_Round,Behavioral_Testing,Peer_Round} = req.body;
-console.log(HR_Round)
     try {
       if(!id){
         return res.status(400).json({error:"Please provide Id"});
@@ -478,6 +477,38 @@ exports.RestartJobPosted = async (req, res) => {
     return res.status(500).json({ error: "Internal server error" });
   }
 };
+
+exports.RestartJobOnceExpire=async(req,res)=>{
+  const {jobId,cmpId}=req.params;
+  try{
+    if(!cmpId){
+      return res.status(400).json({error:"Please provide Id"});
+    }
+      const objectId = new mongoose.Types.ObjectId(id); 
+      const GreenBatch=await company.findById(objectId)
+      let Batch=false;
+      if(GreenBatch?.verified_batch.length!=0){
+        Batch=true;
+      }
+
+    const job_Expire_Date = new Date();
+    job_Expire_Date.setMonth(job_Expire_Date.getMonth() + 3);
+    const jobData = {job_Expire_Date,createdDate:new Date(),Green_Batch:Batch};
+
+    const updatedJob = await CompanyJob.findByIdAndUpdate(jobId, jobData,{ new: true });
+    
+    if (updatedJob) {
+      return res
+        .status(200)
+        .json({ message: "Job successfully restarted and updated.", job: updatedJob });
+    } else {
+      return res.status(404).json({ error: "Job not found." });
+    }
+    
+     }catch(error){
+      return res.status(500).json({error:"Intarnal server error"});
+     }
+}
 
 exports.EditPostedJob=async(req,res)=>{
   const {jobId}=req.params;

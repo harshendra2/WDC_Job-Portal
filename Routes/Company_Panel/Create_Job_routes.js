@@ -14,6 +14,7 @@ router.post('/company/promote_job/verify',controller.CreatePromotesJob);
 
 router.delete('/company/Job_post/:jobId',controller.deleteJobPosted);
 router.put('/company/job_Restart/:jobId',controller.RestartJobPosted);
+router.put('/company/restart/job/:jobId/:cmpId',controller.RestartJobOnceExpire); // Restart posted jobs if Job expired
 router.put('/company/edit_job/:jobId',controller.EditPostedJob);
 
 // View Single Job application

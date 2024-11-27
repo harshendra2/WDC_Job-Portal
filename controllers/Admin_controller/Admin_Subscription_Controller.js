@@ -229,12 +229,12 @@ exports.CreateCandidateSubscription=async(req,res)=>{
 
 exports.GetCandidateSubscriptionName=async(req,res)=>{
     try{
-        const data=await CandidateSub.aggregate({
+        const data=await CandidateSub.aggregate([{
             $project:{
                 _id:1,
                 plane_name:1
             }
-        })
+        }])
         if(data){
             return res.status(200).send(data);
         }
