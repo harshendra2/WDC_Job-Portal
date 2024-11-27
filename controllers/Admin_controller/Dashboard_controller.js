@@ -181,56 +181,56 @@ exports.getCountofCandidate = async (req, res) => {
 };
 
 exports.GetAllSubscriptionplane = async (req, res) => {
-  const { calendar } = req.params;
+  const {start,end } = req.params;
   try {
     let data = [];
     let candidateData = [];
     let PainAndUnpaidUser;
     let credibilityEstablish
   
-    if (calendar === 'All' || calendar === null) {
-      const yearStart = new Date(0)
-    let temp=await GetALLfilterData(yearStart,new Date());
-    data=temp?.data;
-    candidateData=temp?.candidateData;
-    PainAndUnpaidUser=temp?.PainAndUnpaidUser;
-    credibilityEstablish=temp?.credibilityEstablish
-    } else if (calendar === 'Today') {
+    // if (calendar === 'All' || calendar === null) {
+    //   const yearStart = new Date(0)
+    // let temp=await GetALLfilterData(yearStart,new Date());
+    // data=temp?.data;
+    // candidateData=temp?.candidateData;
+    // PainAndUnpaidUser=temp?.PainAndUnpaidUser;
+    // credibilityEstablish=temp?.credibilityEstablish
+    // } else if (calendar === 'Today') {
       const todayStart = moment().startOf('day').toDate();
       const todayEnd = moment().endOf('day').toDate();
-      let temp=await GetALLfilterData(todayStart,todayEnd);
+      let temp=await GetALLfilterData(start,end);
       data=temp?.data;
       candidateData=temp?.candidateData;
       PainAndUnpaidUser=temp?.PainAndUnpaidUser;
       credibilityEstablish=temp?.credibilityEstablish;
-    } else if (calendar === 'Thisweek') {
-      const weekStart = moment().startOf('isoWeek').toDate();
-      const weekEnd = moment().endOf('isoWeek').toDate();
-      let temp=await GetALLfilterData(weekStart,weekEnd);
-      data=temp?.data;
-      candidateData=temp?.candidateData;
-      PainAndUnpaidUser=temp?.PainAndUnpaidUser;
-      credibilityEstablish=temp?.credibilityEstablish
-    } else if (calendar === 'Thismonth') {
-      const monthStart = moment().startOf('month').toDate();
-      const monthEnd = moment().endOf('month').toDate();
-      let temp=await GetALLfilterData(monthStart,monthEnd);
-      data=temp?.data;
-      candidateData=temp?.candidateData;
-      PainAndUnpaidUser=temp?.PainAndUnpaidUser;
-      credibilityEstablish=temp?.credibilityEstablish
-    } else if (calendar === 'Thisyear') {
-      const yearStart = moment().startOf('year').toDate();
-      const yearEnd = moment().endOf('year').toDate();
+    // } else if (calendar === 'Thisweek') {
+    //   const weekStart = moment().startOf('isoWeek').toDate();
+    //   const weekEnd = moment().endOf('isoWeek').toDate();
+    //   let temp=await GetALLfilterData(weekStart,weekEnd);
+    //   data=temp?.data;
+    //   candidateData=temp?.candidateData;
+    //   PainAndUnpaidUser=temp?.PainAndUnpaidUser;
+    //   credibilityEstablish=temp?.credibilityEstablish
+    // } else if (calendar === 'Thismonth') {
+    //   const monthStart = moment().startOf('month').toDate();
+    //   const monthEnd = moment().endOf('month').toDate();
+    //   let temp=await GetALLfilterData(monthStart,monthEnd);
+    //   data=temp?.data;
+    //   candidateData=temp?.candidateData;
+    //   PainAndUnpaidUser=temp?.PainAndUnpaidUser;
+    //   credibilityEstablish=temp?.credibilityEstablish
+    // } else if (calendar === 'Thisyear') {
+    //   const yearStart = moment().startOf('year').toDate();
+    //   const yearEnd = moment().endOf('year').toDate();
 
-      let temp=await GetALLfilterData(yearStart,yearEnd);
-      data=temp?.data;
-      candidateData=temp?.candidateData;
-      PainAndUnpaidUser=temp?.PainAndUnpaidUser;
-      credibilityEstablish=temp?.credibilityEstablish
-    } else {
-      return res.status(400).json({ error: 'Invalid calendar filter' });
-    }
+    //   let temp=await GetALLfilterData(yearStart,yearEnd);
+    //   data=temp?.data;
+    //   candidateData=temp?.candidateData;
+    //   PainAndUnpaidUser=temp?.PainAndUnpaidUser;
+    //   credibilityEstablish=temp?.credibilityEstablish
+    // } else {
+    //   return res.status(400).json({ error: 'Invalid calendar filter' });
+    // }
 
     const CandidateSub = await CandidateSubs.find();
     const subscriptionCount = {};

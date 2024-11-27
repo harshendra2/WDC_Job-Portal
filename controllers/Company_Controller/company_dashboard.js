@@ -91,47 +91,47 @@ exports.getCompanyDetails = async (req, res) => {
 
 
 exports.AllSubscriptionCount=async(req,res)=>{
-  const {cmpId,Time}=req.params;
+  const {cmpId,start,end}=req.params;
   try{
     let data;
     let count;
     let cv_view_count;
-    if(Time=='Today'){
+    // if(Time=='Today'){
       const todayStart = moment().startOf('day').toDate();
       const todayEnd = moment().endOf('day').toDate();
-      let temp =await CompanyStatusCount(todayStart,todayEnd,cmpId);
+      let temp =await CompanyStatusCount(start,end,cmpId);
       data=temp?.data;
       count=temp?.count
       cv_view_count=temp?.cvCount
-      }else if(Time=='Thisweek'){
-        const weekStart = moment().startOf('isoWeek').toDate();
-        const weekEnd = moment().endOf('isoWeek').toDate();
-        let temp=await CompanyStatusCount(weekStart,weekEnd,cmpId);
-        data=temp?.data;
-        count=temp?.count
-        cv_view_count=temp?.cvCount
+      // }else if(Time=='Thisweek'){
+      //   const weekStart = moment().startOf('isoWeek').toDate();
+      //   const weekEnd = moment().endOf('isoWeek').toDate();
+      //   let temp=await CompanyStatusCount(weekStart,weekEnd,cmpId);
+      //   data=temp?.data;
+      //   count=temp?.count
+      //   cv_view_count=temp?.cvCount
       
-      }else if(Time=='Thismonth'){
-        const monthStart = moment().startOf('month').toDate();
-        const monthEnd = moment().endOf('month').toDate();
-        let temp =await CompanyStatusCount(monthStart,monthEnd,cmpId);
-        data=temp?.data;
-        count=temp?.count
-        cv_view_count=temp?.cvCount
-      }else if(Time=='Thisyear'){
-        const yearStart = moment().startOf('year').toDate();
-        const yearEnd = moment().endOf('year').toDate();
-        let temp =await CompanyStatusCount(yearStart,yearEnd,cmpId);
-        data=temp?.data;
-        count=temp?.count
-        cv_view_count=temp?.cvCount
-      }else if(Time=='All'){
-        const yearStart = new Date(0)
-        let temp =await CompanyStatusCount(yearStart,new Date(),cmpId);
-        data=temp?.data;
-        count=temp?.count
-        cv_view_count=temp?.cvCount
-      }
+      // }else if(Time=='Thismonth'){
+      //   const monthStart = moment().startOf('month').toDate();
+      //   const monthEnd = moment().endOf('month').toDate();
+      //   let temp =await CompanyStatusCount(monthStart,monthEnd,cmpId);
+      //   data=temp?.data;
+      //   count=temp?.count
+      //   cv_view_count=temp?.cvCount
+      // }else if(Time=='Thisyear'){
+      //   const yearStart = moment().startOf('year').toDate();
+      //   const yearEnd = moment().endOf('year').toDate();
+      //   let temp =await CompanyStatusCount(yearStart,yearEnd,cmpId);
+      //   data=temp?.data;
+      //   count=temp?.count
+      //   cv_view_count=temp?.cvCount
+      // }else if(Time=='All'){
+      //   const yearStart = new Date(0)
+      //   let temp =await CompanyStatusCount(yearStart,new Date(),cmpId);
+      //   data=temp?.data;
+      //   count=temp?.count
+      //   cv_view_count=temp?.cvCount
+      // }
 
       return res.status(200).send({data,count,cv_view_count})
 
