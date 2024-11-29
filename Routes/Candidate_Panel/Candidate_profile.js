@@ -11,6 +11,11 @@ router.put('/candidate/profile/add_summary/:userId',upload.single('file'),contro
  router.get('/candidate/profile/get_single/exp/:user_id/:exp_id',controller.getSingleWorkExp);
  router.put('/candidate/profile/edit_exp/:user_id/:exp_id',controller.EditExp);
  router.delete('/candidate/profile/delete_work/:work_id/:user_id',controller.DeleteWorkDetails);
+//Add some Project Details
+router.put('/candidate/profile/pojects/:userId',controller.AddSomeNewProjects);
+router.get('/candidate/profile/get_single/project/:user_id/:project_id',controller.getSingleWorkedProject);
+router.put('/candidate/profile/edit_project/:user_id/:project_id',controller.EditProject);
+router.delete('/candidate/profile/delete_projects/:project_id/:user_id',controller.DeleteProjectDetails);
 
  //edit Basic details 
  router.get('/candidate/profile/get_basic/:user_id',controller.GetBasicDetails);

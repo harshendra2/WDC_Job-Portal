@@ -19,6 +19,16 @@ const WorkExperience = Joi.object({
   negotiation_day:Joi.number()
 });
 
+const ProjectWorked=Joi.object({
+  project_title:Joi.string().required(),
+  Project_status:Joi.string().required(),
+  Project_duration:Joi.string().required(),
+  project_details:Joi.string().min(40),
+  project_site:Joi.string().required(),
+  role:Joi.string().required(),
+  skills_used:Joi.string().required()
+})
+
 const PAN_REGEX = /^[A-Z]{5}[0-9]{4}[A-Z]{1}$/;
 
 const OnboardCandidatePersonalDetails=Joi.object({
@@ -35,7 +45,6 @@ const OnboardCandidatePersonalDetails=Joi.object({
 
 const OnboardCandidateWorkDetails=Joi.object({
   industry:Joi.string(),
-  current_ctc: Joi.number(),
   aspiring_position: Joi.string(),
   work_experience:Joi.string().min(1),
   career_highlight: Joi.string().min(5),
@@ -234,7 +243,7 @@ exports.AddSummaryToCandidate=async(req,res)=>{
   }
     try{
 
-      const candidates=await await candidate.findById(user_id);
+      const candidates= await candidate.findById(user_id);
 
       const updatedCandidate = await work_details.findOneAndUpdate(
         { _id:candidates.work_details, 'Experience._id': exp_id },
@@ -297,7 +306,143 @@ exports.AddSummaryToCandidate=async(req,res)=>{
       return res.status(500).json({ error: "Internal server error" });
     }
   };
+
+//Add new Projects
+
+exports.AddSomeNewProjects=async(req,res)=>{
+  const {userId}=req.params;
+  const {project_title,Project_status,Project_duration,project_details,project_site,role,skills_used}=req.body;
+
+  const { error } = ProjectWorked.validate({project_title,Project_status,Project_duration,project_details,project_site,role,skills_used});
+if (error) {
+  return res.status(400).json({ error: error.details[0].message });
+}
+
+  try{
+    if (!mongoose.Types.ObjectId.isValid(userId)) {
+      return res.status(400).json({ error: 'Invalid candidate ID' });
+    }
+    const ProjectDetailsData = {
+      project_title,Project_status,Project_duration,project_details,project_site,role,skills_used
+    };
+
+    const candidates = await candidate.findById(userId).populate('work_details');
+
+    if (!candidates) {
+      return res.status(404).json({ error: "Candidate not found" });
+    }
+
+    if (!candidates.work_details) {
+      const newWorkDetails = new work_details();  
+    newWorkDetails.Projects.push(ProjectDetailsData); 
+    newWorkDetails.custom_id=candidates?.custom_id;
+    const savedWorkDetails = await newWorkDetails.save(); 
+
+    candidates.work_details = savedWorkDetails._id;
+    await candidates.save(); 
+
+    return res.status(201).json({ message: "New Project added successfully", work_details: savedWorkDetails });
+    } else {
+      const updatedProjectDetails = await work_details.findByIdAndUpdate(
+        candidates.work_details._id,
+        { $push: {Projects: ProjectDetailsData } }, 
+        { new: true }
+      );
+
+      return res.status(200).json({ message: "New Project added successfully", work_details: updatedProjectDetails });
+    }
+  }catch(error){
+    return res.status(500).json({error:"Internal server error"});
+  }
+}
+
+exports.getSingleWorkedProject = async (req, res) => {
+  const { user_id, project_id } = req.params;
   
+  try {
+    const candidateData = await candidate.findById(user_id).populate('work_details')
+    if (!candidateData) {
+      return res.status(400).json({ error: "Candidate not available" });
+    }
+
+    const PrjData = candidateData?.work_details?.Projects.find(exp => exp._id.toString() ===project_id);
+    if (!PrjData) {
+      return res.status(404).json({ error: "Prject not found" });
+    }
+
+    return res.status(200).json(PrjData);
+
+  } catch (error) {
+    return res.status(500).json({ error: "Internal server error" });
+  }
+};
+
+exports.EditProject=async(req,res)=>{
+  const {user_id,project_id}=req.params;
+  const {project_title,Project_status,Project_duration,project_details,project_site,role,skills_used}=req.body;
+
+  const { error } = ProjectWorked.validate({project_title,Project_status,Project_duration,project_details,project_site,role,skills_used});
+if (error) {
+  return res.status(400).json({ error: error.details[0].message });
+}
+  try{
+
+    const candidates= await candidate.findById(user_id);
+
+    const updatedCandidate = await work_details.findOneAndUpdate(
+      { _id:candidates.work_details, 'Projects._id': project_id },
+      {
+        $set: {
+          'Projects.$.project_title': project_title,
+          'Projects.$.Project_status':Project_status,
+          'Projects.$.Project_duration':Project_duration,
+          'Projects.$.project_details':project_details,
+          'Projects.$.project_site':project_site,
+          'Projects.$.role':role,
+          'Projects.$.skills_used':skills_used
+        }
+      },
+      { new: true }
+    );
+
+    if (updatedCandidate) {
+      return res.status(200).json({ message: "Project edited successfully" });
+    } else {
+      return res.status(400).json({ error: "Failed to edit project" });
+    }
+
+  }catch(error){
+    return res.status(500).json({error:"Internal server error"});
+  }
+}
+  
+exports.DeleteProjectDetails = async (req, res) => {
+  const {project_id, user_id } = req.params;
+  
+  try {
+    const candidateData = await candidate.findById(user_id);
+    if (!candidateData || !candidateData.work_details) {
+      return res.status(404).json({ error: "Candidate or work detail not found" });
+    }
+
+    const updatedProjectDetails = await work_details.findByIdAndUpdate(
+      candidateData.work_details,
+      { $pull: {Projects: { _id: project_id } } },
+      { new: true }
+    );
+
+    if (!updatedProjectDetails) {
+      return res.status(404).json({ error: "Project detail not found" });
+    }
+
+    return res.status(200).json({
+      message: "Project details deleted successfully",
+      updatedProjectDetails
+    });
+  } catch (error) {
+    return res.status(500).json({ error: "Internal server error" });
+  }
+};
 
 
   exports.GetBasicDetails=async(req,res)=>{
@@ -653,10 +798,10 @@ exports.GetworkDetails=async(req,res)=>{
 
 exports.EditWorkDetails = async (req, res) => {
   const { user_id } = req.params;
-  const { industry,current_ctc, aspiring_position, work_experience, career_highlight, recognation,functions,preferred_location,current_location,country,skill} = req.body;
+  const { industry, aspiring_position, work_experience, career_highlight, recognation,functions,preferred_location,current_location,country,skill} = req.body;
 
   const { error } = OnboardCandidateWorkDetails.validate({
-    industry,current_ctc, aspiring_position, work_experience, career_highlight, recognation,functions,preferred_location,current_location,country
+    industry,aspiring_position, work_experience, career_highlight, recognation,functions,preferred_location,current_location,country
   });
 
   if (error) {
@@ -678,7 +823,6 @@ exports.EditWorkDetails = async (req, res) => {
     const workDetailsData = {
       custom_id:candidate?.custom_id,
       industry,
-      current_ctc,
       aspiring_position,
       work_experience,
       career_highlight,
@@ -710,7 +854,6 @@ exports.EditWorkDetails = async (req, res) => {
     }
 
   } catch (error) {
-    console.error("Error updating work details:", error);
     return res.status(500).json({ error: "Internal server error" });
   }
 };
