@@ -39,6 +39,7 @@ const companyHireCandidate=require("./Routes/Company_Panel/Hire_candidate_routes
 const SideBarRoute=require('./Routes/Company_Panel/SideBare_routes');
 const CompanyTransaction=require('./Routes/Company_Panel/Transaction_routes');
 const CredibilityEstablishment=require('./Routes/Company_Panel/Credibility_establishment_route');
+const Access_Management=require('./Routes/Company_Panel/Access_management_route')
 
 const CandidateCredentialRoute=require("./Routes/Candidate_Panel/candidate_routes");
 const CandidateJobRoute=require("./Routes/Candidate_Panel/Jobs_routes");
@@ -76,6 +77,7 @@ app.use('/api',companyHireCandidate);
 app.use('/api',SideBarRoute);
 app.use('/api',CompanyTransaction);
 app.use('/api',CredibilityEstablishment);
+app.use('/api',Access_Management);
 app.use('/api',CandidateCredentialRoute);
 app.use('/api',CandidateJobRoute);
 app.use('/api',CandidateAppliedJobRoute);

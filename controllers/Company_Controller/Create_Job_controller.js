@@ -39,7 +39,8 @@ const EditJobs=Joi.object({
   job_type: Joi.string().required(),
   work_type: Joi.string().required(),
   education:Joi.string().required(),
-  description: Joi.string().min(100).required()
+  description: Joi.string().min(100).required(),
+  country:Joi.string().required()
 })
 
 exports.GetCreatedJobStatus = async (req, res) => {
@@ -212,6 +213,10 @@ exports.GetSuggestionJobDescription=async(req,res)=>{
 exports.CreateNewJob = async (req, res) => {
     const { id } = req.params;
     const {job_title,No_openings,industry,salary,experience,location,country,job_type,work_type,skills,education,description,Phone_Screening,HR_Round,Technical_Round,Managerial_Round,Panel_Round,Leadership_Round,Project_Round,GD_Round,Behavioral_Testing,Peer_Round} = req.body;
+    const { error } = EditJobs.validate({job_title,No_openings,industry,salary,experience,location,job_type,work_type,education,description,country});
+    if (error) {
+      return res.status(400).json({ error: error.details[0].message });
+    }
     try {
       if(!id){
         return res.status(400).json({error:"Please provide Id"});

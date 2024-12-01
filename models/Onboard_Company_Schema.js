@@ -3,12 +3,14 @@ const mongoose = require("mongoose");
 const jwt = require("jsonwebtoken"); // Add this line to require jwt
 const Schema = mongoose.Schema;
 const SECRET_KEY = process.env.COMPANYSECRET_KEY;
+const HRSchema=require('./HrSchema');
 
 const CompanySchema = new Schema({
   company_name: {
     type: String,
   },
-  email: {
+  HRs: [HRSchema],
+  email:{
     type: String,
   },
   mobile: {

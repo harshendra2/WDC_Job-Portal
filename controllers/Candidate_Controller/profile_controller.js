@@ -311,7 +311,7 @@ exports.AddSummaryToCandidate=async(req,res)=>{
 
 exports.AddSomeNewProjects=async(req,res)=>{
   const {userId}=req.params;
-  const {project_title,Project_status,Project_duration,project_details,project_site,role,skills_used}=req.body;
+  const {project_title,Project_status,Project_duration,project_details,project_site,role,skills_used,project_url}=req.body;
 
   const { error } = ProjectWorked.validate({project_title,Project_status,Project_duration,project_details,project_site,role,skills_used});
 if (error) {
@@ -323,7 +323,7 @@ if (error) {
       return res.status(400).json({ error: 'Invalid candidate ID' });
     }
     const ProjectDetailsData = {
-      project_title,Project_status,Project_duration,project_details,project_site,role,skills_used
+      project_title,Project_status,Project_duration,project_details,project_site,role,skills_used,project_url
     };
 
     const candidates = await candidate.findById(userId).populate('work_details');
@@ -379,7 +379,7 @@ exports.getSingleWorkedProject = async (req, res) => {
 
 exports.EditProject=async(req,res)=>{
   const {user_id,project_id}=req.params;
-  const {project_title,Project_status,Project_duration,project_details,project_site,role,skills_used}=req.body;
+  const {project_title,Project_status,Project_duration,project_details,project_site,role,skills_used,project_url}=req.body;
 
   const { error } = ProjectWorked.validate({project_title,Project_status,Project_duration,project_details,project_site,role,skills_used});
 if (error) {
@@ -399,7 +399,8 @@ if (error) {
           'Projects.$.project_details':project_details,
           'Projects.$.project_site':project_site,
           'Projects.$.role':role,
-          'Projects.$.skills_used':skills_used
+          'Projects.$.skills_used':skills_used,
+          "Projects.$.project_url":project_url
         }
       },
       { new: true }
