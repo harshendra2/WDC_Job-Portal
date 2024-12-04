@@ -1,7 +1,5 @@
 const bcrypt=require('bcryptjs');
 const company=require('../../models/Onboard_Company_Schema');
-const candidate_basic=require('../../models/TempsData')
-const ExcelJS = require('exceljs');
 
 exports.GetAllSubAdmin=async(req,res)=>{
     const {cmpId}=req.params
@@ -111,73 +109,5 @@ exports.DeleteExistedHRData = async (req, res) => {
         }
     } catch (error) {
         return res.status(500).json({ error: "Internal server error" });
-    }
-};
-
-exports.GetALLtempsdat = async (req, res) => {
-    try {
-        // Fetch data using aggregation
-        const data = await candidate_basic.aggregate([
-            {
-                $lookup: {
-                    from: 'candidates_edu_skills',
-                    localField: 'edu_skills',
-                    foreignField: '_id',
-                    as: 'Education_details',
-                },
-            },
-        ]);
-
-        // Create a new Excel workbook and worksheet
-        const workbook = new ExcelJS.Workbook();
-        const worksheet = workbook.addWorksheet('Candidates Data');
-
-        // Define columns for the Excel file
-        worksheet.columns = [
-            { header: 'ID', key: 'id', width: 10 },
-            { header: 'Name', key: 'name', width: 20 },
-            { header: 'Email', key: 'email', width: 25 },
-            { header: 'Mobile', key: 'mobile', width: 15 },
-            { header: 'City', key: 'city', width: 15 },
-            { header: 'State', key: 'state', width: 20 },
-            { header: 'Subscription', key: 'subscription', width: 15 },
-            { header: 'Education', key: 'education', width: 30 },
-            { header: 'Skills', key: 'skills', width: 40 },
-            { header: 'Experience', key: 'experience', width: 15 },
-        ];
-
-        // Process and add rows to the worksheet
-        data.forEach((candidate) => {
-            const educationDetails = candidate.Education_details[0] || {};
-            worksheet.addRow({
-                id: candidate.id,
-                name: candidate.name,
-                email: candidate.email,
-                mobile: candidate.mobile,
-                city: candidate.city,
-                state: candidate.state,
-                subscription: candidate.subscription,
-                education: educationDetails.education || 'N/A',
-                skills: educationDetails.skills_list ? educationDetails.skills_list.join(', ') : 'N/A',
-                experience: educationDetails.experience || 'N/A',
-            });
-        });
-
-        // Set the response headers for file download
-        res.setHeader(
-            'Content-Type',
-            'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-        );
-        res.setHeader(
-            'Content-Disposition',
-            'attachment; filename=candidates_data.xlsx'
-        );
-
-        // Write the Excel file to the response
-        await workbook.xlsx.write(res);
-        res.end(); // End the response
-    } catch (error) {
-        console.error('Error generating Excel:', error);
-        return res.status(500).send({ message: 'Internal server error' });
     }
 };

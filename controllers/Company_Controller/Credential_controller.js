@@ -178,8 +178,7 @@ exports.Login = async (req, res) => {
       company.findOne({'HRs.email':email }),
       basic_details.findOne({ email }).lean()
     ]);
-    const hrDetails = existedCompany.HRs.find(hr => hr.email === email);
-
+    const hrDetails = existedCompany?.HRs.find(hr => hr.email === email);
     if (existedCompany) {
       const subscriptionExists = await CompanySubscription.findOne({
         company_id: existedCompany._id,
@@ -191,7 +190,7 @@ exports.Login = async (req, res) => {
       if (subscriptionExists) {
         const passwordMatch = await bcrypt.compare(
           password,
-          hrDetails.password
+          hrDetails?.password||''
         );
         if (!passwordMatch) {
           return res.status(400).json({ error: 'Invalid password' });
@@ -213,7 +212,7 @@ exports.Login = async (req, res) => {
       if (existedCompany.company_access_count > 0) {
         const passwordMatch = await bcrypt.compare(
           password,
-          hrDetails.password
+          hrDetails?.password||''
         );
         if (!passwordMatch) {
           return res.status(400).json({ error: 'Invalid password' });
@@ -270,12 +269,12 @@ exports.ResendLoginOTP=async(req,res)=>{
   const { email} = req.body;
   try{
 
-    const ExistedCompany=await company.findOne({"Hrs.email":email});
+    const ExistedCompany=await company.findOne({"HRs.email":email});
     if(!ExistedCompany){
       return res.status(400).json({error:"This company not existed in our data base"});  
     }
     const OTP = generateOTP();
-     const hrDetails=ExistedCompany.HRs.find(hr=>hr.email==email);
+     const hrDetails=ExistedCompany?.HRs.find(hr=>hr.email==email);
      hrDetails.OTP=OTP;
      hrDetails.OTPExp_time=new Date(Date.now() + 10 * 60 * 1000);
     ExistedCompany.save()

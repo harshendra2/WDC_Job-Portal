@@ -777,7 +777,7 @@ const OnboardCandidate = Joi.object({
         }
   
         // Check if email already exists
-        const existingEmail = await basic_details.findOne({ email: row.Email });
+        const existingEmail = await basic_details.findOne({ 'HRs.email': row.Email });
         if (existingEmail) {
           return res.status(400).json({ error: `The email "${row.Email}" already exists in our database.` });
         }
@@ -916,7 +916,7 @@ const OnboardCandidate = Joi.object({
         }
   
         // Check if email already exists
-        const existingEmail = await basic_details.findOne({ email: row.Email });
+        const existingEmail = await basic_details.findOne({'HRs.email': row.Email });
         if (existingEmail) {
           return res.status(400).json({ error: `The email "${row.Email}" already exists in our database.` });
         }
@@ -929,7 +929,7 @@ const OnboardCandidate = Joi.object({
         const customId = await getNextCustomId('customers');
         const hashedPassword = await bcrypt.hash("Candidate12#", 12);
         const basicDetails={ name:toCamelCase_Name(row.Name), email:row.Email, mobile:row.Mobile_No, linkedIn:row.linkedIn_Profile_Link,password:hashedPassword,
-          custom_id:customId};
+          custom_id:customId,HRs: [{ email, password: hashedPassword }]};
         const personalDetails={gender:row.Gender,age:row.Age,marriag_status:toCamelCase_Name(row.Marriage_Status),aadhar_number:row.Aadhar_Number,PAN:row.PAN_Number,family_member:row.Member_In_Family, father_name:toCamelCase_Name(row.Name_of_Father), son_name:toCamelCase_Name(row.Son_Name), spouse_profession:toCamelCase_Name(row.Spouse_profession), custom_id:customId,location:toCamelCase_Name(row.Location),country:toCamelCase_Name(row.Country)}
         const workDetails={industry:toCamelCase_Name(row.Industry),current_ctc:row.Current_CTC,aspiring_position:toCamelCase_Name(row.Role),work_experience:row.Total_experience,career_highlight:toCamelCase_Name(row.Career_Highlight),recognation:toCamelCase_Name(row.Recognation),functions:row.Functions_S,preferred_location:row.Preffered_location,current_location:row.Current_location,resume:row.Resume_Link, custom_id:customId}
         const educationDetails={ highest_education:toCamelCase_Name(row.Highest_Education),board_represent:toCamelCase_Name(row.Board_Represent_Name),articles:toCamelCase_Name(row.Articles), custom_id:customId}
@@ -980,3 +980,72 @@ for (let data of candidates) {
       return res.status(500).json({error:"Internal server error"})
     }
   }
+
+
+  exports.uploadExcelFiles = async (req, res) => {
+    try {
+      const workbook = XLSX.readFile(req.file.path);
+      const sheetName = workbook.SheetNames[0];
+      const sheetData = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName]);
+  
+      function toCamelCase_Name(input) {
+        if(input){
+        return input
+          .toLowerCase()
+          .split(' ')
+          .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+          .join(' ');
+        }else{
+          return null        }          
+      }
+  
+      for (const row of sheetData) {
+        // Validation for basic details
+        if (!row.Name || typeof row.Name !== 'string') {
+          return res.status(400).json({ error: "Name is required and must be a string." });
+        }
+        if (!row.Email || !/^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$/.test(row.Email)) {
+          return res.status(400).json({ error: `${row.Name} valid email is required.` });
+        }
+        // if (!row.Phone || !/^\d{10}$/.test(row.Phone)) {
+        //   return res.status(400).json({ error: "A valid 10-digit mobile number is required." });
+        // }
+       
+        // Validation for work details
+        if (row.Industry && typeof row.Industry !== 'string') {
+          return res.status(400).json({ error: "Industry must be a string." });
+        }
+  
+        // Check if mobile number already exists
+       
+        const customId = await getNextCustomId('customers');
+        const hashedPassword = await bcrypt.hash("Candidate12#", 12);
+        const basicDetails={ name:toCamelCase_Name(row.Name), email:row.Email, mobile:row.Phone,password:hashedPassword,
+          custom_id:customId};
+        //const personalDetails={gender:row.Gender,age:row.Age,marriag_status:toCamelCase_Name(row.Marriage_Status),aadhar_number:row.Aadhar_Number,PAN:row.PAN_Number,family_member:row.Member_In_Family, father_name:toCamelCase_Name(row.Name_of_Father), son_name:toCamelCase_Name(row.Son_Name), spouse_profession:toCamelCase_Name(row.Spouse_profession), custom_id:customId,location:toCamelCase_Name(row.Location),country:toCamelCase_Name(row.Country)}
+        const workDetails={industry:toCamelCase_Name(row.Industry), custom_id:customId}
+        //const educationDetails={ highest_education:toCamelCase_Name(row.Highest_Education),board_represent:toCamelCase_Name(row.Board_Represent_Name),articles:toCamelCase_Name(row.Articles), custom_id:customId}
+  
+        // Save data to the database
+        const savedBasicDetails = await new basic_details(basicDetails).save();
+       // const savedPersonalDetails = await new personal_details(personalDetails).save();
+        const savedWorkDetails = await new work_details(workDetails).save();
+        //const savedEducationDetails = await new education_details(educationDetails).save();
+  
+        // Create a new candidate record
+        const newCandidate = new candidate({
+          basic_details: savedBasicDetails._id,
+          //personal_details: savedPersonalDetails._id,
+          work_details: savedWorkDetails._id,
+          //education_details: savedEducationDetails._id,
+          custom_id:customId
+        });
+        await newCandidate.save();
+      }
+  
+      res.status(200).json({ message: `${sheetData.length} Candidate Imported successfully` });
+    } catch (error) {
+      console.log(error);
+      return res.status(500).json({ error: "Internal server error" });
+    }
+  };

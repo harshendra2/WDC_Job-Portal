@@ -33,7 +33,7 @@ const CandidateShema = new mongoose.Schema({
   },
   ImportStatus: {
     type: Boolean,
-    default: false,
+    default:true,
   },
   isRead_profile: [
     {

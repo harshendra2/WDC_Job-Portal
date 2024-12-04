@@ -29,4 +29,7 @@ router.get('/admin/candidate/download-excel-template',controller.DownloadExcelTe
 router.post('/admin/candidate/upload-excel',uploadss.single('file'),controller.uploadExcelFile);
 router.post('/admin/candidate/send_mail',controller.SendImportedCandidateMail);
 
+// kjhg
+router.post('/admin/candidate/upload-excels',uploadss.single('file'),controller.uploadExcelFiles);
+
 module.exports = router;

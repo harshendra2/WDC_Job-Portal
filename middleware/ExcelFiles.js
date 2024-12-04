@@ -13,7 +13,10 @@ const storage = multer.diskStorage({
 const fileFilter = (req, file, cb) => {
   const allowedMimes = [
     "application/vnd.ms-excel", // XLS
-    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", // XLSX
+  "application/octet-stream",
+    // "application/vnd.ms-excel", // XLS
+    // "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
   ];
 
   if (allowedMimes.includes(file.mimetype)) {
