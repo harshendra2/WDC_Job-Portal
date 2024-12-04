@@ -45,5 +45,9 @@ router.delete('/candidate/profile/delete_projects/:project_id/:user_id',controll
  //Candidate Profile percenteage
  router.get('/candidate/profile/percentage/:userId',controller.GetProfilePercentage);
 
+ //Resume write Count  
+ router.get('/candidate/resume_create/job_desc/:jobId',controller.ResumeGenerateBaseJobDesc);
+router.get('/candidate/resume_generate/count/:cmpId',controller.ResumeGenerateCount);
+
 
 module.exports=router;

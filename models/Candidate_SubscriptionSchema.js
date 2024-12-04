@@ -10,7 +10,19 @@ const CandidateSubscriptionSchema = new mongoose.Schema({
     required: true
   },
   top_candidate: {
-      type:Number
+    type:Number
+  },
+  job_recommandation:{
+    type:Number
+  },
+  resume_write:{
+    type:Number
+  },
+  interview_question:{
+    type:Number
+  },
+  customer_support:{
+    type:Number
   },
   createdAt:{
     type: Date,

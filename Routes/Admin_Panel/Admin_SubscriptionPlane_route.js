@@ -22,7 +22,6 @@ router.get('/admin/candidate_subscriptionname/:id',controller.GetCandidateSubscr
 router.get('/admin/get_singlesub/:id',controller.GetSingleCandidateSubscription);
 router.put('/admin/edit_candidate/subscription/:id',controller.EditCandidateSubscription);
 
-
 //Green batch subscription plane 
 router.get('/admin/get_green_batch/subscription',controller.GetAllGreenBatchSubscription);
 router.get('/admin/get_single/green_batch/:id',controller.GetSingleGreenBatch);

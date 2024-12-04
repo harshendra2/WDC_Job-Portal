@@ -55,7 +55,7 @@ exports.createOnboardCompany = async (req, res) => {
   }
 
   try {
-    const existingCompany = await Company.findOne({ email });
+    const existingCompany = await Company.findOne({"HRs.email":email });
     if (existingCompany) {
       return res.status(400).json({ error: "Email already existed" });
     }
@@ -97,7 +97,7 @@ exports.createOnboardCompany = async (req, res) => {
 
         const hashedPassword = await bcrypt.hash("Company12#", 12);
     const newCompany = new Company({
-      email, mobile, company_name,overView,industry,company_size,GST,PAN,website_url,location,contact_email,contact_No,headQuater_add,GST_image:gstImage,PAN_image:panImage,profile,password:hashedPassword,ImportStatus:true
+      email, mobile, company_name,overView,industry,company_size,GST,PAN,website_url,location,contact_email,contact_No,headQuater_add,GST_image:gstImage,PAN_image:panImage,profile,ImportStatus:true, HRs: [{ email, password: hashedPassword }]
     });
 
     const savedCompany = await newCompany.save();
@@ -170,7 +170,7 @@ exports.getAllOnboardCompany = async (req, res) => {
   try {
       const data = await Company.find({})
           .sort({ createdAt: -1 })
-          .select({ company_name: 1, location: 1, email: 1 });
+          .select({ company_name: 1, location: 1, email: 1, hrEmail: { $arrayElemAt: ["$HRs.email", 0] } });
       const MailSendCount=await Company.find({ImportStatus:false}).countDocuments()
 
       if (data && data.length > 0) {
@@ -285,7 +285,15 @@ exports.editOnboardCompany = async (req, res) => {
     if (!existingCompany) {
       return res.status(404).json({ error: "Company not found" });
     }
+    if (email) {
+      const existingHR = existingCompany.HRs.find((hr) => hr.email === email);
+      if (!existingHR) {
+        existingCompany.HRs[0].email = email;
+        await existingCompany.save()
+      }
+    }
 
+    // Prepare updated data
     const updatedData = {
       email,
       mobile,
@@ -300,14 +308,22 @@ exports.editOnboardCompany = async (req, res) => {
       contact_email,
       contact_No,
       headQuater_add,
-      GST_image: gstImage !== undefined ? gstImage : existingCompany.GST_image,
-      PAN_image: panImage !== undefined ? panImage : existingCompany.PAN_image,
-      profile: profile !== undefined ? profile : existingCompany.profile
+      GST_image: gstImage || existingCompany.GST_image,
+      PAN_image: panImage || existingCompany.PAN_image,
+      profile: profile || existingCompany.profile,
     };
 
-    const updatedCompany = await Company.findByIdAndUpdate(id, updatedData, { new: true });
+    // Update the company document
+    const updatedCompany = await Company.findByIdAndUpdate(
+      id,
+      { $set: updatedData },
+      { new: true }
+    );
 
-    return res.status(200).json({ message: "Company details updated successfully", updatedCompany });
+    return res.status(200).json({
+      message: "Company details updated successfully",
+      updatedCompany,
+    });
   } catch (error) {
     return res.status(500).json({ error: "Internal Server Error" });
   }

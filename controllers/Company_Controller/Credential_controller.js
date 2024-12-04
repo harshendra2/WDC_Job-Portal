@@ -7,6 +7,7 @@ const { generateOTP } = require('../../Service/generateOTP');
 const nodemailer = require("nodemailer");
 const { email } = require("../../config/emailConfig");
 const company = require("../../models/Onboard_Company_Schema");
+const HRSchema=require("../../models/HrSchema");
 const CompanySubscription = require("../../models/Company_SubscriptionSchema");
 const basic_details = require("../../models/Basic_details_CandidateSchema");
 const candidate = require('../../models/Onboard_Candidate_Schema')
@@ -78,7 +79,8 @@ exports.CompanyRegistration = async (req, res) => {
     return res.status(400).json({ error: error.details[0].message });
   }
   try {
-    const alreadyexisted = await company.findOne({ email: email });
+    const alreadyexisted = await company.findOne({ "HRs.email": email });
+   // const alreadyexisted = await company.findOne({ email: email });
     if (alreadyexisted) {
       return res.status(400).json({ error: "This email already exists" });
     }
@@ -131,20 +133,29 @@ exports.Registration = async (req, res) => {
 
   try {
     const hashedPassword = await bcrypt.hash(password, 12);
-
-    const existsEmail = await company.findOne({ email });
+    const existsEmail = await company.findOne({ "HRs.email": email });
+    //const existsEmail = await company.findOne({ email });
     if (existsEmail) {
       return res
         .status(400)
         .json({ error: "This email already exists in our database" });
     }
 
-    const companydata = new company({
+    // const companydata = new company({
+    //   email,
+    //   password: hashedPassword,
+    //   company_name
+    // });
+    // const data = await companydata.save();
+    const companyData = new company({
+      company_name,
       email,
-      password: hashedPassword,
-      company_name
+      //password: hashedPassword,
+      HRs: [{ email, password: hashedPassword }], // Initialize with the first HR
     });
-    const data = await companydata.save();
+
+    // Save the company
+    const data = await companyData.save();
 
     if (data) {
       return res.status(200).json({ message: "Registration Successfully" });
@@ -164,9 +175,10 @@ exports.Login = async (req, res) => {
   }
   try {
     const [existedCompany, existUser] = await Promise.all([
-      company.findOne({ email }),
+      company.findOne({'HRs.email':email }),
       basic_details.findOne({ email }).lean()
     ]);
+    const hrDetails = existedCompany.HRs.find(hr => hr.email === email);
 
     if (existedCompany) {
       const subscriptionExists = await CompanySubscription.findOne({
@@ -175,20 +187,21 @@ exports.Login = async (req, res) => {
         createdDate:{$lte:Date.now()},
         $or: [{ user_access: { $gt: 0 } }, { user_access: 'Unlimited' }]
       }).lean();
+
       if (subscriptionExists) {
         const passwordMatch = await bcrypt.compare(
           password,
-          existedCompany.password
+          hrDetails.password
         );
         if (!passwordMatch) {
           return res.status(400).json({ error: 'Invalid password' });
         }
 
         const OTP = generateOTP();
-        existedCompany.OTP=OTP;
-        existedCompany.OTPExp_time=new Date(Date.now() + 10 * 60 * 1000);
-        existedCompany.save()
-        // If subscription exists, send OTP
+        hrDetails.OTP=OTP
+        hrDetails.OTPExp_time=new Date(Date.now() + 10 * 60 * 1000);
+        
+       await existedCompany.save()
         if (subscriptionExists) {
           await sendEmail(email, OTP);
           return res.status(200).json({
@@ -200,15 +213,15 @@ exports.Login = async (req, res) => {
       if (existedCompany.company_access_count > 0) {
         const passwordMatch = await bcrypt.compare(
           password,
-          existedCompany.password
+          hrDetails.password
         );
         if (!passwordMatch) {
           return res.status(400).json({ error: 'Invalid password' });
         }
         const OTP = generateOTP();
-        existedCompany.OTP=OTP;
-        existedCompany.OTPExp_time=new Date(Date.now() + 10 * 60 * 1000);
-        existedCompany.save()
+        hrDetails.OTP=OTP
+        hrDetails.OTPExp_time=new Date(Date.now() + 10 * 60 * 1000);
+       await existedCompany.save()
         await sendEmail(email, OTP);
         return res.status(200).json({
           message: 'OTP sent successfully'
@@ -257,13 +270,14 @@ exports.ResendLoginOTP=async(req,res)=>{
   const { email} = req.body;
   try{
 
-    const ExistedCompany=await company.findOne({email:email});
+    const ExistedCompany=await company.findOne({"Hrs.email":email});
     if(!ExistedCompany){
       return res.status(400).json({error:"This company not existed in our data base"});  
     }
     const OTP = generateOTP();
-    ExistedCompany.OTP=OTP;
-    ExistedCompany.OTPExp_time=new Date(Date.now() + 10 * 60 * 1000);
+     const hrDetails=ExistedCompany.HRs.find(hr=>hr.email==email);
+     hrDetails.OTP=OTP;
+     hrDetails.OTPExp_time=new Date(Date.now() + 10 * 60 * 1000);
     ExistedCompany.save()
     await sendEmail(email, OTP);
     return res.status(200).json({
@@ -277,16 +291,16 @@ exports.ResendLoginOTP=async(req,res)=>{
 exports.CompanyOTP = async (req, res) => {
   const { email ,OTP} = req.body;
   try {
-    const existedCompany = await company.findOne({ email }).lean();
+    const existedCompany = await company.findOne({"HRs.email":email }).lean();
     if (!existedCompany) {
       return res.status(400).json({ error: "Company not found" });
     }
-
-    if(existedCompany?.OTP!=OTP){
+    const hrDetails = existedCompany.HRs.find(hr => hr.email == email);
+    if(hrDetails?.OTP!=OTP){
       return res.status(400).json({ error: 'Invalid OTP' });
     }
     const now = new Date();
-    if(existedCompany?.OTPExp_time<now){
+    if(hrDetails?.OTPExp_time<now){
       return res.status(400).json({ error: 'OTP has expired' });
     }
 
@@ -303,19 +317,18 @@ exports.CompanyOTP = async (req, res) => {
     if (typeof subscriptionExists?.user_access == 'number') {
       // Update user_access_Login_count and Logged_In_count
       await CompanySubscription.updateOne(
-        { _id: subscriptionExists._id },
+        { _id: subscriptionExists._id},
         { $inc: { user_access: -1 } }
       );
 
       await company.updateOne(
         { _id: existedCompany._id },
-        {$set:{OTP:null},
-        $inc: {Logged_In_count: 1 } }
+        {$inc: {Logged_In_count: 1 } }
       );
 
       // Generate JWT token for the company
       const token = jwt.sign(
-        { _id: existedCompany._id },
+        { _id: existedCompany._id,email:hrDetails.email },
         process.env.COMPANYSECRET_KEY,
         { expiresIn: "30d" }
       );
@@ -333,13 +346,12 @@ exports.CompanyOTP = async (req, res) => {
 
         await company.updateOne(
           { _id: existedCompany._id },
-          {$set:{OTP:null},
-          $inc: { Logged_In_count: 1 } }
+          {$inc: { Logged_In_count: 1 } }
         );
       
         // Generate JWT token for the company
         const token = jwt.sign(
-          { _id: existedCompany._id, email: existedCompany.email },
+          { _id: existedCompany._id, email: hrDetails.email },
           process.env.COMPANYSECRET_KEY,
           { expiresIn: "30d" }
         );
@@ -348,13 +360,12 @@ exports.CompanyOTP = async (req, res) => {
       }else{
         await company.updateOne(
           { _id: existedCompany._id },
-          {$set:{OTP:null},
-          $inc: {Logged_In_count: 1 } }
+          {$inc: {Logged_In_count: 1 } }
         );
       
         // Generate JWT token for the company
         const token = jwt.sign(
-          { _id: existedCompany._id, email: existedCompany.email },
+          { _id: existedCompany._id, email:hrDetails.email },
           process.env.COMPANYSECRET_KEY,
           { expiresIn: "30d" }
         );
@@ -583,7 +594,7 @@ exports.CompanyLogOut = async (req, res) => {
 
     if (companys.company_access_count ==0) {
       const existedCompany = await company.findOneAndUpdate(
-        { email: companys?.email },
+        {_id: companys?._id },
         { $inc: { company_access_count: 1, Logged_In_count: -1 } }
       );
 
@@ -594,7 +605,7 @@ exports.CompanyLogOut = async (req, res) => {
       }
     } else {
       await company.findOneAndUpdate(
-        { email: companys?.email },
+        {_id: companys?._id },
         { $inc: { Logged_In_count: -1 } }
       );
 

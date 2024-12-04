@@ -22,6 +22,18 @@ const CurrentUserSubscriptionPlaneSchema = new mongoose.Schema({
   top_candidate: {
       type:Number
   },
+  job_recommandation:{
+    type:Number
+  },
+  resume_write:{
+    type:Number
+  },
+  interview_question:{
+    type:Number
+  },
+  customer_support:{
+    type:Number
+  },
   createdDate:{
     type:Date,
     default: Date.now,

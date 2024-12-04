@@ -188,6 +188,10 @@ exports.verifyPayment = async (req, res) => {
                     transaction_Id:orderId,
                     price: data.price,
                     top_candidate:data.top_candidate,
+                    job_recommandation:data.job_recommandation,
+                    resume_write:data.resume_write,
+                    interview_question:data.interview_question,
+                    customer_support:data.customer_support,
                     createdDate: new Date(),
                     expiresAt: new Date(Date.now() + 30*24*60*60*1000), // Set expiration date to 30 days from now
                 });
@@ -217,7 +221,6 @@ exports.verifyPayment = async (req, res) => {
         }
 
     } catch (error) {
-        console.log(error);
         res.status(500).json({ error: "Internal Server Error" });
     }
 };

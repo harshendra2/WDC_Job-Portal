@@ -39,7 +39,16 @@ exports.getAllIssuesClaim=async(req,res)=>{
             {
                 $addFields: {
                     details: {
-                        companyEmail: { $arrayElemAt: ['$companyDetails.email', 0] }, // Extract company email
+                        companyEmail: { $arrayElemAt: [
+                            {
+                                $map: {
+                                    input: { $arrayElemAt: ['$companyDetails.HRs', 0] }, // Get the first HR array from the company
+                                    as: 'hr',
+                                    in: '$$hr.email' // Extract email of each HR
+                                }
+                            },
+                            0 // Extract the first HR's email
+                        ]}, // Extract company email
                         candidateEmail: { $arrayElemAt: ['$candidateBasicDetails.email', 0] }, // Extract candidate email
                         candidateBasicDetails: { $arrayElemAt: ['$candidateBasicDetails', 0] } // Other candidate basic details
                     }
@@ -55,7 +64,6 @@ exports.getAllIssuesClaim=async(req,res)=>{
                 }
             }
         ]);
-        
         
         if (data && data.length > 0) {
             const isGoogleDriveLink = (url) => {

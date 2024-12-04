@@ -196,12 +196,12 @@ const CompanySchema = new Schema({
        }
     }
   ],
-  OTP:{
-    type:Number
-  },
-  OTPExp_time:{
-    type:Date
-  },
+  // OTP:{
+  //   type:Number
+  // },
+  // OTPExp_time:{
+  //   type:Date
+  // },
   FG_OTP:{
     type:Number
   },

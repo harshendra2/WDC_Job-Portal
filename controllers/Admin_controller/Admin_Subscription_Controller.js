@@ -210,13 +210,13 @@ exports.GetAllCandidateSubscriptionPlane=async(req,res)=>{
 }
 
 exports.CreateCandidateSubscription=async(req,res)=>{
-    const {plane_name,price,top_candidate}=req.body;
+    const {plane_name,price,top_candidate,job_recommandation,resume_write,interview_question,customer_support}=req.body;
     try{
         const exists=await CandidateSub.findOne({plane_name});
         if(exists){
          return res.status(400).json({error:"This Subscription plane already exists"});
         }else{
-       const Data=new CandidateSub({plane_name,price,top_candidate});
+       const Data=new CandidateSub({plane_name,price,top_candidate,job_recommandation,resume_write,interview_question,customer_support});
        const savedData=await Data.save();
        if(savedData){
          return res.status(200).json({message:"New Subscription plane Created Successfully"});
@@ -257,7 +257,7 @@ exports.GetSingleCandidateSubscription=async(req,res)=>{
 }
 
 exports.EditCandidateSubscription=async(req,res)=>{
-    const {plane_name,price,top_candidate}=req.body;
+    const {plane_name,price,top_candidate,job_recommandation,resume_write,interview_question,customer_support}=req.body;
     const {id}=req.params;
 
     const { error } = EditSubscriptionPlane.validate({plane_name,price});
@@ -266,7 +266,7 @@ exports.EditCandidateSubscription=async(req,res)=>{
   }
 
     try{
-        const subscriptiondata={plane_name,price,top_candidate}
+        const subscriptiondata={plane_name,price,top_candidate,job_recommandation,resume_write,interview_question,customer_support}
        
         const data=await CandidateSub.findByIdAndUpdate(id,subscriptiondata,{new:true});
         if(data){

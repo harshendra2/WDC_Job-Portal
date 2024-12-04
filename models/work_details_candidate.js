@@ -103,7 +103,7 @@ const work_details_candidate=new mongoose.Schema({
         type:String
       },
       project_url:{
-        Type:String
+        type:String
       }
       }
     ]

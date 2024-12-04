@@ -218,6 +218,9 @@ exports.CreateNewJob = async (req, res) => {
       return res.status(400).json({ error: error.details[0].message });
     }
     try {
+      if(Phone_Screening==false&&HR_Round==false&&Technical_Round==false&&Managerial_Round==false&&Panel_Round==false&&Leadership_Round==false&&Project_Round==false&&GD_Round==false&&Behavioral_Testing==false&&Peer_Round==false){
+        return res.status(400).json({error: "Please select at least one interview round."})
+      }
       if(!id){
         return res.status(400).json({error:"Please provide Id"});
       }
@@ -849,14 +852,19 @@ exports.ChangeInterviewStatus = async (req, res) => {
     const updateStatus = await CompanyJob.updateOne(
       { 
         _id: jobObjectId, 
-        'applied_candidates.candidate_id': userObjectId, 
-        'applied_candidates.interviewRound.roundName': interviewRound 
+        'applied_candidates.candidate_id': userObjectId 
       },
       {
-        $set: { 'applied_candidates.$.interviewRound.$[inner].roundAction': status }
+        $set: { 
+          'applied_candidates.$.interviewRound.$[inner].roundAction': status 
+        }
       },
       {
-        arrayFilters: [{ 'inner.roundName': interviewRound }]
+        arrayFilters: [
+          { 
+            'inner.roundName': interviewRound 
+          }
+        ]
       }
     );
 

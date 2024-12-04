@@ -185,3 +185,4 @@ let count= candidate?.profile_view_company?.length || 0;
   ]);
 return {data,count};
 }
+

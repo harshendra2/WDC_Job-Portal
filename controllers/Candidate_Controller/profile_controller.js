@@ -5,7 +5,10 @@ const candidate=require('../../models/Onboard_Candidate_Schema');
 const basic_details=require('../../models/Basic_details_CandidateSchema')
 const personal_details=require('../../models/Personal_details_candidateSchema');
 const education_details=require('../../models/education_details_candidateSchema');
-const work_details=require('../../models/work_details_candidate')
+const work_details=require('../../models/work_details_candidate');
+const SubscriptionPlan=require('../../models/Candidate_SubscriptionSchema');
+const companyJob=require('../../models/JobSchema');
+const CurrentsubscriptionPlan=require("../../models/Current_Candidate_SubscriptionSchema");
 
 const WorkExperience = Joi.object({
   designation: Joi.string().required(),
@@ -1219,3 +1222,46 @@ exports.GetProfilePercentage = async (req, res) => {
     return res.status(500).json({ error: "Internal server error" });
   }
 };
+
+
+exports.ResumeGenerateBaseJobDesc=async(req,res)=>{
+  const {jobId}=req.params;
+  try{
+     const JobID=new mongoose.Types.ObjectId(jobId);
+     const data=await companyJob.findById(JobID).select('description')
+     return res.status(200).send(data);
+  }catch(error){
+    return res.status(500).json({error:"Internal server error"});
+  }
+}
+
+
+exports.ResumeGenerateCount=async(req,res)=>{
+  const {cmpId}=req.params
+  try{
+
+    const existsSubscription = await CurrentsubscriptionPlan.findOne({
+      company_id: objectId,
+      expiresAt: { $gte: new Date() },
+      createdDate: { $lte: new Date() },
+      resume_write: { $gt: 0 }
+  })
+  .sort({ createdDate: -1 }) 
+  .limit(1); 
+  if (!existsSubscription) {
+    return res.status(404).json({ error: "Subscription not found,Please buy new Subscription plan" });
+}
+
+if (existsSubscription.resume_write <= 0) {
+    return res.status(400).json({ error: "This subscription plan does not allow create resume." });
+}
+
+let count=Number( existsSubscription.resume_write);
+existsSubscription.job_posting=count-1;
+await existsSubscription.save();
+return res.status(200).json({message:"Resume is generated Successfully"});
+
+  }catch(error){
+    return res.status(500).json({error:"Internal server error"});
+  }
+}

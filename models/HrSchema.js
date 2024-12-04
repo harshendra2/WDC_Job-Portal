@@ -3,7 +3,9 @@ const mongoose = require("mongoose");
 const HRSchema = new mongoose.Schema({
   email: { type: String, required: true },
   password: { type: String, minlength: 6 },
-  
+  OTP:{type:Number},
+  OTPExp_time:{type:Date},
+
   dashboard: { type: Boolean, default: true },
   hire_candidate: { type: Boolean, default: true },
   create_job: { type: Boolean, default: true },
