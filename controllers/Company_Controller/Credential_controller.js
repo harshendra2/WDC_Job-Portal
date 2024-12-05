@@ -449,7 +449,7 @@ exports.forgotPassword = async (req, res) => {
 
   try {
     const [existedCompany, existedUser] = await Promise.all([
-      company.findOne({ email }),
+      company.findOne({'HRs.email':email }),
       basic_details.findOne({ email })
     ]);
    
@@ -515,7 +515,7 @@ exports.VerifyForgetPassword=async(req,res)=>{
   const {email,OTP}=req.body;
   try{
     const [existedCompany, existedUser] = await Promise.all([
-      company.findOne({ email }),
+      company.findOne({'HRs.email':email }),
       basic_details.findOne({ email })
     ]);
     if (!existedCompany && !existedUser) {
@@ -559,7 +559,7 @@ exports.NewPassowrd = async (req, res) => {
 
   try {
     const [existedCompany, existedUser] = await Promise.all([
-      company.findOne({ email }),
+      company.findOne({'HRs.email':email }),
       basic_details.findOne({ email })
     ]);
     if (!existedCompany && !existedUser) {
@@ -569,10 +569,19 @@ exports.NewPassowrd = async (req, res) => {
     
     const newPass = await bcrypt.hash(password, 12);
     if (existedCompany) {
-      existedCompany.password = newPass;
+      existedCompany.HRs.forEach((hr) => {
+        if (hr.email == email) {
+          hr.password = newPass;
+        }
+      });
       await existedCompany.save();
       return res.status(201).json({ status: 200, message: "Password updated successfully" });
     }
+    // if (existedCompany) {
+    //   existedCompany.password = newPass;
+    //   await existedCompany.save();
+    //   return res.status(201).json({ status: 200, message: "Password updated successfully" });
+    // }
     if (existedUser) {
       existedUser.password = newPass;
       await existedUser.save();

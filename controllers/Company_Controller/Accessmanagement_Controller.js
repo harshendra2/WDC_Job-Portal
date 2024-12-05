@@ -50,42 +50,56 @@ exports.AddNewHrData=async(req,res)=>{
     }
 }
 
-exports.EditHrResponsibility=async(req,res)=>{
-    const {cmpId,email}=req.params;
-    const {dashboard,hire_candidate,create_job,creadibility,subscription,transaction,support,access_management}=req.body;
-    try{
-        const Company = await company.findById(cmpId);
-        if (!Company) {
-            return res.status(404).json({ error: "Company not found" });
-        }
-
-        const HrIndex = Company.HRs.findIndex(hr => hr.email === email);
-        if (HrIndex === -1) {
-            return res.status(404).json({ error: "HR with the specified email not found" });
-        }
-
-        Company.HRs[HrIndex] = {
-            ...Company.HRs[HrIndex], 
-            dashboard,
-            hire_candidate,
-            create_job,
-            creadibility,
-            subscription,
-            transaction,
-            support,
-            access_management
-        };
-
-        const success = await Company.save();
-        if (success) {
-            return res.status(200).json({ message: "HR responsibilities updated successfully" });
-        } else {
-            return res.status(400).json({ error: "Something went wrong" });
-        }
-    }catch(error){
-    return res.status(500).json({error:"Inaternal server error"});
+exports.EditHrResponsibility = async (req, res) => {
+    const { cmpId, email } = req.params;
+    const {
+      dashboard,
+      hire_candidate,
+      create_job,
+      creadibility,
+      subscription,
+      transaction,
+      support,
+      access_management,
+    } = req.body;
+  
+    try {
+      // Find the company by ID
+      const Company = await company.findById(cmpId);
+      if (!Company) {
+        return res.status(404).json({ error: "Company not found" });
+      }
+  
+      // Find the HR by email
+      const HrIndex = Company?.HRs.findIndex((hr) => hr?.email === email);
+      if (HrIndex === -1) {
+        return res.status(404).json({ error: "HR with the specified email not found" });
+      }
+  
+      // Retain the email field and update other responsibilities
+      Company.HRs[HrIndex] = {
+        ...Company.HRs[HrIndex], // Retain existing details, including email
+        dashboard: dashboard !== undefined ? dashboard : Company.HRs[HrIndex].dashboard,
+        hire_candidate: hire_candidate !== undefined ? hire_candidate : Company.HRs[HrIndex].hire_candidate,
+        create_job: create_job !== undefined ? create_job : Company.HRs[HrIndex].create_job,
+        creadibility: creadibility !== undefined ? creadibility : Company.HRs[HrIndex].creadibility,
+        subscription: subscription !== undefined ? subscription : Company.HRs[HrIndex].subscription,
+        transaction: transaction !== undefined ? transaction : Company.HRs[HrIndex].transaction,
+        support: support !== undefined ? support : Company.HRs[HrIndex].support,
+        access_management: access_management !== undefined ? access_management : Company.HRs[HrIndex].access_management,
+      };
+  
+      // Save the updated company document
+      await Company.save();
+  
+      return res.status(200).json({ message: "HR responsibilities updated successfully" });
+    } catch (error) {
+      console.error(error);
+      return res.status(500).json({ error: "Internal server error" });
     }
-}
+  };
+  
+
 exports.DeleteExistedHRData = async (req, res) => {
     const { cmpId, email } = req.params;
 
