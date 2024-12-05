@@ -69,28 +69,23 @@ exports.EditHrResponsibility = async (req, res) => {
       if (!Company) {
         return res.status(404).json({ error: "Company not found" });
       }
-  
-      // Find the HR by email
-      const HrIndex = Company?.HRs.findIndex((hr) => hr?.email === email);
-      if (HrIndex === -1) {
-        return res.status(404).json({ error: "HR with the specified email not found" });
+
+      if (Company) {
+        Company.HRs.forEach((hr) => {
+          if (hr.email ==email) {
+            hr.dashboard=dashboard,
+           hr.hire_candidate=hire_candidate,
+           hr.create_job=create_job,
+           hr.creadibility=creadibility,
+            hr.subscription=subscription,
+            hr.transaction=transaction,
+            hr.support=support,
+            hr.access_management=access_management
+          }
+        });
+        await Company.save();
       }
   
-      // Retain the email field and update other responsibilities
-      Company.HRs[HrIndex] = {
-        ...Company.HRs[HrIndex], // Retain existing details, including email
-        dashboard: dashboard !== undefined ? dashboard : Company.HRs[HrIndex].dashboard,
-        hire_candidate: hire_candidate !== undefined ? hire_candidate : Company.HRs[HrIndex].hire_candidate,
-        create_job: create_job !== undefined ? create_job : Company.HRs[HrIndex].create_job,
-        creadibility: creadibility !== undefined ? creadibility : Company.HRs[HrIndex].creadibility,
-        subscription: subscription !== undefined ? subscription : Company.HRs[HrIndex].subscription,
-        transaction: transaction !== undefined ? transaction : Company.HRs[HrIndex].transaction,
-        support: support !== undefined ? support : Company.HRs[HrIndex].support,
-        access_management: access_management !== undefined ? access_management : Company.HRs[HrIndex].access_management,
-      };
-  
-      // Save the updated company document
-      await Company.save();
   
       return res.status(200).json({ message: "HR responsibilities updated successfully" });
     } catch (error) {
