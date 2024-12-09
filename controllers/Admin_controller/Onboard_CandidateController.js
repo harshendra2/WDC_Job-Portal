@@ -1023,20 +1023,20 @@ for (let data of candidates) {
         const basicDetails={ name:toCamelCase_Name(row.Name), email:row.Email, mobile:row.Phone,password:hashedPassword,
           custom_id:customId};
         //const personalDetails={gender:row.Gender,age:row.Age,marriag_status:toCamelCase_Name(row.Marriage_Status),aadhar_number:row.Aadhar_Number,PAN:row.PAN_Number,family_member:row.Member_In_Family, father_name:toCamelCase_Name(row.Name_of_Father), son_name:toCamelCase_Name(row.Son_Name), spouse_profession:toCamelCase_Name(row.Spouse_profession), custom_id:customId,location:toCamelCase_Name(row.Location),country:toCamelCase_Name(row.Country)}
-        const workDetails={industry:toCamelCase_Name(row.Industry), custom_id:customId}
+        //const workDetails={industry:toCamelCase_Name(row.Industry), custom_id:customId}
         //const educationDetails={ highest_education:toCamelCase_Name(row.Highest_Education),board_represent:toCamelCase_Name(row.Board_Represent_Name),articles:toCamelCase_Name(row.Articles), custom_id:customId}
   
         // Save data to the database
         const savedBasicDetails = await new basic_details(basicDetails).save();
        // const savedPersonalDetails = await new personal_details(personalDetails).save();
-        const savedWorkDetails = await new work_details(workDetails).save();
+       // const savedWorkDetails = await new work_details(workDetails).save();
         //const savedEducationDetails = await new education_details(educationDetails).save();
   
         // Create a new candidate record
         const newCandidate = new candidate({
           basic_details: savedBasicDetails._id,
           //personal_details: savedPersonalDetails._id,
-          work_details: savedWorkDetails._id,
+         // work_details: savedWorkDetails._id,
           //education_details: savedEducationDetails._id,
           custom_id:customId
         });
