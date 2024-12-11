@@ -73,7 +73,7 @@ exports.getSingleSubscription=async(req,res)=>{
 }
 
 exports.editSubscriptionPlane=async(req,res)=>{
-    const {plane_name,price,search_limit,available_candidate,user_access,cv_view_limit,download_email_limit,download_cv_limit,job_posting}=req.body;
+    const {plane_name,price,search_limit,user_access,cv_view_limit,download_email_limit,download_cv_limit,job_posting,ai_question,ai_job_description,candidate_match,support}=req.body;
     const {id}=req.params;
 
     const { error } = EditSubscriptionPlane.validate({plane_name,price});
@@ -82,7 +82,7 @@ exports.editSubscriptionPlane=async(req,res)=>{
   }
 
     try{
-        const subscriptiondata={plane_name,price,search_limit,available_candidate,user_access,cv_view_limit,download_email_limit,download_cv_limit,job_posting}
+        const subscriptiondata={plane_name,price,search_limit,user_access,cv_view_limit,download_email_limit,download_cv_limit,job_posting,ai_question,ai_job_description,candidate_match,support}
        
         const data=await subscription.findByIdAndUpdate(id,subscriptiondata,{new:true});
         if(data){
@@ -98,7 +98,7 @@ exports.editSubscriptionPlane=async(req,res)=>{
 }
 
 exports.createSubscriptionPlane=async(req,res)=>{
-    const {plane_name,price,search_limit,available_candidate,user_access,cv_view_limit,download_email_limit,download_cv_limit,job_posting}=req.body;
+    const {plane_name,price,search_limit,user_access,cv_view_limit,download_email_limit,download_cv_limit,job_posting,ai_question,ai_job_description,candidate_match,support}=req.body;
 
     const { error } = EditSubscriptionPlane.validate({plane_name,price});
     if (error) {
@@ -111,7 +111,7 @@ exports.createSubscriptionPlane=async(req,res)=>{
         return res.status(400).json({error:"This Subscription Plane already Existed"})
        }else{
         const subscriptiondata=new subscription({
-            plane_name,price,search_limit,available_candidate,user_access,cv_view_limit,download_email_limit,download_cv_limit,job_posting
+            plane_name,price,search_limit,user_access,cv_view_limit,download_email_limit,download_cv_limit,job_posting,ai_question,ai_job_description,candidate_match,support
         })
        const data=await subscriptiondata.save();
        if(data){

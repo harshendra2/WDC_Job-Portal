@@ -65,10 +65,6 @@ exports.getAllSubscriptionPlane=async(req,res)=>{
                         combined_cv_view_limit: {
                             $push: "$cv_view_limit"
                         },
-            
-                        combined_available_candidate: { 
-                            $max: "$available_candidate" 
-                        },
                         combined_download_email_limit: { 
                             $max: "$download_email_limit" 
                         },
@@ -164,7 +160,6 @@ exports.getAllSubscriptionPlane=async(req,res)=>{
                         plane_name: 1,
                         total_price: 1,
                         search_limit: 1,
-                        available_candidate: "$combined_available_candidate",
                         user_access: 1,
                         cv_view_limit: 1,
                         download_email_limit: "$combined_download_email_limit",
@@ -323,7 +318,7 @@ exports.verifyPayment = async (req, res) => {
       
             if (result.order_status === 'PAID') {
             const data = await subscription.findById(subscriptionId);
-
+            
             if (data) {
                 const subdata = new CompanySubscription({
                     company_id: companyId,
@@ -332,13 +327,16 @@ exports.verifyPayment = async (req, res) => {
                     transaction_Id:orderId,
                     price: data.price,
                     search_limit: data.search_limit,
-                    available_candidate: data.available_candidate,
                     user_access: data.user_access,
                     cv_view_limit: data.cv_view_limit,
                     download_email_limit: data.download_email_limit,
                     download_cv_limit: data.download_cv_limit,
                     job_posting: data.job_posting,
                     Credibility_Search:data.Credibility_Search,
+                    ai_question:data.ai_question,
+                    ai_job_description:data.ai_job_description,
+                    candidate_match:data.candidate_match,
+                    support:data.support,
                     createdDate: new Date(),
                     expiresAt: new Date(Date.now() + 30*24*60*60*1000), // Set expiration date to 30 days from now
                 });
@@ -620,6 +618,10 @@ const expiresAts = new Date(createdDate.getTime() + 30 * 24 * 60 * 60 * 1000);
                     download_cv_limit: subscriptionData.download_cv_limit,
                     job_posting: subscriptionData.job_posting,
                     Credibility_Search:subscriptionData.Credibility_Search,
+                    ai_question:subscriptionData.ai_question,
+                    ai_job_description:subscriptionData.ai_job_description,
+                    candidate_match:subscriptionData.candidate_match,
+                    support:subscriptionData.support,
                     createdDate:createdDate,
                     expiresAt:expiresAts, 
                 });
@@ -712,7 +714,9 @@ exports.GetAllTopupPlane = async (req, res) => {
             'user_access',
             'download_email_limit',
             'download_cv_limit',
-            'Credibility_Search'
+            'Credibility_Search',
+            'ai_question',
+            'ai_job_description'
         ];
 
         for (const fieldName of fieldNames) {
@@ -845,10 +849,11 @@ exports.TopUpPlaneVerifyPayment = async (req, res) => {
             existingSubscription.cv_view_limit += TopupData.cv_view_limit || 0;
             existingSubscription.job_posting += TopupData.job_posting || 0;
             existingSubscription.Credibility_Search+=TopupData.Credibility_Search ||0;
+            
+            existingSubscription.ai_question += TopupData.ai_question|| 0;
+            existingSubscription.ai_job_description+=TopupData.ai_job_description ||0;
 
-            if (TopupData.available_candidate) {
-                existingSubscription.available_candidate = true;
-            }
+          
             if (TopupData.download_email_limit) {
                 existingSubscription.download_email_limit = true;
             }
@@ -1029,6 +1034,10 @@ exports.SubscriptionPlaneVerifyPayment = async (req, res) => {
                 download_cv_limit: subData.download_cv_limit,
                 job_posting: subData.job_posting,
                 Credibility_Search:subData.Credibility_Search,
+                ai_question:subData.ai_question,
+                    ai_job_description:subData.ai_job_description,
+                    candidate_match:subData.candidate_match,
+                    support:subData.support,
                 createdDate: new Date(),
                 expiresAt:newExpirationDate
             });

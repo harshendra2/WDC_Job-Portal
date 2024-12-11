@@ -53,6 +53,22 @@ const CompanySubscriptionPlaneSchema = new mongoose.Schema({
     type:Number,
     default:0
   },
+  ai_question:{
+    type:Number,
+    default:0
+  },
+  ai_job_description:{
+    type:Number,
+    default:0
+  },
+  candidate_match:{
+    type:Boolean,
+    default:false
+  },
+  support:{
+    type:Boolean,
+    default:true
+  },
   createdDate:{
     type:Date,
     default: Date.now,

@@ -10,7 +10,7 @@ const EditCompanyProfile=Joi.object({
   mobile: Joi.string().pattern(/^[0-9]{10}$/).required(),
   overView: Joi.string().optional(),
   industry: Joi.string().optional(),
-  company_size: Joi.number().integer().min(1).max(10000).optional(),
+  company_size:  Joi.string().optional(),
   PAN: Joi.string().pattern(/^[A-Z]{5}[0-9]{4}[A-Z]{1}$/).optional(),
   website_url: Joi.string().uri().optional(),
   location: Joi.string().optional(),

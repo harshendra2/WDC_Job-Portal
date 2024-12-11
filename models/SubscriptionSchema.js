@@ -13,10 +13,6 @@ const SubscriptionPlaneSchema = new mongoose.Schema({
       type: mongoose.Schema.Types.Mixed, // Allows both numbers and strings
       default:500
   },
-  available_candidate: {
-    type: Boolean,
-    default: false
-  },
   user_access: {
     type: mongoose.Schema.Types.Mixed, // Allows both numbers and strings
     default:1
@@ -40,6 +36,22 @@ const SubscriptionPlaneSchema = new mongoose.Schema({
   Credibility_Search:{
     type:Number,
     default:0
+  },
+  ai_question:{
+    type:Number,
+    default:0
+  },
+  ai_job_description:{
+    type:Number,
+    default:0
+  },
+  candidate_match:{
+    type:Boolean,
+    default:false
+  },
+  support:{
+    type:Boolean,
+    default:true
   }
 });
 
