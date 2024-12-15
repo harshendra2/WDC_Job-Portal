@@ -184,7 +184,7 @@ exports.Login = async (req, res) => {
         company_id: existedCompany._id,
         expiresAt: { $gte: Date.now() },
         createdDate:{$lte:Date.now()},
-        $or: [{ user_access: { $gt: 0 } }, { user_access: 'Unlimited' }]
+        $or: [{ user_access: { $gt: 0 } }]
       }).lean();
 
       if (subscriptionExists) {
@@ -308,8 +308,7 @@ exports.CompanyOTP = async (req, res) => {
       createdDate:{$lte:Date.now()},
       expiresAt: { $gte: Date.now() },
       $or: [
-        { user_access: { $gt: 0 } },
-        { user_access: "Unlimited" }
+        { user_access: { $gt: 0 } }
       ]
     })
 
@@ -623,9 +622,9 @@ exports.CompanyLogOut = async (req, res) => {
         expiresAt: { $gte: Date.now() },
         $or: [
           { user_access: { $gt: 0 } },
-          { user_access: "Unlimited" }
+          //{ user_access: "Unlimited" }
         ]
-      }).lean();
+      })
 
       if(subscriptionExists){
         if(typeof subscriptionExists?.user_access=='number' ){
@@ -633,6 +632,7 @@ exports.CompanyLogOut = async (req, res) => {
             { _id: subscriptionExists._id },
             { $inc: { user_access: 1 } }
           );
+          return res.status(200).json({ message: "Company logged out successfully"});
         }else if(typeof subscriptionExists?.user_access=='string'){
           if(subscriptionExists?.user_access!=='Unlimited'){
               const count = parseInt(subscriptionExists.user_access, 10) || 0;
@@ -641,13 +641,10 @@ exports.CompanyLogOut = async (req, res) => {
                 { _id: subscriptionExists._id },
                 { $set: { user_access:logcount} }
               );
-    
-        
               return res.status(200).json({ message: "Company logged out successfully"});
             }else{  
               return res.status(200).json({ message: "Company logged out successfully"});
             }
-          
         }
 
       }else{

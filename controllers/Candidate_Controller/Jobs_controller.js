@@ -3,6 +3,7 @@ const moment = require('moment');
 const CompanyJob=require("../../models/JobSchema");
 const Company=require('../../models/Onboard_Company_Schema');
 const Candidate=require('../../models/Onboard_Candidate_Schema');
+const CandidateHistory=require('../../models/Search_historySchema');
 
 exports.KeywordJobSearch = async (req, res) => {
   const { userId } = req.params;
@@ -20,6 +21,14 @@ exports.KeywordJobSearch = async (req, res) => {
     const [jobTitle = "", company = ""] = search
       ? search.split(",").map((param) => param.trim())
       : ["", ""];
+      if(search){
+        let data={
+          Candidate_id:userId,
+          Search_text:search
+        }
+        let searchHis=new CandidateHistory(data);
+        await searchHis.save();
+      }
 
     let conditions = [];
    
@@ -245,65 +254,91 @@ exports.KeywordJobSearch = async (req, res) => {
   }
 };
 
-
 exports.getUnappliedJob = async (req, res) => {
-    const { id } = req.params; 
+  const { id } = req.params;
+  try {
+      const searchHis = await CandidateHistory.find({Candidate_id: id })
+          .sort({ createdAt: -1 })
+          .limit(3);
 
-    try {  
-        const sortedJobs = await CompanyJob.aggregate([
-          { $match: { job_Expire_Date: { $gte: new Date() },No_openings:{$ne:0}} },
+      const recentSearches = searchHis.map((history) => history.Search_text);
+
+      const sortedJobs = await CompanyJob.aggregate([
           {
-            $lookup: {
-              from: "companies",
-              localField: "company_id",
-              foreignField: "_id",
-              as: "company_details",
-            },
+              $match: {
+                  job_Expire_Date: { $gte: new Date() },
+                  No_openings: { $ne: 0 },
+              },
+          },
+          {
+              $lookup: {
+                  from: "companies",
+                  localField: "company_id",
+                  foreignField: "_id",
+                  as: "company_details",
+              },
           },
           { $unwind: "$company_details" },
-          {$project:{
-            'company_details.Candidate_Feed_Back':0,
-            'company_details.password':0,
-            'company_details.GST':0,
-            'company_details.PAN':0,
-            'company_details.Logged_In_count':0,
-          }}
-        ]).sort({ promote_job: -1, createdDate: 1 });
-    
-        const baseUrl = `${req.protocol}://${req.get("host")}`;
-        const isGoogleDriveLink = (url) => {
-          return (
-            url &&
-            (url.includes("drive.google.com") || url.includes("docs.google.com"))
-          );
-        };
-    
-        const unappliedJobs = sortedJobs
-          // .filter(
-          //   (job) =>
-          //     !job.applied_candidates.some(
-          //       (candidate) => candidate.candidate_id.toString() == id
-          //     )
-          // )
-          .map((job) => {
-            const timeSincePosted = moment(job.createdDate).fromNow();
-            const profileUrl = job?.company_details?.profile
+          {
+              $project: {
+                  "company_details.Candidate_Feed_Back": 0,
+                  "company_details.password": 0,
+                  "company_details.GST": 0,
+                  "company_details.PAN": 0,
+                  "company_details.Logged_In_count": 0,
+              },
+          },
+      ]).sort({ promote_job: -1, createdDate: 1 });
+
+      const baseUrl = `${req.protocol}://${req.get("host")}`;
+      const isGoogleDriveLink = (url) =>
+          url &&
+          (url.includes("drive.google.com") || url.includes("docs.google.com"));
+
+      const prioritizedJobs = sortedJobs.map((job) => {
+          const relevanceScore = recentSearches.reduce((score, term) => {
+              if (job.job_title?.toLowerCase().includes(term.toLowerCase())) {
+                  return score + 1;
+              }
+              if (job.job_description?.toLowerCase().includes(term.toLowerCase())) {
+                  return score + 1;
+              }
+              if (job.skills_required?.some((skill) =>
+                  skill.toLowerCase().includes(term.toLowerCase())
+              )) {
+                  return score + 1;
+              }
+              return score;
+          }, 0);
+
+          const timeSincePosted = moment(job.createdDate).fromNow();
+          const profileUrl = job?.company_details?.profile
               ? isGoogleDriveLink(job?.company_details?.profile)
-                ? job?.company_details?.profile
-                : `${baseUrl}/${job?.company_details?.profile.replace(/\\/g, "/")}`
+                  ? job?.company_details?.profile
+                  : `${baseUrl}/${job?.company_details?.profile.replace(/\\/g, "/")}`
               : null;
-    
-            return {
+
+          return {
               ...job,
               profileUrl,
               timeSincePosted,
-            };
-          });
-        return res.status(200).send(unappliedJobs);
-    } catch (error) {
-        return res.status(500).json({ error: "Internal server error" });
-    }
+              relevanceScore,
+          };
+      });
+
+      const sortedByRelevance = prioritizedJobs.sort(
+          (a, b) =>
+              b.relevanceScore - a.relevanceScore ||
+              b.promote_job - a.promote_job ||
+              new Date(a.createdDate) - new Date(b.createdDate)
+      );
+
+      return res.status(200).send(sortedByRelevance);
+  } catch (error) {
+      return res.status(500).json({ error: "Internal server error" });
+  }
 };
+
 
 exports.getJobDetails = async (req, res) => {
   const { id } = req.params;

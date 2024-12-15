@@ -10,15 +10,18 @@ const SubscriptionPlaneSchema = new mongoose.Schema({
     required: true
   },
   search_limit: {
-      type: mongoose.Schema.Types.Mixed, // Allows both numbers and strings
+      // type: mongoose.Schema.Types.Mixed, 
+      type:Number,
       default:500
   },
   user_access: {
-    type: mongoose.Schema.Types.Mixed, // Allows both numbers and strings
+    // type: mongoose.Schema.Types.Mixed, // Allows both numbers and strings
+    type:Number,
     default:1
   },
   cv_view_limit: {
-    type: mongoose.Schema.Types.Mixed, // Allows both numbers and strings
+    //type: mongoose.Schema.Types.Mixed, // Allows both numbers and strings
+    type:Number,
     default:200
   },
   download_email_limit: {

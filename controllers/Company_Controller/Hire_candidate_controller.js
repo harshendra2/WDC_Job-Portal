@@ -266,7 +266,7 @@ exports.getCandidateDetails = async (req, res) => {
             expiresAt: { $gte: new Date() },
             createdDate: { $lte: new Date() },
             $or: [
-                { cv_view_limit: "Unlimited" },
+                //{ cv_view_limit: "Unlimited" },
                 { cv_view_limit: { $exists: true } }
             ]
         })
@@ -751,65 +751,31 @@ exports.KeywordSearchCandidate = async (req, res) => {
         ]);
 
         const comnId = new mongoose.Types.ObjectId(companyId);
-        // const existsSubscription = await CompanySubscription.findOne({
-        //     company_id: comnId,
-        //     expiresAt: { $gte: new Date() },
-        //     createdDate:{$lte:new Date()}
-        // });
-        const possibleSubscriptions = await CompanySubscription.find({
+       
+        const possibleSubscriptions = await CompanySubscription.findOne({
             company_id: comnId,
             expiresAt: { $gte: new Date() },
-            createdDate: { $lte: new Date() },
-            $or: [
-                { search_limit: "Unlimited" },
-                { search_limit: { $exists: true } }
-            ]
-        })
-        
-        const existsSubscription = possibleSubscriptions.find(subscription => {
-            if (subscription.search_limit === "Unlimited") return true;
-        
-            const searchLimitValue = typeof subscription.search_limit === "string"
-                ? parseFloat(subscription.search_limit)
-                : subscription.search_limit;
-        
-            return searchLimitValue > 0;
+            createdDate: { $lte: new Date() }, 
+            search_limit: { $ne: 0 },
         });
-        if (!existsSubscription) {
+        
+        if (!possibleSubscriptions) {
             return res.status(404).json({
                 error: 'Subscription not found, please purchase a new subscription plan.'
             });
         }
-        let searchArray = [];
-        if (search) searchArray.push(search);
-        if (experience) searchArray.push(experience);
-        if (location) searchArray.push(location);
-        const searchString = searchArray.join(',');
-        const historyData = new searchhistory({
-            Company_id: companyId,
-            Search_text: searchString
-        });
 
         if (
-            typeof existsSubscription.search_limit == 'number' &&
-            existsSubscription.search_limit > 0
+            typeof possibleSubscriptions.search_limit == 'number' &&
+            possibleSubscriptions.search_limit > 0
         ) {
-            existsSubscription.search_limit -= 1;
-            await Promise.all([historyData.save(), existsSubscription.save()]);
+            possibleSubscriptions.search_limit -= 1;
+            await  possibleSubscriptions.save();
         } else if (
-            typeof existsSubscription.search_limit == 'number' &&
-            existsSubscription.search_limit < 0
+            typeof possibleSubscriptions.search_limit == 'number' &&
+            possibleSubscriptions.search_limit < 0
         ) {
             return res.status(404).json({ error: 'Please top up your plan.' });
-        }else if(typeof existsSubscription.search_limit == 'string' &&
-            existsSubscription.search_limit =='0'){
-                if(existsSubscription.search_limit!='Unlimited'){
-                let count = Number(existsSubscription.search_limit);
-                existsSubscription.search_limit = count - 1;
-                await existsSubscription.save();
-                }
-        } else {
-            await historyData.save();
         }
         if (data && data.length > 0) {
             const baseUrl = `${req.protocol}://${req.get('host')}`;

@@ -22,7 +22,8 @@ const CompanySubscriptionPlaneSchema = new mongoose.Schema({
     type:String
   },
   search_limit: {
-      type: mongoose.Schema.Types.Mixed, // Allows both numbers and strings
+      // type: mongoose.Schema.Types.Mixed, // Allows both numbers and strings
+      type:Number,
       default:500
   },
   available_candidate: {
@@ -30,11 +31,13 @@ const CompanySubscriptionPlaneSchema = new mongoose.Schema({
     default: false
   },
   user_access: {
-    type: mongoose.Schema.Types.Mixed, 
+    // type: mongoose.Schema.Types.Mixed, 
+    type:Number,
     default:1
   },
   cv_view_limit: {
-    type: mongoose.Schema.Types.Mixed, // Allows both numbers and strings
+   // type: mongoose.Schema.Types.Mixed, // Allows both numbers and strings
+   type:Number,
     default:0
   },
   download_email_limit: {

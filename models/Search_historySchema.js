@@ -1,9 +1,9 @@
 const mongoose = require('mongoose');
 
 const SearchHistory = new mongoose.Schema({
-    Company_id:{
+    Candidate_id:{
        type: mongoose.Schema.Types.ObjectId,
-  ref:'company'
+  ref:'candidate'
     },
     Search_text: {
     type: String

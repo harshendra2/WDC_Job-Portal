@@ -38,152 +38,64 @@ exports.getAllSubscriptionPlane=async(req,res)=>{
     try{
         const company_id=new mongoose.Types.ObjectId(companyId);
         const previousPlan=await CompanyTransaction.findOne({company_id,type:"Subscription",Plane_name:"Basic"})
-            const CurrentSubscription = await CompanySubscription.aggregate([
-                {
-                    $match: {
-                        company_id: company_id,
-                        expiresAt: { $gte: new Date() },
-                        createdDate: { $lte: new Date() }
-                    }
-                },
-                {
-                    $sort: { createdDate: 1 }
-                },
-                {
-                    $group: {
-                        _id: "$company_id",
-                        subscription_ids: { $push: "$subscription_id" },
-                        plane_name: { $last: "$plane_name" },
-                        total_price: { $sum: "$price" },
-            
-                        combined_search_limit: {
-                            $push: "$search_limit"
-                        },
-                        combined_user_access: {
-                            $push: "$user_access"
-                        },
-                        combined_cv_view_limit: {
-                            $push: "$cv_view_limit"
-                        },
-                        combined_download_email_limit: { 
-                            $max: "$download_email_limit" 
-                        },
-                        combined_download_cv_limit: { 
-                            $max: "$download_cv_limit" 
-                        },
-                        combined_job_posting: { 
-                            $sum: "$job_posting" 
-                        },
-            
-                        earliest_created_date: { $min: "$createdDate" },
-                        latest_expires_at: { $max: "$expiresAt" }
-                    }
-                },
-                {
-                    $addFields: {
-                        search_limit: {
-                            $reduce: {
-                                input: "$combined_search_limit",
-                                initialValue: 0,
-                                in: {
-                                    $cond: [
-                                        { $or: [{ $eq: ["$$value", "Unlimited"] }, { $eq: ["$$this", "Unlimited"] }] },
-                                        "Unlimited",
-                                        { 
-                                            $add: ["$$value", 
-                                                { 
-                                                    $convert: {
-                                                        input: "$$this",
-                                                        to: "int",
-                                                        onError: 0  // Set non-numeric values to 0
-                                                    }
-                                                }
-                                            ]
-                                        }
-                                    ]
-                                }
-                            }
-                        },
-                        user_access: {
-                            $reduce: {
-                                input: "$combined_user_access",
-                                initialValue: 0,
-                                in: {
-                                    $cond: [
-                                        { $or: [{ $eq: ["$$value", "Unlimited"] }, { $eq: ["$$this", "Unlimited"] }] },
-                                        "Unlimited",
-                                        { 
-                                            $add: ["$$value", 
-                                                { 
-                                                    $convert: {
-                                                        input: "$$this",
-                                                        to: "int",
-                                                        onError: 0
-                                                    }
-                                                }
-                                            ]
-                                        }
-                                    ]
-                                }
-                            }
-                        },
-                        cv_view_limit: {
-                            $reduce: {
-                                input: "$combined_cv_view_limit",
-                                initialValue: 0,
-                                in: {
-                                    $cond: [
-                                        { $or: [{ $eq: ["$$value", "Unlimited"] }, { $eq: ["$$this", "Unlimited"] }] },
-                                        "Unlimited",
-                                        { 
-                                            $add: ["$$value", 
-                                                { 
-                                                    $convert: {
-                                                        input: "$$this",
-                                                        to: "int",
-                                                        onError: 0
-                                                    }
-                                                }
-                                            ]
-                                        }
-                                    ]
-                                }
-                            }
-                        }
-                    }
-                },
-                {
-                    $project: {
-                        _id: 0,
-                        company_id: "$_id",
-                        subscription_ids: 1,
-                        plane_name: 1,
-                        total_price: 1,
-                        search_limit: 1,
-                        user_access: 1,
-                        cv_view_limit: 1,
-                        download_email_limit: "$combined_download_email_limit",
-                        download_cv_limit: "$combined_download_cv_limit",
-                        job_posting: "$combined_job_posting",
-                        createdDate: "$earliest_created_date",
-                        expiresAt: "$latest_expires_at"
-                    }
-                }
-            ]);
-            
-           
-            
-            
 
+            // const CurrentSubscription = await CompanySubscription.aggregate([
+            //     {
+            //         $match: {
+            //             company_id: company_id,
+            //             expiresAt: { $gte: new Date() },
+            //             createdDate: { $lte: new Date() }
+            //         }
+            //     },
+               
+            //     {
+            //         $group: {
+            //             _id: "$company_id",
+            //             subscription_ids: { $push: "$subscription_id" },
+            //             plane_name: { $last: "$plane_name" },
+                      
+                       
+            
+            //             earliest_created_date: { $min: "$createdDate" },
+            //             latest_expires_at: { $max: "$expiresAt" }
+            //         }
+            //     },
+             
+            //     {
+            //         $project: {
+            //             _id: 0,
+            //             //company_id: "$_id",
+            //             subscription_ids: 1,
+            //             plane_name: 1,
+            //            // total_price: 1,
+            //             //search_limit: 1,
+            //            // user_access: 1,
+            //             //cv_view_limit: 1,
+            //             //download_email_limit: "$combined_download_email_limit",
+            //             //download_cv_limit: "$combined_download_cv_limit",
+            //             //job_posting: "$combined_job_posting",
+            //             createdDate: "$earliest_created_date",
+            //             expiresAt: "$latest_expires_at"
+            //         }
+            //     }
+            // ]);
+
+            const CurrentSubscription=await CompanySubscription.aggregate([{
+                        $match: {
+                            company_id: company_id,
+                            expiresAt: { $gte: new Date() },
+                            createdDate: { $lte: new Date() }
+                        }
+                    }])
 
          let getSubscriptionPlans;
-             if(previousPlan){
-         getSubscriptionPlans = await subscription.aggregate([
-            { $match: {plane_name: { $ne: previousPlan.Plane_name } } }
-        ]);
-    }else{
+    //          if(previousPlan){
+    //      getSubscriptionPlans = await subscription.aggregate([
+    //         { $match: {plane_name: { $ne: previousPlan.Plane_name } } }
+    //     ]);
+    // }else{
     getSubscriptionPlans = await subscription.find({})
-    }
+    //}
         
             return res.status(200).send({getSubscriptionPlans,CurrentSubscription});
 
@@ -231,14 +143,17 @@ exports.payment = async (req, res) => {
          if(!id&&!sub_id){
             return res.status(400).json({error:"Please provide ID"})
          }
-        const previousPlan = await CompanySubscription.findOne({
-            company_id:id,
-            subscription_id:sub_id,
-            plane_name: { $regex: /^Basic\s*$/, $options: 'i' } 
+         const previousPlan = await CompanyTransaction.findOne({
+            company_id: id,
+            Plane_name: { $regex: /^Basic\s*$/, $options: 'i' }, // Case-insensitive match for "Basic"
         });
-        if(previousPlan){
-            return res.status(400).json({error:"Basic Plane buy only one time"});
+        
+        const previousPlane = await subscription.findOne({ _id: sub_id });
+        
+        if (previousPlane?.plane_name === previousPlan?.Plane_name) {
+            return res.status(400).json({ error: "Basic Plan can be purchased only once." });
         }
+        
 
         const subscriptions=await subscription.findOne({_id:sub_id});
         const CompanyDate=await company.findOne({_id:id});
@@ -901,14 +816,8 @@ exports.TopUpPlaneVerifyPayment = async (req, res) => {
 exports.GetEarySubscriptionplane=async(req,res)=>{
     const {company_id}=req.params;
     try{
-
-        // const previousPlan = await CompanySubscription.findOne({
-        //     company_id,
-        //     plane_name: { $regex: /^Basic\s*$/, $options: 'i' } 
-        // });
         const previousPlan=await CompanyTransaction.findOne({company_id,type:"Subscription",Plane_name:"Basic"})
 
-        const objectId=new mongoose.Types.ObjectId(company_id);
         //const previousSubscription=await CompanySubscription.aggregate([{ $match: { company_id: objectId, expiresAt: { $gte: new Date() },createdDate:{$lte:new Date()}} }])
          if(previousPlan){
         const getSubscriptionPlans = await subscription.aggregate([
@@ -930,12 +839,24 @@ exports.EarlySubscriptionplane=async(req,res)=>{
     const apiUrl = 'https://sandbox.cashfree.com/pg/orders';
     const { company_id, sub_id} = req.body;
     try{
-
+         const CmpId=new mongoose.Types.ObjectId(company_id)
+        const CurrentSubscription=await CompanySubscription.aggregate([{
+            $match: {
+              expiresAt: { $gte: new Date() },
+              createdDate:{$lte:new Date()},
+              company_id:CmpId
+            }
+          }])
+          
         const subscriptions = await subscription.findOne({ _id:sub_id});
-        
+
         if (!subscriptions) {
             return res.status(404).json({ error: "Subscription plane not found" });
         }
+        if (CurrentSubscription[0]?.plane_name == subscriptions?.plane_name) {
+            return res.status(400).json({ error: `You are already using the ${subscriptions?.plane_name} plan.` });
+        }
+
         const CompanyDate=await company.findOne({_id:company_id});
         const orderId = generateOrderId();
         const requestData = {

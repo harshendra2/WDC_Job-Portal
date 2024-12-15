@@ -825,7 +825,7 @@ exports.EditWorkDetails = async (req, res) => {
 
     const candidates = await candidate.findById(user_id).populate('work_details');
     const workDetailsData = {
-      custom_id:candidate?.custom_id,
+      custom_id:candidates?.custom_id,
       industry,
       aspiring_position,
       work_experience,

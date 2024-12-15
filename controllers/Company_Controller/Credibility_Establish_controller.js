@@ -51,7 +51,6 @@ exports.OfferVerifier = async (req, res) => {
         expiresAt: { $gte: new Date() },
         createdDate: { $lte: new Date() },
         Credibility_Search:{$gt:0}
-        
       })
 
       if (!possibleSubscriptions || possibleSubscriptions.length == 0) {

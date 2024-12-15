@@ -2,10 +2,12 @@ const bcrypt=require('bcryptjs');
 const company=require('../../models/Onboard_Company_Schema');
 
 exports.GetAllSubAdmin=async(req,res)=>{
-    const {cmpId}=req.params
+    const {cmpId,email}=req.params
     try{
       const AcceessData=await company.findOne({_id:cmpId}).select('HRs')
-      return res.status(200).send(AcceessData);
+      let data =AcceessData?.HRs.filter(temp=>temp.email!==email);
+      return res.status(200).send(data);
+     // return res.status(200).send(AcceessData);
     }catch(error){
         return res.status(500).json({error:"Internal server error"});
     }
