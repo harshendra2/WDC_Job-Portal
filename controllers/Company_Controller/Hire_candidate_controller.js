@@ -509,7 +509,7 @@ exports.KeywordSearchCandidate = async (req, res) => {
        }
 
         if (search) {
-            var [jobTitle = '', skills = '', qualification = ''] = search
+            var [jobTitle = '', skills = '', qualification = '',name=''] = search
                 .split(',')
                 .map(param => param.trim());
         }
@@ -544,8 +544,8 @@ exports.KeywordSearchCandidate = async (req, res) => {
                 ]
             });
         }
-
-        if (skills || jobTitle || qualification) {
+        
+        if (skills || jobTitle || qualification ||name) {
             conditions.push({
                 $or: [
                     {
@@ -567,6 +567,12 @@ exports.KeywordSearchCandidate = async (req, res) => {
                                     $regex: qualification,
                                     $options: 'i'
                                 }
+                            },
+                            {
+                                'workDetails.aspiring_position': {
+                                    $regex: name,
+                                    $options: 'i'
+                                }
                             }
                         ]
                     },
@@ -589,6 +595,12 @@ exports.KeywordSearchCandidate = async (req, res) => {
                                     $regex: qualification,
                                     $options: 'i'
                                 }
+                            },
+                            {
+                                'workDetails.skill': {
+                                    $regex:name,
+                                    $options: 'i'
+                                }
                             }
                         ]
                     },
@@ -609,6 +621,12 @@ exports.KeywordSearchCandidate = async (req, res) => {
                             {
                                 'educationDetails.highest_education': {
                                     $regex: qualification,
+                                    $options: 'i'
+                                }
+                            },
+                            {
+                                'educationDetails.highest_education': {
+                                    $regex: name,
                                     $options: 'i'
                                 }
                             }
@@ -631,6 +649,40 @@ exports.KeywordSearchCandidate = async (req, res) => {
                             {
                                 'educationDetails.highest_education': {
                                     $regex: qualification,
+                                    $options: 'i'
+                                }
+                            },
+                            {
+                                'basicDetails.name': {
+                                    $regex:name,
+                                    $options: 'i'
+                                }
+                            }
+                        ]
+                    },
+                    {
+                        $and: [
+                            {
+                                'basicDetails.name': {
+                                    $regex: skills,
+                                    $options: 'i'
+                                }
+                            },
+                            {
+                                'basicDetails.name': {
+                                    $regex: jobTitle,
+                                    $options: 'i'
+                                }
+                            },
+                            {
+                                'basicDetails.name': {
+                                    $regex: qualification,
+                                    $options: 'i'
+                                }
+                            },
+                            {
+                                'basicDetails.name': {
+                                    $regex:name,
                                     $options: 'i'
                                 }
                             }
@@ -666,14 +718,15 @@ exports.KeywordSearchCandidate = async (req, res) => {
                     as: 'workDetails'
                 }
             },
-            // {
-            //     $lookup: {
-            //         from: 'candidate_education_details',
-            //         localField: 'education_details',
-            //         foreignField: '_id',
-            //         as: 'educationDetails'
-            //     }
-            // },
+            {
+                $lookup: {
+                    from: 'candidate_education_details',
+                    localField: 'education_details',
+                    foreignField: '_id',
+                    as: 'educationDetails'
+                }
+            },
+           
             {
                 $lookup: {
                     from: 'currentusersubscriptionplanes',
@@ -694,6 +747,7 @@ exports.KeywordSearchCandidate = async (req, res) => {
                     preserveNullAndEmptyArrays: true
                 }
             },
+            
             {
                 $unwind: {
                     path: '$SubscriptionPlan',
@@ -705,7 +759,7 @@ exports.KeywordSearchCandidate = async (req, res) => {
                     basicDetails: 1,
                     personalDetails: 1,
                     workDetails: 1,
-                    //educationDetails: 1,
+                    educationDetails: 1,
                     profile: 1,
                     SubscriptionPlan: 1,
                     top_candidate: {

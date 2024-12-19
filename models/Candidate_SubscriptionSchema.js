@@ -22,7 +22,8 @@ const CandidateSubscriptionSchema = new mongoose.Schema({
     type:Number
   },
   customer_support:{
-    type:Number
+    type:Boolean,
+    default:false
   },
   createdAt:{
     type: Date,

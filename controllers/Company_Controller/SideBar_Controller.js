@@ -121,7 +121,7 @@ exports.GreenTickVerifyPayment = async (req, res) => {
 
                   const transaction=new companyTransaction({
                     company_id:company_id,
-                    type:'Green Batch plane',
+                    type:'Green Batch plan',
                     Plane_name:subData.batch_name,
                     price:subData.price,
                     payment_method:paymentMethod,

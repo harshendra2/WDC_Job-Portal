@@ -1030,7 +1030,7 @@ exports.ListshortList=async(req,res)=>{
 
 exports.AddUserFeedBack=async(req,res)=>{
   const {jobId,userId}=req.params;
-  const {feedBack}=req.body;
+  const {feedback}=req.body;
   try{
     if(!jobId && !userId){
       return res.status(400).json({error:"please provide job id and user Id"});
@@ -1052,7 +1052,7 @@ exports.AddUserFeedBack=async(req,res)=>{
         $addToSet: {
           Interviewed: {
             company_id:cmpID?.company_id, 
-            feedBack
+            feedBack:feedback
           }
         }
       }

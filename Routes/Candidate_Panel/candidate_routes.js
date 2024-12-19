@@ -8,4 +8,11 @@ router.post('/candidate/reg',controller.Registration);
 router.post('/candidate/green_tick/payment',controller.CandidateGreenTicks);
 router.post('/candidate/green_tick/verify',controller.GreenTickVerifyPayment);
 
+//ZOHO CREATOR API
+router.post('/candidate/get/code',controller.CreatCode);
+router.post('/candidate/get/accesstoken/refreshtoken',controller.GetAccessAndRefreshToken);
+//refresh access token
+//router.post('/candidate/get/refresh/token',controller.GenerateAccesToken);
+router.post('/candidate/get/all_data/reporter',controller.GetAllDataFromZohoReport);
+
 module.exports=router;

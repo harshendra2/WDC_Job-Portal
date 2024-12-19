@@ -18,6 +18,9 @@ const CandidateShema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: "candidate_education_details",
   },
+  ID:{
+    type:String
+  },
   OTP: {
     type: Number,
   },
@@ -92,29 +95,6 @@ const CandidateShema = new mongoose.Schema({
       },
     },
   ],
-  // verified_batch:[
-  //   {
-  //     batch_name: {
-  //       type: String
-  //     },
-  //     price: {
-  //       type: Number,
-  //       required: true
-  //     },
-  //     orderId:{
-  //      type:Number
-  //     },
-  //     ExpireDate:{
-  //       type: Date
-  //     },
-  //     Date:{
-  //       type:Date,
-  //       default: Date.now,
-  //     },
-  //     paymentMethod:{
-  //       type:String
-  //     }
-  //   }],
 
   Off_line_offerLetter: [
     {

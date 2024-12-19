@@ -45,7 +45,7 @@ exports.sendEmail = async (email, OTP) => {
   };
 
 
-exports.sendMailToCompany=async(email,password,url)=>{
+exports.sendMailToCompanys=async(email,password,url)=>{
   const mailOptions = {
     from: process.env.EMAIL_USER,
     to: email,

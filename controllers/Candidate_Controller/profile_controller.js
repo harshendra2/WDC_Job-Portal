@@ -204,7 +204,11 @@ exports.AddSummaryToCandidate=async(req,res)=>{
       } else {
         const updatedWorkDetails = await work_details.findByIdAndUpdate(
           candidates.work_details._id,
-          { $push: { Experience: workDetailsData } }, 
+          { 
+            $push: { 
+              Experience: { $each: [workDetailsData], $position: 0 } 
+            } 
+          },
           { new: true }
         );
   

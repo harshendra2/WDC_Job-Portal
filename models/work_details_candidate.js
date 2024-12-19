@@ -72,7 +72,8 @@ const work_details_candidate=new mongoose.Schema({
             type:Date
           },
           End_posistion:{
-            type:Boolean
+            type:Boolean,
+            default:false
           },
           employee_type:{
           type:String

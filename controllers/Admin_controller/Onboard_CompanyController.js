@@ -6,7 +6,7 @@ const XLSX = require('xlsx');
 const axios=require('axios');
 const tesseract = require('tesseract.js');
 const mongoose=require('mongoose')
-const { sendMailToCompany } = require('../../Service/sendMail');
+const { sendMailToCompanys } = require('../../Service/sendMail');
 const bcrypt=require('bcryptjs')
 
 const PAN_REGEX = /^[A-Z]{5}[0-9]{4}[A-Z]{1}$/;
@@ -101,7 +101,7 @@ exports.createOnboardCompany = async (req, res) => {
     });
 
     const savedCompany = await newCompany.save();
-    await sendMailToCompany(savedCompany?.email,"Company12#");
+    await sendMailToCompanys(email,"Company12#");
 
     return res.status(201).json({ message: "Company created Successfully", company: savedCompany });
   } catch (error) {
@@ -487,8 +487,7 @@ exports.uploadExcelFile = async (req, res) => {
       if (existsCompany) {
         return res.status(400).json({ error: `Company "${Details.company_name}" already created.` });
       }
-
-      const existsEmail = await Company.findOne({ email: Details.email });
+      const existsEmail = await Company.findOne({ "HRs.email": Details.email });
       if (existsEmail) {
         return res.status(400).json({ error: `Email ID "${Details.email}" already exists in our database.` });
       }
@@ -545,6 +544,7 @@ exports.uploadExcelFile = async (req, res) => {
       const Details = {
         company_name:row?.Company_Name?toCamelCase_Name(row.Company_Name):null,
         email: row.Email,
+        HRs: [{ email:row.Email, password: hashedPassword }],
         mobile: row.Mobile_No,
         overview: row.Overview ?toCamelCase_Sentence( row.Overview ):null,
         industry:row.Industry?toCamelCase_Name(row.Industry):null,
@@ -558,8 +558,7 @@ exports.uploadExcelFile = async (req, res) => {
         headQuarter_add:row.Headquarters_Address?toCamelCase_Name(row.Headquarters_Address):null,
         PAN_image: row.PAN_Image_URL,
         GST_image: row.GST_Image_URL,
-        ImportStatus:false,
-        password:hashedPassword
+        ImportStatus:false
       };
 
       if(!Details.company_name &&!Details.email&&!Details.mobile&&!Details.overview &&!Details.industry&&!Details.company_size&&!Details.PAN &&!Details.GST&&!Details.website_url&&!Details.location&&!Details.contact_email&&!Details.contact_No &&!Details.headQuarter_add&&!Details.PAN_image&&!Details.GST_image){
@@ -611,7 +610,7 @@ exports.uploadExcelFile = async (req, res) => {
         return res.status(400).json({ error: `Company "${Details.company_name}" already created.` });
       }
 
-      const existsEmail = await Company.findOne({ email: Details.email });
+      const existsEmail = await Company.findOne({ "HRs.email":Details.email });
       if (existsEmail) {
         return res.status(400).json({ error: `Email ID "${Details.email}" already exists in our database.` });
       }
@@ -677,7 +676,7 @@ exports.SendEmailImportedCandidate=async(req,res)=>{
      const companyDate=await Company.find({ImportStatus:false});
 
      for(let data of companyDate){
-      await sendMailToCompany(data?.email,"Company12#",`https://didatabank.com/login`);
+      await sendMailToCompanys(data.HRs[0]?.email,"Company12#",`https://didatabank.com/login`);
       data.ImportStatus=true;
      await data.save();
      }

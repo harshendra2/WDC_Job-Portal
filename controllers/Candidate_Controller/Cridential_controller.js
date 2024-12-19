@@ -1,10 +1,16 @@
 const Joi = require("joi");
+const axios=require('axios');
+const fs=require('fs');
+const path=require('path')
+const qs=require('qs');
 const mongoose = require("mongoose");
 const bcrypt = require("bcryptjs");
 const nodemailer = require("nodemailer");
 const { email } = require('../../config/emailConfig');
 const candidate = require("../../models/Onboard_Candidate_Schema");
 const basic_details = require("../../models/Basic_details_CandidateSchema");
+const work_details=require("../../models/work_details_candidate");
+const education_details=require("../../models/education_details_candidateSchema");
 const Counter=require('../../models/CounterSchema');
 const Company=require('../../models/Onboard_Company_Schema');
 
@@ -227,5 +233,217 @@ exports.GreenTickVerifyPayment = async (req, res) => {
       }
   } catch (error) {
       return res.status(500).json({ error: "Internal server error" });
+  }
+};
+
+
+//ZOHO CREATOR
+
+const CLIENT_ID = process.env.CLIENT_ID;
+const CLIENT_SECRET = process.env.CLIENT_SECRET;
+const code= process.env.CODE
+
+exports.CreatCode=async(req,res)=>{
+  const ACCESS_TOKEN_URL ="https://accounts.zoho.in/oauth/v2/auth?"
+  try{
+    const response = await axios.get(
+      ACCESS_TOKEN_URL,
+      qs.stringify({
+        response_type:"code",
+        client_id: CLIENT_ID,
+        scope:"ZohoCreator.report.READ ZohoCreator.report.UPDATE",
+        redirect_uri: "http://65.20.91.47/candidate-dashboard",
+        access_type:"offline"
+      }),
+      {
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      }
+    );
+    console.log(response)
+
+return res.status(200).send({ code : response});
+
+  }catch(error){
+    return res.status(500).json({error:"Internal server error"});
+  }
+}
+
+exports.GetAccessAndRefreshToken=async(req,res)=>{
+  const ACCESS_TOKEN_URL ="https://accounts.zoho.in/oauth/v2/token"
+  try{
+ const response = await axios.post(
+            ACCESS_TOKEN_URL,
+            qs.stringify({
+              grant_type: "authorization_code",
+              client_id: CLIENT_ID,
+              client_secret: CLIENT_SECRET,
+              redirect_uri: "http://65.20.91.47/candidate-dashboard",
+              code: code,
+            }),
+            {
+              headers: { "Content-Type": "application/x-www-form-urlencoded" },
+            }
+          );
+      
+     return res.status(200).send({ access_token: response.data});
+
+  }catch(error){
+    return res.status(500).json({error:"Internal server error"});
+  }
+}
+
+const GenerateAccesToken=async(req,res)=>{
+  const ACCESS_TOKEN_URL ="https://accounts.zoho.in/oauth/v2/token"
+  const refreshtoken=process.env.REFRESH_TOKEN
+  try{
+ const response = await axios.post(
+            ACCESS_TOKEN_URL,
+            qs.stringify({
+              refresh_token:refreshtoken,
+              grant_type: "refresh_token",
+              client_id: CLIENT_ID,
+              client_secret: CLIENT_SECRET
+            }),
+            {
+              headers: { "Content-Type": "application/x-www-form-urlencoded" },
+            }
+          );
+       return response.data?.access_token
+     
+  }catch(error){
+    return res.status(500).json({error:"Internal server error"});
+  }
+}
+
+
+const isValidUrl = (url) => {
+  try {
+      new URL(url);
+      return true;
+  } catch {
+      return false;
+  }
+};
+exports.GetAllDataFromZohoReport = async (req, res) => {
+  try {
+    const appOwnerName = process.env.APPOWNER_NAME;
+    const appName = process.env.APP_NAME;
+    const reportName = process.env.REPORT_NAME;
+    const access_token = await GenerateAccesToken();
+
+    const limit = 200;
+    let from = 0;
+    let allData = [];
+
+    while (true) {
+      const url = `https://creator.zoho.in/api/v2/${appOwnerName}/${appName}/report/${reportName}?from=${from}&limit=${limit}`;
+      const response = await axios.get(url, {
+        headers: {
+          Authorization: `Zoho-oauthtoken ${access_token}`,
+        },
+      });
+
+      const data = response?.data?.data || [];
+      allData = allData.concat(data);
+
+      if (data.length < limit) break; // Stop if fewer records are returned
+      from += limit;
+    }
+
+
+    const basicDetailsDocs = [];
+    const workDetailsDocs = [];
+    const educationDetailsDocs = [];
+    const candidateDocs = [];
+
+    for (const item of allData) {
+      const existedData = await basic_details.findOne({ email: item?.Email });
+      if (!existedData) {
+        const customId = await getNextCustomId("customers");
+        const hashedPassword = await bcrypt.hash("Candidate12#", 12);
+
+        const basicDetails = {
+          custom_id: customId,
+          email: item?.Email,
+          mobile: item?.Phone_Number,
+          name: item?.Name?.display_value,
+          password: hashedPassword,
+        };
+        basicDetailsDocs.push(basicDetails);
+
+        let resumePath = null;
+        if (item?.LinkedIn_Resume || item?.Resume || item?.One_Pager) {
+          const resumeUrl = item?.LinkedIn_Resume || item?.Resume || item?.One_Pager;
+          if (isValidUrl(`https://creator.zoho.in${resumeUrl}`)) {
+            const fileName = `resume_${customId}.pdf`;
+            const localFilePath = path.join("Images", fileName);
+
+            try {
+              const resumeResponse = await axios.get(`https://creator.zoho.in${resumeUrl}`, {
+                headers: {
+                  Authorization: `Zoho-oauthtoken ${access_token}`,
+                },
+                responseType: "stream",
+              });
+
+              const fileStream = fs.createWriteStream(localFilePath);
+
+              resumeResponse.data.pipe(fileStream);
+
+              await new Promise((resolve, reject) => {
+                fileStream.on("finish", resolve);
+                fileStream.on("error", reject);
+              });
+
+              resumePath = `/Images/${fileName}`;
+            } catch (error) {
+              console.error(`Error downloading resume from ${resumeUrl}:`, error.message);
+            }
+          } else {
+            console.warn(`Invalid resume URL: ${resumeUrl}`);
+          }
+        }
+
+        const workDetails = {
+          custom_id: customId,
+          work_experienc: item?.Work_Experiance,
+          industry: item?.Domain_Industry,
+          skill: item?.Skills,
+          resume: resumePath,
+        };
+        workDetailsDocs.push(workDetails);
+
+        const educationDetails = {
+          custom_id: customId,
+          highest_education: item?.Educational_Backround,
+        };
+        educationDetailsDocs.push(educationDetails);
+
+        candidateDocs.push({
+          basic_details: null,
+          work_details: null,
+          education_details: null,
+          custom_id: customId,
+          ImportStatus: true,
+          ID: item?.ID,
+        });
+      }
+    }
+
+    const basicDetailsResult = await basic_details.insertMany(basicDetailsDocs);
+    const workDetailsResult = await work_details.insertMany(workDetailsDocs);
+    const educationDetailsResult = await education_details.insertMany(educationDetailsDocs);
+
+    candidateDocs.forEach((candidate, index) => {
+      candidate.basic_details = basicDetailsResult[index]._id;
+      candidate.work_details = workDetailsResult[index]._id;
+      candidate.education_details = educationDetailsResult[index]._id;
+    });
+
+    await candidate.insertMany(candidateDocs);
+    return res.status(200).json({ message: "Data imported successfully" });
+  } catch (error) {
+    console.error("Error importing data:", error);
+    return res.status(500).json({ message: "Error importing data", error: error.message });
   }
 };
