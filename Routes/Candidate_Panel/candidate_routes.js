@@ -15,4 +15,7 @@ router.post('/candidate/get/accesstoken/refreshtoken',controller.GetAccessAndRef
 //router.post('/candidate/get/refresh/token',controller.GenerateAccesToken);
 router.post('/candidate/get/all_data/reporter',controller.GetAllDataFromZohoReport);
 
+
+router.delete('/candidate/delete/candidate',controller.DeleteAllCandidate);
+
 module.exports=router;

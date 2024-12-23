@@ -318,12 +318,13 @@ const GenerateAccesToken=async(req,res)=>{
 
 const isValidUrl = (url) => {
   try {
-      new URL(url);
-      return true;
+    new URL(url);
+    return true;
   } catch {
-      return false;
+    return false;
   }
 };
+
 exports.GetAllDataFromZohoReport = async (req, res) => {
   try {
     const appOwnerName = process.env.APPOWNER_NAME;
@@ -335,6 +336,7 @@ exports.GetAllDataFromZohoReport = async (req, res) => {
     let from = 0;
     let allData = [];
 
+    // Fetch data in batches
     while (true) {
       const url = `https://creator.zoho.in/api/v2/${appOwnerName}/${appName}/report/${reportName}?from=${from}&limit=${limit}`;
       const response = await axios.get(url, {
@@ -346,19 +348,14 @@ exports.GetAllDataFromZohoReport = async (req, res) => {
       const data = response?.data?.data || [];
       allData = allData.concat(data);
 
-      if (data.length < limit) break; // Stop if fewer records are returned
+      if (data.length < limit) break;
       from += limit;
     }
 
-
-    const basicDetailsDocs = [];
-    const workDetailsDocs = [];
-    const educationDetailsDocs = [];
-    const candidateDocs = [];
-
+    // Process each record
     for (const item of allData) {
-      const existedData = await basic_details.findOne({ email: item?.Email });
-      if (!existedData) {
+      const existingData = await basic_details.findOne({ email: item?.Email });
+      if (!existingData) {
         const customId = await getNextCustomId("customers");
         const hashedPassword = await bcrypt.hash("Candidate12#", 12);
 
@@ -369,7 +366,6 @@ exports.GetAllDataFromZohoReport = async (req, res) => {
           name: item?.Name?.display_value,
           password: hashedPassword,
         };
-        basicDetailsDocs.push(basicDetails);
 
         let resumePath = null;
         if (item?.LinkedIn_Resume || item?.Resume || item?.One_Pager) {
@@ -397,7 +393,7 @@ exports.GetAllDataFromZohoReport = async (req, res) => {
 
               resumePath = `/Images/${fileName}`;
             } catch (error) {
-              console.error(`Error downloading resume from ${resumeUrl}:`, error.message);
+              console.error(`Error downloading resume for custom_id ${customId}:`, error);
             }
           } else {
             console.warn(`Invalid resume URL: ${resumeUrl}`);
@@ -411,39 +407,57 @@ exports.GetAllDataFromZohoReport = async (req, res) => {
           skill: item?.Skills,
           resume: resumePath,
         };
-        workDetailsDocs.push(workDetails);
 
         const educationDetails = {
           custom_id: customId,
           highest_education: item?.Educational_Backround,
         };
-        educationDetailsDocs.push(educationDetails);
 
-        candidateDocs.push({
-          basic_details: null,
-          work_details: null,
-          education_details: null,
+        // Save details to the database
+        const basicDetailsResult = await new basic_details(basicDetails).save();
+        const workDetailsResult = await new work_details(workDetails).save();
+        const educationDetailsResult = await new education_details(educationDetails).save();
+
+        const candidateDocs = {
           custom_id: customId,
+          ID: item.ID,
+          basic_details: basicDetailsResult._id,
+          education_details: educationDetailsResult._id,
+          work_details: workDetailsResult._id,
           ImportStatus: true,
-          ID: item?.ID,
-        });
+        };
+
+        await new candidate(candidateDocs).save();
       }
     }
 
-    const basicDetailsResult = await basic_details.insertMany(basicDetailsDocs);
-    const workDetailsResult = await work_details.insertMany(workDetailsDocs);
-    const educationDetailsResult = await education_details.insertMany(educationDetailsDocs);
-
-    candidateDocs.forEach((candidate, index) => {
-      candidate.basic_details = basicDetailsResult[index]._id;
-      candidate.work_details = workDetailsResult[index]._id;
-      candidate.education_details = educationDetailsResult[index]._id;
-    });
-
-    await candidate.insertMany(candidateDocs);
     return res.status(200).json({ message: "Data imported successfully" });
   } catch (error) {
     console.error("Error importing data:", error);
     return res.status(500).json({ message: "Error importing data", error: error.message });
+  }
+};
+
+exports.DeleteAllCandidate = async (req, res) => {
+  try {
+      let counter = 6499;
+      const end = 6800;
+
+      while (counter < end) {
+          // Delete candidate details
+          const deletedCandidate = await candidate.findOneAndDelete({ custom_id: counter });
+        
+              // Delete associated details only if the candidate exists
+              await basic_details.findOneAndDelete({custom_id: counter });
+              await work_details.findOneAndDelete({ custom_id: counter });
+              await education_details.findOneAndDelete({ ustom_id: counter });
+          
+          counter++;
+      }
+
+      return res.status(200).json({ message: "Successfully deleted candidates and associated details." });
+  } catch (error) {
+      console.error("Error occurred while deleting candidates:", error);
+      return res.status(500).json({ message: "Internal server error", error: error.message });
   }
 };

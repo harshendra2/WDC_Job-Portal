@@ -13,106 +13,102 @@ const CompanySubscription = require('../../models/Company_SubscriptionSchema');
 const searchhistory = require('../../models/Search_historySchema');
 
 exports.getAllAppliedCandidate = async (req, res) => {
-    const { id } = req.params;
+    const { id,page,limit } = req.params;
     try {
-        const data = await candidate.aggregate([
-            {
-                $lookup: {
-                    from: 'candidate_basic_details',
-                    localField: 'basic_details',
-                    foreignField: '_id',
-                    as: 'basicDetails'
-                }
-            },
-            {
-                $lookup: {
-                    from: 'candidate_personal_details',
-                    localField: 'personal_details',
-                    foreignField: '_id',
-                    as: 'personalDetails'
-                }
-            },
-            {$match:{'personalDetails.Aadhar_verified_status':true,'personalDetails.Pan_verified_status':true}},
-            {
-                $lookup: {
-                    from: 'candidate_work_details',
-                    localField: 'work_details',
-                    foreignField: '_id',
-                    as: 'workDetails'
-                }
-            },
-            // {
-            //     $lookup: {
-            //         from: 'candidate_education_details',
-            //         localField: 'education_details',
-            //         foreignField: '_id',
-            //         as: 'educationDetails'
-            //     }
-            // },
-            {
-                $lookup: {
-                    from: 'currentusersubscriptionplanes',
-                    localField: '_id',
-                    foreignField: 'candidate_id',
-                    as: 'SubscriptionPlan'
-                }
-            },
-            {
-                $unwind: {
-                    path: '$SubscriptionPlan',
-                    preserveNullAndEmptyArrays: true
-                }
-            },
-            {
-                $project: {
-                    basicDetails: 1,
-                    personalDetails: 1,
-                    workDetails: 1,
-                    // educationDetails: 1,
-                    profile: 1,
-                    SubscriptionPlan: 1,
-                    top_candidate: {
-                        $cond: {
-                            if: {
-                                $and: [
-                                    { $ne: ['$SubscriptionPlan', null] },
-                                    {
-                                        $gt: [
-                                            '$SubscriptionPlan.expiresAt',
-                                            new Date()
-                                        ]
-                                    }
-                                ]
+        const pages = parseInt(page) || 1; 
+const limits = parseInt(limit) ||50;
+const skip = (pages - 1) * limits;
+        
+const data = await candidate.aggregate([
+    {
+        $lookup: {
+            from: 'candidate_basic_details',
+            localField: 'basic_details',
+            foreignField: '_id',
+            as: 'basicDetails',
+        },
+    },
+    {
+        $lookup: {
+            from: 'candidate_personal_details',
+            localField: 'personal_details',
+            foreignField: '_id',
+            as: 'personalDetails',
+        },
+    },
+    {
+        $lookup: {
+            from: 'candidate_work_details',
+            localField: 'work_details',
+            foreignField: '_id',
+            as: 'workDetails',
+        },
+    },
+    {
+        $lookup: {
+            from: 'currentusersubscriptionplanes',
+            localField: '_id',
+            foreignField: 'candidate_id',
+            as: 'SubscriptionPlan',
+        },
+    },
+    {
+        $unwind: {
+            path: '$SubscriptionPlan',
+            preserveNullAndEmptyArrays: true,
+        },
+    },
+    {
+        $project: {
+            basicDetails: 1,
+            personalDetails: 1,
+            workDetails: 1,
+            profile: 1,
+            SubscriptionPlan: 1,
+            top_candidate: {
+                $cond: {
+                    if: {
+                        $and: [
+                            { $ne: ['$SubscriptionPlan', null] },
+                            {
+                                $gt: ['$SubscriptionPlan.expiresAt', new Date()],
                             },
-                            then: '$SubscriptionPlan.top_candidate',
-                            else: 40
-                        }
+                        ],
                     },
-                    createdDate: '$SubscriptionPlan.createdDate'
-                }
+                    then: '$SubscriptionPlan.top_candidate',
+                    else: 40,
+                },
             },
-            {
-                $sort: { top_candidate: 1, createdDate: 1 }
-            },
-            {
-                $project: {
-                    'basicDetails.linkedIn': 0,
-                    'basicDetails.email': 0,
-                    'basicDetails.mobile': 0,
-                    ' personalDetails.gender': 0,
-                    'personalDetails.age': 0,
-                    'personalDetails.marriag_status': 0,
-                    'personalDetails.PAN': 0,
-                    'personalDetails.aadhar_number': 0,
-                    'personalDetails.father_name': 0,
-                    'personalDetails.son_name': 0,
-                    'workDetails.current_ctc': 0,
-                    'workDetails.work_experience': 0,
-                    'workDetails.skill': 0
-                }
-            }
-        ]);
+            createdDate: '$SubscriptionPlan.createdDate',
+        },
+    },
+    {
+        $sort: { top_candidate: 1, createdDate: 1, _id: 1 }, // Add _id to ensure uniqueness
+    },
+    {
+        $project: {
+            'basicDetails.linkedIn': 0,
+            'basicDetails.email': 0,
+            'basicDetails.mobile': 0,
+            'personalDetails.gender': 0,
+            'personalDetails.age': 0,
+            'personalDetails.marriag_status': 0,
+            'personalDetails.PAN': 0,
+            'personalDetails.aadhar_number': 0,
+            'personalDetails.father_name': 0,
+            'personalDetails.son_name': 0,
+            'workDetails.current_ctc': 0,
+            'workDetails.work_experience': 0,
+            'workDetails.skill': 0,
+        },
+    },
+    { $skip: skip },
+    { $limit: limits },
+]);
 
+        
+        
+  
         if (data && data.length > 0) {
             const baseUrl = `${req.protocol}://${req.get('host')}`;
             const isGoogleDriveLink = url =>
@@ -170,7 +166,7 @@ exports.getCandidateDetails = async (req, res) => {
 
         const objectId = new mongoose.Types.ObjectId(userId);
         const data = await candidate.aggregate([
-            { $match: { _id: objectId } },
+            { $match: { _id:objectId} },
             {
                 $lookup: {
                     from: 'candidate_basic_details',
@@ -179,7 +175,7 @@ exports.getCandidateDetails = async (req, res) => {
                     as: 'basicDetails'
                 }
             },
-            { $unwind: '$basicDetails' },
+            { $unwind: { path: '$basicDetails', preserveNullAndEmptyArrays: true } },
             {
                 $lookup: {
                     from: 'candidate_personal_details',
@@ -188,7 +184,7 @@ exports.getCandidateDetails = async (req, res) => {
                     as: 'personalDetails'
                 }
             },
-            { $unwind: '$personalDetails' },
+            { $unwind: { path: '$personalDetails', preserveNullAndEmptyArrays: true } },
             {
                 $lookup: {
                     from: 'candidate_work_details',
@@ -197,7 +193,7 @@ exports.getCandidateDetails = async (req, res) => {
                     as: 'workDetails'
                 }
             },
-            { $unwind: '$workDetails' },
+            { $unwind: { path: '$workDetails', preserveNullAndEmptyArrays: true } },
             {
                 $lookup: {
                     from: 'candidate_education_details',
@@ -206,7 +202,7 @@ exports.getCandidateDetails = async (req, res) => {
                     as: 'educationDetails'
                 }
             },
-            { $unwind: '$educationDetails' }
+            { $unwind: { path: '$educationDetails', preserveNullAndEmptyArrays: true } }
         ]);
 
         if (data.length === 0) {
@@ -373,7 +369,7 @@ exports.KeywordSearchCandidate = async (req, res) => {
                     as: 'personalDetails'
                 }
             },
-            {$match:{'personalDetails.Aadhar_verified_status':true,'personalDetails.Pan_verified_status':true}},
+           // {$match:{'personalDetails.Aadhar_verified_status':true,'personalDetails.Pan_verified_status':true}},
             {
                 $lookup: {
                     from: 'candidate_work_details',
@@ -433,7 +429,7 @@ exports.KeywordSearchCandidate = async (req, res) => {
                 }
             },
             {
-                $sort: { top_candidate: 1, createdDate: 1 }
+                $sort: { top_candidate: 1, createdDate: 1, _id: 1 },
             },
             {
                 $project: {
@@ -451,7 +447,9 @@ exports.KeywordSearchCandidate = async (req, res) => {
                     'workDetails.work_experience': 0,
                     'workDetails.skill': 0,
                 }
-            }
+            },
+            { $skip:0 },
+            { $limit:50 },
         ]);
 
         const comnId = new mongoose.Types.ObjectId(companyId);
@@ -544,153 +542,163 @@ exports.KeywordSearchCandidate = async (req, res) => {
                 ]
             });
         }
-        
-        if (skills || jobTitle || qualification ||name) {
-            conditions.push({
-                $or: [
+
+const makeSearchLiberal = (text) => {
+    return text ? text.split(' ').join('.*') : '';
+};
+
+if (skills || jobTitle || qualification || name) {
+    const liberalSkills = makeSearchLiberal(skills);
+    const liberalJobTitle = makeSearchLiberal(jobTitle);
+    const liberalQualification = makeSearchLiberal(qualification);
+    const liberalName = makeSearchLiberal(name);
+
+    conditions.push({
+        $or: [
+            {
+                $and: [
                     {
-                        $and: [
-                            {
-                                'workDetails.aspiring_position': {
-                                    $regex: skills,
-                                    $options: 'i'
-                                }
-                            },
-                            {
-                                'workDetails.aspiring_position': {
-                                    $regex: jobTitle,
-                                    $options: 'i'
-                                }
-                            },
-                            {
-                                'workDetails.aspiring_position': {
-                                    $regex: qualification,
-                                    $options: 'i'
-                                }
-                            },
-                            {
-                                'workDetails.aspiring_position': {
-                                    $regex: name,
-                                    $options: 'i'
-                                }
-                            }
-                        ]
+                        'workDetails.aspiring_position': {
+                            $regex: liberalSkills,
+                            $options: 'i'
+                        }
                     },
                     {
-                        $and: [
-                            {
-                                'workDetails.skill': {
-                                    $regex: skills,
-                                    $options: 'i'
-                                }
-                            },
-                            {
-                                'workDetails.skill': {
-                                    $regex: jobTitle,
-                                    $options: 'i'
-                                }
-                            },
-                            {
-                                'workDetails.skill': {
-                                    $regex: qualification,
-                                    $options: 'i'
-                                }
-                            },
-                            {
-                                'workDetails.skill': {
-                                    $regex:name,
-                                    $options: 'i'
-                                }
-                            }
-                        ]
+                        'workDetails.aspiring_position': {
+                            $regex: liberalJobTitle,
+                            $options: 'i'
+                        }
                     },
                     {
-                        $and: [
-                            {
-                                'educationDetails.highest_education': {
-                                    $regex: skills,
-                                    $options: 'i'
-                                }
-                            },
-                            {
-                                'educationDetails.highest_education': {
-                                    $regex: jobTitle,
-                                    $options: 'i'
-                                }
-                            },
-                            {
-                                'educationDetails.highest_education': {
-                                    $regex: qualification,
-                                    $options: 'i'
-                                }
-                            },
-                            {
-                                'educationDetails.highest_education': {
-                                    $regex: name,
-                                    $options: 'i'
-                                }
-                            }
-                        ]
+                        'workDetails.aspiring_position': {
+                            $regex: liberalQualification,
+                            $options: 'i'
+                        }
                     },
                     {
-                        $and: [
-                            {
-                                'workDetails.skill': {
-                                    $regex: skills,
-                                    $options: 'i'
-                                }
-                            },
-                            {
-                                'workDetails.aspiring_position': {
-                                    $regex: jobTitle,
-                                    $options: 'i'
-                                }
-                            },
-                            {
-                                'educationDetails.highest_education': {
-                                    $regex: qualification,
-                                    $options: 'i'
-                                }
-                            },
-                            {
-                                'basicDetails.name': {
-                                    $regex:name,
-                                    $options: 'i'
-                                }
-                            }
-                        ]
-                    },
-                    {
-                        $and: [
-                            {
-                                'basicDetails.name': {
-                                    $regex: skills,
-                                    $options: 'i'
-                                }
-                            },
-                            {
-                                'basicDetails.name': {
-                                    $regex: jobTitle,
-                                    $options: 'i'
-                                }
-                            },
-                            {
-                                'basicDetails.name': {
-                                    $regex: qualification,
-                                    $options: 'i'
-                                }
-                            },
-                            {
-                                'basicDetails.name': {
-                                    $regex:name,
-                                    $options: 'i'
-                                }
-                            }
-                        ]
+                        'workDetails.aspiring_position': {
+                            $regex: liberalName,
+                            $options: 'i'
+                        }
                     }
                 ]
-            });
-        }
+            },
+            {
+                $and: [
+                    {
+                        'workDetails.skill': {
+                            $regex: liberalSkills,
+                            $options: 'i'
+                        }
+                    },
+                    {
+                        'workDetails.skill': {
+                            $regex: liberalJobTitle,
+                            $options: 'i'
+                        }
+                    },
+                    {
+                        'workDetails.skill': {
+                            $regex: liberalQualification,
+                            $options: 'i'
+                        }
+                    },
+                    {
+                        'workDetails.skill': {
+                            $regex: liberalName,
+                            $options: 'i'
+                        }
+                    }
+                ]
+            },
+            {
+                $and: [
+                    {
+                        'educationDetails.highest_education': {
+                            $regex: liberalSkills,
+                            $options: 'i'
+                        }
+                    },
+                    {
+                        'educationDetails.highest_education': {
+                            $regex: liberalJobTitle,
+                            $options: 'i'
+                        }
+                    },
+                    {
+                        'educationDetails.highest_education': {
+                            $regex: liberalQualification,
+                            $options: 'i'
+                        }
+                    },
+                    {
+                        'educationDetails.highest_education': {
+                            $regex: liberalName,
+                            $options: 'i'
+                        }
+                    }
+                ]
+            },
+            {
+                $and: [
+                    {
+                        'workDetails.skill': {
+                            $regex: liberalSkills,
+                            $options: 'i'
+                        }
+                    },
+                    {
+                        'workDetails.aspiring_position': {
+                            $regex: liberalJobTitle,
+                            $options: 'i'
+                        }
+                    },
+                    {
+                        'educationDetails.highest_education': {
+                            $regex: liberalQualification,
+                            $options: 'i'
+                        }
+                    },
+                    {
+                        'basicDetails.name': {
+                            $regex: liberalName,
+                            $options: 'i'
+                        }
+                    }
+                ]
+            },
+            {
+                $and: [
+                    {
+                        'basicDetails.name': {
+                            $regex: liberalSkills,
+                            $options: 'i'
+                        }
+                    },
+                    {
+                        'basicDetails.name': {
+                            $regex: liberalJobTitle,
+                            $options: 'i'
+                        }
+                    },
+                    {
+                        'basicDetails.name': {
+                            $regex: liberalQualification,
+                            $options: 'i'
+                        }
+                    },
+                    {
+                        'basicDetails.name': {
+                            $regex: liberalName,
+                            $options: 'i'
+                        }
+                    }
+                ]
+            }
+        ]
+    });
+}
+
         const query = conditions.length > 0 ? { $and: conditions } : {};
         const data = await candidate.aggregate([
             {
@@ -709,7 +717,7 @@ exports.KeywordSearchCandidate = async (req, res) => {
                     as: 'personalDetails'
                 }
             },
-            {$match:{'personalDetails.Aadhar_verified_status':true,'personalDetails.Pan_verified_status':true}},
+           // {$match:{'personalDetails.Aadhar_verified_status':true,'personalDetails.Pan_verified_status':true}},
             {
                 $lookup: {
                     from: 'candidate_work_details',
@@ -783,7 +791,9 @@ exports.KeywordSearchCandidate = async (req, res) => {
                 }
             },
             { $match: query },
-            { $sort: { top_candidate: 1, createdDate: 1 } },
+            {
+                $sort: { top_candidate: 1, createdDate: 1, _id: 1 },
+            },
             {
                 $project: {
                     'basicDetails.linkedIn': 0,

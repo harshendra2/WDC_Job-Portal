@@ -4,7 +4,7 @@ const controller=require('./controllers/Candidate_Controller/Cridential_controll
 
 const callApi = async () => {
   try {
-   // controller.GetAllDataFromZohoReport()
+   controller.GetAllDataFromZohoReport()
   } catch (error) {
     console.error("Error calling API:", error.response?.data || error.message);
   }
@@ -12,7 +12,7 @@ const callApi = async () => {
 
 
 const setupCronJobs =async () => {
-    cron.schedule('* * * * *',() => {
+    cron.schedule('0 0 * * *',() => {
         console.log("Running cron job to call API...");
         callApi();
     });

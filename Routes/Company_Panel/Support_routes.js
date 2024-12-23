@@ -6,6 +6,8 @@ const { upload } = require("../../middleware/multer");
 router.post('/company/add_issue/:id',upload.single('file'),controller.AddNewIssue);
 router.get('/company/get_issue/:companyId',controller.getAllIssuesClaim);
 
+router.post('/company/send/mail/:cmpId',upload.single('file'),controller.SendMailSupport);
+
 
 //Temp data 
 router.post('/company/get/accesstoken',controller.CreateAccesstoken);

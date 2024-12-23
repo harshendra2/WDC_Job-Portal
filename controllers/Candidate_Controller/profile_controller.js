@@ -1,5 +1,6 @@
 const Joi=require('joi');
 const axios=require('axios');
+const qs=require('qs');
 const mongoose=require('mongoose');
 const candidate=require('../../models/Onboard_Candidate_Schema');
 const basic_details=require('../../models/Basic_details_CandidateSchema')
@@ -9,6 +10,9 @@ const work_details=require('../../models/work_details_candidate');
 const SubscriptionPlan=require('../../models/Candidate_SubscriptionSchema');
 const companyJob=require('../../models/JobSchema');
 const CurrentsubscriptionPlan=require("../../models/Current_Candidate_SubscriptionSchema");
+
+const CLIENT_ID = process.env.CLIENT_ID;
+const CLIENT_SECRET = process.env.CLIENT_SECRET;
 
 const WorkExperience = Joi.object({
   designation: Joi.string().required(),
@@ -74,6 +78,29 @@ const OnboardCandidate = Joi.object({
   linkedIn: Joi.string().min(10),
   contact_email: Joi.string().email().required(),
 });
+
+const GenerateAccesToken=async(req,res)=>{
+  const ACCESS_TOKEN_URL ="https://accounts.zoho.in/oauth/v2/token"
+  const refreshtoken=process.env.REFRESH_TOKEN
+  try{
+ const response = await axios.post(
+            ACCESS_TOKEN_URL,
+            qs.stringify({
+              refresh_token:refreshtoken,
+              grant_type: "refresh_token",
+              client_id: CLIENT_ID,
+              client_secret: CLIENT_SECRET
+            }),
+            {
+              headers: { "Content-Type": "application/x-www-form-urlencoded" },
+            }
+          );
+       return response.data?.access_token
+     
+  }catch(error){
+    return res.status(500).json({error:"Internal server error"});
+  }
+}
 
 
 exports.getProfilePercentageStatus = async (req, res) => {
@@ -482,6 +509,12 @@ exports.DeleteProjectDetails = async (req, res) => {
       return res.status(400).json({ error: error.details[0].message });
     }
     try {
+      
+const appOwnerName = process.env.APPOWNER_NAME;
+const appName = process.env.APP_NAME;
+const reportName = process.env.REPORT_NAME;
+
+
         const candidates = await candidate.findById(user_id).populate('basic_details');
 
         if (!candidates || !candidates.basic_details) {
@@ -494,6 +527,7 @@ exports.DeleteProjectDetails = async (req, res) => {
           if(existmobile){
            return res.status(400).json({error:"This mobile number already exists in our data base"});
           }
+
           const candidateData = {
             name, email, mobile, linkedIn,contact_email,other_profile
           };
@@ -505,6 +539,49 @@ exports.DeleteProjectDetails = async (req, res) => {
      
          return res.status(201).json({ message: "Candidate basic details saved successfully", candidate: savedCandidate });
         }
+
+      //   if (candidates?.ID) {
+      //     const updatedFields = {
+      //         Name: name,
+      //         Phone: mobile,
+      //     };
+      
+      //     const access_token = await GenerateAccesToken();
+      //     const url = `https://creator.zoho.in/api/v2/${appOwnerName}/${appName}/report/${reportName}/${candidates?.ID}`;
+      
+      //     try {
+      //         const response = await axios.patch(
+      //             url,
+      //             updatedFields, // Axios automatically stringifies JSON for you
+      //             {
+      //                 headers: {
+      //                   Authorization: `Zoho-oauthtoken ${access_token}`
+      //                 },
+      //             }
+      //         );
+      
+      //         console.log("Zoho API Update Result:", response.data);
+      //     } catch (error) {
+      //         if (error.response) {
+      //             // Server responded with a status other than 2xx
+      //             console.error("Zoho API Error:", error.response.status, error.response.data);
+      //             return res
+      //                 .status(error.response.status)
+      //                 .json({ error: error.response.data.message || "Failed to update Zoho Creator record" });
+      //         } else if (error.request) {
+      //             // No response received
+      //             console.error("No response received:", error.request);
+      //             return res.status(500).json({ error: "No response from Zoho Creator API" });
+      //         } else {
+      //             // Something went wrong in setting up the request
+      //             console.error("Axios Error:", error.message);
+      //             return res.status(500).json({ error: "Zoho API Update Error" });
+      //         }
+      //     }
+      // }
+      
+      
+       
 
         const updateData = {
             name: name || candidate.basic_details?.name,

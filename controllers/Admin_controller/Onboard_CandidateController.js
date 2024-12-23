@@ -99,7 +99,6 @@ const OnboardCandidate = Joi.object({
       return res.status(201).json({ message: "Candidate details added successfully", candidate: savedCandidate });
   
     } catch (error) {
-      console.log(error);
       return res.status(500).json({ error: "Internal Server Error" });
     }
   };

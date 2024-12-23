@@ -205,6 +205,7 @@ exports.Login = async (req, res) => {
           await sendEmail(email, OTP);
           return res.status(200).json({
             message: 'OTP sent successfully',
+            OTP:OTP
           });
         }
       }
@@ -223,7 +224,8 @@ exports.Login = async (req, res) => {
        await existedCompany.save()
         await sendEmail(email, OTP);
         return res.status(200).json({
-          message: 'OTP sent successfully'
+          message: 'OTP sent successfully',
+          OTP:OTP
         });
       }
 

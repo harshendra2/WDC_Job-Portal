@@ -13,7 +13,7 @@ const CandidateSubscriptionSchema = new mongoose.Schema({
     type:Number
   },
   job_recommandation:{
-    type:Number
+    type:Boolean
   },
   resume_write:{
     type:Number
