@@ -506,6 +506,10 @@ exports.KeywordSearchCandidate = async (req, res) => {
         }
        }
 
+       const makeSearchLiberal = (text) => {
+        return text ? text.split(' ').join('.*') : '';
+    };
+
         if (search) {
             var [jobTitle = '', skills = '', qualification = '',name=''] = search
                 .split(',')
@@ -525,17 +529,18 @@ exports.KeywordSearchCandidate = async (req, res) => {
             conditions.push(expCondition);
         }
         if (location) {
+            const liberallocation = makeSearchLiberal(location);
             conditions.push({
                 $or: [
                     {
                         'workDetails.current_location': {
-                            $regex: location,
+                            $regex: liberallocation,
                             $options: 'i'
                         }
                     },
                     {
                         'workDetails.country': {
-                            $regex: location,
+                            $regex: liberallocation,
                             $options: 'i'
                         }
                     }
@@ -543,9 +548,7 @@ exports.KeywordSearchCandidate = async (req, res) => {
             });
         }
 
-const makeSearchLiberal = (text) => {
-    return text ? text.split(' ').join('.*') : '';
-};
+
 
 if (skills || jobTitle || qualification || name) {
     const liberalSkills = makeSearchLiberal(skills);

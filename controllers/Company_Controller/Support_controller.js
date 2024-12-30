@@ -72,16 +72,13 @@ exports.getAllIssuesClaim=async(req,res)=>{
 exports.SendMailSupport = async (req, res) => {
   const { Message, Subject } =req.body;
   const { cmpId } = req.params;
-  const image = req.file;
 
   try {
-      // Fetch company details
       const companyData = await company.findById(cmpId);
       if (!companyData) {
           return res.status(404).json({ success: false, error: "Company not found." });
       }
 
-      // Configure email transporter
       const transporter = nodemailer.createTransport({
           service: 'gmail',
           auth: {
@@ -90,27 +87,30 @@ exports.SendMailSupport = async (req, res) => {
           },
       });
 
-      // Construct email options
       const mailOptions = {
         from: process.env.EMAIL_USER,
         to: companyData.email,
         subject: `${Subject || 'No Subject Provided'}`,
         html: `
-            <p>Dear ${companyData.company_name || 'Recipient'},</p>
-    
-            <p>${Message || 'We wanted to bring this to your attention, but no additional details were provided.'}</p>
-    
-            <p>Please find the attached screenshot for your reference:</p>
-    
-            <img src=http://65.20.91.47:4000/${image.path} alt="Screenshot" style="max-width:100%; height:auto; border:1px solid #ddd; padding:5px; margin-top: 15px;">
-    
-            <p style="margin-top: 20px;">Best regards,</p>
-            <p>Your Support Team</p>
-    
-            <p style="font-size: 12px; color: gray; border-top: 1px solid #ddd; padding-top: 10px;">
-                Note: This is an automated email. Please do not reply directly to this message.
-            </p>
-        `,
+        <p>Dear Support Team,</p>
+
+        <p>You have received a new issue report from <strong>${companyData.company_name}</strong>.</p>
+        
+        <p><strong>Message:</strong></p>
+        <blockquote style="border-left: 4px solid #ddd; padding-left: 10px; color: #555; font-style: italic;">
+            ${Message || 'No additional details were provided.'}
+        </blockquote>
+        
+        <p>Please find the attached screenshot for reference:</p>
+        <img 
+            src="http://65.20.91.47:4000/${req.file.path}" 
+            alt="Screenshot" 
+            style="max-width: 100%; height: auto; border: 1px solid #ddd; padding: 5px; margin-top: 15px;"
+        >
+
+        <p style="margin-top: 20px;">Best regards,</p>
+        <p><em>Your Support Team</em></p>
+    `,
     };
       // Send email
       await transporter.sendMail(mailOptions);
@@ -131,7 +131,6 @@ exports.getAllMessages=async(Id)=>{
         return message || [];
 
     }catch(error){
-        console.log(error);
         throw error;
     }
 }
@@ -142,14 +141,86 @@ exports.saveNewMessage=async(msg)=>{
         await newMessage.save()
         return newMessage
     }catch(error){
-        console.log(error);
         throw error;
     }
 }
 
+exports.GetUserNotification=async(userId)=>{
+  try{
+    const issues = await IssueSchema.find({ candidate_id: userId });
+    const issueIds = issues.map((issue) => issue._id);
+    const notifications = await messageModel.aggregate([
+      {
+        $match: {Issue_id: { $in: issueIds }, User_view: false },
+      },
+      {
+        $group: {
+          _id: null,
+          unreadCount: { $sum: 1 },
+        },
+      },
+    ]);
+
+    return notifications.length > 0 ? notifications[0].unreadCount :0;
+  }catch(error){
+    throw error;
+  }
+}
+
+exports.ViewAllMessage=async(userId)=>{
+  try{
+    const issues = await IssueSchema.find({ candidate_id: userId });
+    const issueIds = issues.map((issue) => issue._id);
+    const updateResult = await messageModel.updateMany(
+      {
+        Issue_id: { $in:issueIds }, 
+        User_view: false,
+      },
+      {
+        $set: { User_view: true },
+      }
+    );
+
+    return updateResult;
+  }catch(error){
+    throw error;
+  }
+}
+
+exports.AdminMessageCount=async(adminId)=>{
+  try{
+     const messageCount=await messageModel.aggregate([{$match:{Admin_view:false}}, {
+      $group: {
+        _id: null,
+        unreadCount: { $sum: 1 },
+      },
+    }]);
+  return messageCount[0]?.unreadCount>0 ?messageCount[0]?.unreadCount:0;
+  }catch(error){
+    throw error;
+  }
+}
 
 
-//tempm
+exports.AdminViewNewMsg=async(IssueId)=>{
+  try{
+    if (!IssueId) {
+      throw new Error("IssueId is required for updating messages.");
+    }
+
+    const updateResult = await messageModel.updateMany(
+      {Issue_id: IssueId },
+      { $set: {Admin_view: true } }
+    );
+
+    return {
+      matchedCount: updateResult.matchedCount,
+      modifiedCount: updateResult.modifiedCount
+    };
+  }catch(error){
+    throw error;
+  }
+}
 
 const CLIENT_ID = process.env.CLIENT_ID;
 const CLIENT_SECRET = process.env.CLIENT_SECRET;

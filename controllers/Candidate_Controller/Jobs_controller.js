@@ -255,89 +255,95 @@ exports.KeywordJobSearch = async (req, res) => {
 };
 
 exports.getUnappliedJob = async (req, res) => {
-  const { id } = req.params;
+  const { id, page, limit} = req.params; 
   try {
-      const searchHis = await CandidateHistory.find({Candidate_id: id })
-          .sort({ createdAt: -1 })
-          .limit(3);
+    const skip = (page - 1) * parseInt(limit);
 
-      const recentSearches = searchHis.map((history) => history.Search_text);
+    const searchHis = await CandidateHistory.find({ Candidate_id: id })
+      .sort({ createdAt: -1 })
+      .limit(3);
 
-      const sortedJobs = await CompanyJob.aggregate([
-          {
-              $match: {
-                  job_Expire_Date: { $gte: new Date() },
-                  No_openings: { $ne: 0 },
-              },
-          },
-          {
-              $lookup: {
-                  from: "companies",
-                  localField: "company_id",
-                  foreignField: "_id",
-                  as: "company_details",
-              },
-          },
-          { $unwind: "$company_details" },
-          {
-              $project: {
-                  "company_details.Candidate_Feed_Back": 0,
-                  "company_details.password": 0,
-                  "company_details.GST": 0,
-                  "company_details.PAN": 0,
-                  "company_details.Logged_In_count": 0,
-              },
-          },
-      ]).sort({ promote_job: -1, createdDate: 1 });
+    const recentSearches = searchHis.map((history) => history.Search_text);
 
-      const baseUrl = `${req.protocol}://${req.get("host")}`;
-      const isGoogleDriveLink = (url) =>
-          url &&
-          (url.includes("drive.google.com") || url.includes("docs.google.com"));
+    // Aggregation pipeline for jobs
+    const sortedJobs = await CompanyJob.aggregate([
+      {
+        $match: {
+          job_Expire_Date: { $gte: new Date() },
+          No_openings: { $ne: 0 },
+        },
+      },
+      {
+        $lookup: {
+          from: "companies",
+          localField: "company_id",
+          foreignField: "_id",
+          as: "company_details",
+        },
+      },
+      { $unwind: "$company_details" },
+      {
+        $project: {
+          "company_details.Candidate_Feed_Back": 0,
+          "company_details.password": 0,
+          "company_details.GST": 0,
+          "company_details.PAN": 0,
+          "company_details.Logged_In_count": 0,
+        },
+      },
+      { $sort: { promote_job:-1, createdDate:1, _id: 1 } },
+      { $skip: skip }, 
+      { $limit: parseInt(limit) },
+    ]);
 
-      const prioritizedJobs = sortedJobs.map((job) => {
-          const relevanceScore = recentSearches.reduce((score, term) => {
-              if (job.job_title?.toLowerCase().includes(term.toLowerCase())) {
-                  return score + 1;
-              }
-              if (job.job_description?.toLowerCase().includes(term.toLowerCase())) {
-                  return score + 1;
-              }
-              if (job.skills_required?.some((skill) =>
-                  skill.toLowerCase().includes(term.toLowerCase())
-              )) {
-                  return score + 1;
-              }
-              return score;
-          }, 0);
+    const baseUrl = `${req.protocol}://${req.get("host")}`;
+    const isGoogleDriveLink = (url) =>
+      url && (url.includes("drive.google.com") || url.includes("docs.google.com"));
 
-          const timeSincePosted = moment(job.createdDate).fromNow();
-          const profileUrl = job?.company_details?.profile
-              ? isGoogleDriveLink(job?.company_details?.profile)
-                  ? job?.company_details?.profile
-                  : `${baseUrl}/${job?.company_details?.profile.replace(/\\/g, "/")}`
-              : null;
+    const prioritizedJobs = sortedJobs.map((job) => {
+      const relevanceScore = recentSearches.reduce((score, term) => {
+        if (job.job_title?.toLowerCase().includes(term.toLowerCase())) {
+          return score + 1;
+        }
+        if (job.job_description?.toLowerCase().includes(term.toLowerCase())) {
+          return score + 1;
+        }
+        if (job.skills_required?.some((skill) =>
+          skill.toLowerCase().includes(term.toLowerCase())
+        )) {
+          return score + 1;
+        }
+        return score;
+      }, 0);
 
-          return {
-              ...job,
-              profileUrl,
-              timeSincePosted,
-              relevanceScore,
-          };
-      });
+      const timeSincePosted = moment(job.createdDate).fromNow();
+      const profileUrl = job?.company_details?.profile
+        ? isGoogleDriveLink(job?.company_details?.profile)
+          ? job?.company_details?.profile
+          : `${baseUrl}/${job?.company_details?.profile.replace(/\\/g, "/")}`
+        : null;
 
-      const sortedByRelevance = prioritizedJobs.sort(
-          (a, b) =>
-              b.relevanceScore - a.relevanceScore ||
-              b.promote_job - a.promote_job ||
-              new Date(a.createdDate) - new Date(b.createdDate)
-      );
+      return {
+        ...job,
+        profileUrl,
+        timeSincePosted,
+        relevanceScore,
+      };
+    });
 
-      return res.status(200).send(sortedByRelevance);
+    const sortedByRelevance = prioritizedJobs.sort(
+      (a, b) =>
+        b.relevanceScore - a.relevanceScore ||
+        b.promote_job - a.promote_job ||
+        new Date(a.createdDate) - new Date(b.createdDate)
+    );
+
+    return res.status(200).send({data:sortedByRelevance,page});
   } catch (error) {
-      return res.status(500).json({ error: "Internal server error" });
+    return res.status(500).json({ error: "Internal server error" });
   }
 };
+
 
 
 exports.getJobDetails = async (req, res) => {

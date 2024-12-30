@@ -71,106 +71,106 @@ const corsOptions = {
 app.use(cors(corsOptions));
 app.use('/Images', express.static(path.join(__dirname, 'Images')));
 
-const generateRestrictedAccessHTML = () => `
-  <!DOCTYPE html>
-      <html lang="en">
-      <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Access Restricted</title>
-        <style>
-          body {
-            font-family: 'Arial', sans-serif;
-            background: linear-gradient(135deg, #1a202c, #2d3748);
-            color: #fff;
-            margin: 0;
-            padding: 0;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-          }
-          .container {
-            text-align: center;
-            padding: 30px;
-            background: rgba(255, 255, 255, 0.1);
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            border-radius: 12px;
-            box-shadow: 0 8px 15px rgba(0, 0, 0, 0.3);
-          }
-          h1 {
-            font-size: 2.5rem;
-            margin-bottom: 15px;
-            color: #ff6f61;
-          }
-          .icon {
-            font-size: 50px;
-            color: #ff6f61;
-            margin-bottom: 15px;
-          }
-          p {
-            font-size: 1rem;
-            margin: 10px 0;
-            color: #d3d3d3;
-          }
-          .button {
-            display: inline-block;
-            margin-top: 20px;
-            padding: 12px 24px;
-            font-size: 1rem;
-            color: #fff;
-            background-color: #ff6f61;
-            text-decoration: none;
-            border-radius: 8px;
-            transition: transform 0.3s ease, background-color 0.3s ease;
-          }
-          .button:hover {
-            background-color: #ff4a3d;
-            transform: scale(1.1);
-          }
-          .secure-notice {
-            margin-top: 20px;
-            font-size: 0.9rem;
-            font-style: italic;
-            color: #e0e0e0;
-          }
-        </style>
-      </head>
-      <body>
-        <div class="container">
-          <div class="icon">🔒</div>
-          <h1>Access Restricted</h1>
-          <p>You do not have permission to access this resource.</p>
-          <p>All unauthorized access attempts are logged and monitored.</p>
-          <a href="/" class="button">Return to Safety</a>
-          <p class="secure-notice">This resource is protected. For further assistance, contact support.</p>
-        </div>
-      </body>
-      </html>
-`;
+// const generateRestrictedAccessHTML = () => `
+//   <!DOCTYPE html>
+//       <html lang="en">
+//       <head>
+//         <meta charset="UTF-8">
+//         <meta name="viewport" content="width=device-width, initial-scale=1.0">
+//         <title>Access Restricted</title>
+//         <style>
+//           body {
+//             font-family: 'Arial', sans-serif;
+//             background: linear-gradient(135deg, #1a202c, #2d3748);
+//             color: #fff;
+//             margin: 0;
+//             padding: 0;
+//             display: flex;
+//             justify-content: center;
+//             align-items: center;
+//             height: 100vh;
+//           }
+//           .container {
+//             text-align: center;
+//             padding: 30px;
+//             background: rgba(255, 255, 255, 0.1);
+//             border: 1px solid rgba(255, 255, 255, 0.2);
+//             border-radius: 12px;
+//             box-shadow: 0 8px 15px rgba(0, 0, 0, 0.3);
+//           }
+//           h1 {
+//             font-size: 2.5rem;
+//             margin-bottom: 15px;
+//             color: #ff6f61;
+//           }
+//           .icon {
+//             font-size: 50px;
+//             color: #ff6f61;
+//             margin-bottom: 15px;
+//           }
+//           p {
+//             font-size: 1rem;
+//             margin: 10px 0;
+//             color: #d3d3d3;
+//           }
+//           .button {
+//             display: inline-block;
+//             margin-top: 20px;
+//             padding: 12px 24px;
+//             font-size: 1rem;
+//             color: #fff;
+//             background-color: #ff6f61;
+//             text-decoration: none;
+//             border-radius: 8px;
+//             transition: transform 0.3s ease, background-color 0.3s ease;
+//           }
+//           .button:hover {
+//             background-color: #ff4a3d;
+//             transform: scale(1.1);
+//           }
+//           .secure-notice {
+//             margin-top: 20px;
+//             font-size: 0.9rem;
+//             font-style: italic;
+//             color: #e0e0e0;
+//           }
+//         </style>
+//       </head>
+//       <body>
+//         <div class="container">
+//           <div class="icon">🔒</div>
+//           <h1>Access Restricted</h1>
+//           <p>You do not have permission to access this resource.</p>
+//           <p>All unauthorized access attempts are logged and monitored.</p>
+//           <a href="/" class="button">Return to Safety</a>
+//           <p class="secure-notice">This resource is protected. For further assistance, contact support.</p>
+//         </div>
+//       </body>
+//       </html>
+// `;
 
-app.use((req, res, next) => {
-  const userAgent = req.headers['user-agent'];
-  const Remoteaddress = req.headers['x-forwarded-for'];
-  if (userAgent && (userAgent.includes('Postman') || userAgent.includes('curl'))) {
-    console.log(`Unauthorized access attempt detected from: ${Remoteaddress || req.ip}`);
-    res.status(403).send(generateRestrictedAccessHTML());
-    return;
-  }
-  next();
-});
+// app.use((req, res, next) => {
+//   const userAgent = req.headers['user-agent'];
+//   const Remoteaddress = req.headers['x-forwarded-for'];
+//   if (userAgent && (userAgent.includes('Postman') || userAgent.includes('curl'))) {
+//     console.log(`Unauthorized access attempt detected from: ${Remoteaddress || req.ip}`);
+//     res.status(403).send(generateRestrictedAccessHTML());
+//     return;
+//   }
+//   next();
+// });
 
-const allowedOrigins = ["http://65.20.91.47", "http://65.20.91.47:8001", "http://localhost:5173", "http://localhost:5174", "http://localhost:5172"];
+// const allowedOrigins = ["http://65.20.91.47", "http://65.20.91.47:8001", "http://localhost:5173", "http://localhost:5174", "http://localhost:5172"];
 
-app.use((req, res, next) => {
-  const referer = req.headers['referer'] || req.headers['origin'];
-  // if (!referer || !allowedOrigins.some(origin => referer.startsWith(origin))) {
-  //   console.log(`Unauthorized referer/origin: ${referer}`);
-  //   res.status(403).send(generateRestrictedAccessHTML());
-  //   return;
-  // }
-  next();
-});
+// app.use((req, res, next) => {
+//   const referer = req.headers['referer'] || req.headers['origin'];
+//   if (!referer || !allowedOrigins.some(origin => referer.startsWith(origin))) {
+//     console.log(`Unauthorized referer/origin: ${referer}`);
+//     res.status(403).send(generateRestrictedAccessHTML());
+//     return;
+//   }
+//   next();
+// });
 
 
 
@@ -211,10 +211,7 @@ const server=app.listen(PORT, () => {
 });
 
 const io = require("socket.io")(server, {
-  cors: {
-    origin: 'http://localhost:5173',
-    origin:'http://65.20.91.47'
-  }
+  cors:'*'
 });
 
 chatSocket(io);

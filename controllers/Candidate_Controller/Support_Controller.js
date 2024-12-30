@@ -5,6 +5,7 @@ const IssueSchema=require("../../models/Issue_Schema");
 const messageModel=require("../../models/messageModel");
 const CandidateTransaction=require('../../models/CandidateTransactionSchema');
 const CurrentUserSub=require("../../models/Current_Candidate_SubscriptionSchema");
+const Candidate=require("../../models/Onboard_Candidate_Schema")
 
 const IssueValidation=Joi.object({
     Issue_type:Joi.string().min(5).required(),
@@ -64,41 +65,56 @@ exports.getAllIssuesClaim=async(req,res)=>{
 }
 
 exports.SendMailSupport=async(req,res)=>{
-    const {Message,Subject}=req.body;
-    const image=req.file
-    try{
-        const transporter = nodemailer.createTransport({
-            service: 'gmail',
-            auth: {
-                user: process.env.emailUser,
-                pass: process.env.emailPassword,
-            },
-        });
-
-        const mailOptions = {
-            from: process.env.emailUser,
-            to: 'harsendraraj20@gmail.com',
-            subject: Subject || 'No Subject Provided',
-            html: `
-                <p>${Message || 'No message provided.'}</p>
-                <p>Here is the attached screenshot:</p>
-                <img src="cid:screenshot" alt="Screenshot" style="max-width:100%; height:auto; border:1px solid #ddd; padding:5px;">
-            `,
-            attachments: [
-                {
-                    filename: image.originalname, // Original name of the uploaded file
-                    path: image.path, // Path where the file is stored
-                    cid: 'screenshot', // This cid will be used in the img tag
-                },
-            ],
-        };
-
-        await transporter.sendMail(mailOptions);
-
-        return res.status(200).json({ success: true, message: 'Email sent successfully!' });
-    }catch(error){
-        return res.status(500).json({error:"Internal server error"});
-    }
+   const { Message, Subject } =req.body;
+     const { userId } = req.params;
+   
+     try {
+         const CandidateData = await Candidate.findById(userId).populate('basic_details');
+         if (!CandidateData) {
+             return res.status(404).json({ success: false, error: "Candidate not found." });
+         }
+   
+         const transporter = nodemailer.createTransport({
+             service: 'gmail',
+             auth: {
+                 user: process.env.emailUser,
+                 pass: process.env.emailPassword,
+             },
+         });
+   
+         const mailOptions = {
+           from: process.env.EMAIL_USER,
+           to:CandidateData?.basic_details?.email,
+           subject: `${Subject || 'No Subject Provided'}`,
+           html: `
+           <p>Dear Support Team,</p>
+   
+           <p>You have received a new issue report from <strong>${CandidateData?.basic_details?.name}</strong>.</p>
+           
+           <p><strong>Message:</strong></p>
+           <blockquote style="border-left: 4px solid #ddd; padding-left: 10px; color: #555; font-style: italic;">
+               ${Message || 'No additional details were provided.'}
+           </blockquote>
+           
+           <p>Please find the attached screenshot for reference:</p>
+           <img 
+               src="http://65.20.91.47:4000/${req.file.path}" 
+               alt="Screenshot" 
+               style="max-width: 100%; height: auto; border: 1px solid #ddd; padding: 5px; margin-top: 15px;"
+           >
+   
+           <p style="margin-top: 20px;">Best regards,</p>
+           <p><em>Your Support Team</em></p>
+       `,
+       };
+         // Send email
+         await transporter.sendMail(mailOptions);
+   
+         return res.status(200).json({ success: true, message: 'Email sent successfully!' });
+     } catch (error) {
+        console.log(error)
+         return res.status(500).json({ success: false, error: "Internal server error" });
+     }
 }
 
 

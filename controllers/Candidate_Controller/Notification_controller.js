@@ -124,26 +124,33 @@ exports.CandidateViewedCompany=async(userId,companyId)=>{
 
 exports.getAllShortlistnotification=async(userId)=>{
   try{
-        const shortlistedNotifications = await CompanyJob.aggregate([
-          {
-            $match: {
-              "applied_candidates.candidate_id":new mongoose.Types.ObjectId(userId),
-              "applied_candidates.Shortlist_status": true,
-              "applied_candidates.user_view":false
-            },
-          },
-          {$project:{
-            _id:1
-          }}
-        ]);
-    
-        return shortlistedNotifications;
+    const shortlistedNotifications = await CompanyJob.aggregate([
+      {
+        $match: {
+          applied_candidates: {
+            $elemMatch: {
+              candidate_id: new mongoose.Types.ObjectId(userId),
+              Shortlist_status: true,
+              user_view: false
+            }
+          }
+        },
+      },
+      {
+        $project: {
+          _id: 1
+        }
+      }
+    ]);
+
+    return shortlistedNotifications;
   }catch(error){
     return error;
   }
 }
 
 exports.UserViewShortlistData=async(userId,jobId)=>{
+
   try{
     const userID=new mongoose.Types.ObjectId(userId);
     const jobID=new mongoose.Types.ObjectId(jobId);
@@ -156,7 +163,7 @@ exports.UserViewShortlistData=async(userId,jobId)=>{
         $set: { 'applied_candidates.$.user_view': true }
       }
     );
-    
+    console.log(data);
     return data;
 
   }catch(error){

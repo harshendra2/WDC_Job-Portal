@@ -7,9 +7,9 @@ const Candidate=require('../../models/Onboard_Candidate_Schema');
 
 
 exports.getAppliedJob = async (req, res) => {
-    const { userId } = req.params;
-
+    const { userId,page,limit} = req.params;
     try {
+      const skip = (page - 1) * parseInt(limit);
         if (!userId) {
             return res.status(400).json({ error: "Please provide user Id" });
         }
@@ -86,7 +86,9 @@ exports.getAppliedJob = async (req, res) => {
                     applied_date:{$first:"$applied_date"}
                 }
             },
-            { $sort: { applied_date: -1 } },
+            { $sort: { applied_date: -1,_id:1} },
+            {$skip:skip},
+            {$limit:parseInt(limit)}
         ]);
         if (jobs.length === 0) {
             return res.status(200).send([]);
@@ -115,19 +117,23 @@ exports.getAppliedJob = async (req, res) => {
               timeSincePosted,
             };
           });
-        return res.status(200).send(unappliedJobs);
+        return res.status(200).send({data:unappliedJobs,page});
     } catch (error) {
+      console.log(error)
         return res.status(500).json({ error: "Internal server error" });
     }
 };
 
 
 exports.getSeavedjob=async(req,res)=>{
-    const {userId}=req.params;
+    const {userId,page,limit}=req.params;
     try{
+      const skip = (page - 1) * parseInt(limit);
         const id=new mongoose.Types.ObjectId(userId)
         const job=await CompanyJob.aggregate([
             {$match:{Save_id:id}},
+            {$skip:skip},
+            {$limit:parseInt(limit)},
             {
                 $lookup: {
                   from: "companies",
@@ -181,7 +187,7 @@ exports.getSeavedjob=async(req,res)=>{
               timeSincePosted,
             };
           });
-        return res.status(200).send(unappliedJobs);
+        return res.status(200).send({data:unappliedJobs,page});
 
     }catch(error){
         return res.status(500).json({error:"Internal server error"});

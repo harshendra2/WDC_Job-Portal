@@ -3,9 +3,15 @@ const IssueSchema=require("../../models/Issue_Schema");
 const messageModel=require("../../models/messageModel");
 
 exports.getAllIssuesClaim=async(req,res)=>{
+    const {page,limit}=req.params;
     try{
+ const skip=parseInt(page-1)*parseInt(limit);
+    const companyTransactionCount = await IssueSchema.countDocuments();
+    const totalPage = Math.ceil(companyTransactionCount / parseInt(limit));
         const baseUrl = `${req.protocol}://${req.get('host')}`;
         const data = await IssueSchema.aggregate([
+            {$skip:skip},
+            {$limit:parseInt(limit)},
             {
                 $lookup: {
                     from: 'companies',
@@ -37,33 +43,54 @@ exports.getAllIssuesClaim=async(req,res)=>{
                 }
             },
             {
+                $lookup: {
+                    from: 'messages',
+                    localField: '_id',
+                    foreignField: 'Issue_id', // Assuming 'Issue_id' links issues and messages
+                    as: 'messageDetails'
+                }
+            },
+            {
                 $addFields: {
+                    adminViewedCount: {
+                        $size: {
+                            $filter: {
+                                input: '$messageDetails',
+                                as: 'message',
+                                cond: { $eq: ['$$message.Admin_view', false] }
+                            }
+                        }
+                    },
                     details: {
-                        companyEmail: { $arrayElemAt: [
-                            {
-                                $map: {
-                                    input: { $arrayElemAt: ['$companyDetails.HRs', 0] }, // Get the first HR array from the company
-                                    as: 'hr',
-                                    in: '$$hr.email' // Extract email of each HR
-                                }
-                            },
-                            0 // Extract the first HR's email
-                        ]}, // Extract company email
+                        companyEmail: {
+                            $arrayElemAt: [
+                                {
+                                    $map: {
+                                        input: { $arrayElemAt: ['$companyDetails.HRs', 0] }, // Get the first HR array from the company
+                                        as: 'hr',
+                                        in: '$$hr.email' // Extract email of each HR
+                                    }
+                                },
+                                0 // Extract the first HR's email
+                            ]
+                        },
                         candidateEmail: { $arrayElemAt: ['$candidateBasicDetails.email', 0] }, // Extract candidate email
                         candidateBasicDetails: { $arrayElemAt: ['$candidateBasicDetails', 0] } // Other candidate basic details
                     }
                 }
             },
+            {$sort:{createdDate:-1}},
             {
                 $project: {
                     companyDetails: 0, // Exclude original fields if not needed
                     candidateDetails: 0,
                     candidateBasicDetails: 0,
-                    'details.candidateBasicDetails':0
-
+                    'details.candidateBasicDetails': 0,
+                    messageDetails: 0 // Optional: Exclude messageDetails if not required in the output
                 }
             }
         ]);
+        
         
         if (data && data.length > 0) {
             const isGoogleDriveLink = (url) => {
@@ -79,7 +106,7 @@ exports.getAllIssuesClaim=async(req,res)=>{
                 };
             });
         
-            return res.status(200).send(updatedData);
+            return res.status(200).send({data:updatedData,totalPage,page});
         } else {
             return res.status(404).json({ message: 'No data found' });
         }

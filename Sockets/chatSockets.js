@@ -1,4 +1,4 @@
-const { getAllMessages, saveNewMessage } = require('../controllers/Company_Controller/Support_controller');
+const { getAllMessages, saveNewMessage,GetUserNotification,ViewAllMessage,AdminMessageCount,AdminViewNewMsg} = require('../controllers/Company_Controller/Support_controller');
 
 const chatSocket = (io) => {
   io.on("connection", (socket) => {
@@ -20,6 +20,41 @@ const chatSocket = (io) => {
         socket.emit('error', 'Failed to save message');
       }
     });
+
+    socket.on('messageNotification',async(userId)=>{
+      try{
+         const Notification=await GetUserNotification(userId);
+         io.emit('messageNot',Notification);
+      }catch(error){
+         console.log(error);
+      }
+    })
+
+    socket.on('ViewNewMessage',async(userId)=>{
+      try{
+         const ViewMessage=await ViewAllMessage(userId)
+      }catch(error){
+       console.log(error)
+      }
+    })
+
+    socket.on('adminMessagNot',async(adminId)=>{
+      try{
+        const TotalMessage=await AdminMessageCount(adminId)
+        io.emit('adminMessageCount',TotalMessage);
+      }catch(error){
+        console.log(error);
+      }
+    })
+
+    socket.on('AdminViewNewMessage',async(IssueId)=>{
+      try{
+      const AdminViewMessage=await AdminViewNewMsg(IssueId);
+      }catch(error){
+        console.log(error);
+      }
+    })
+
     socket.on("disconnect", () => {
       console.log("Client disconnected with ID:", socket.id);
     });

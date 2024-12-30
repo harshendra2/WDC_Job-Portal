@@ -10,6 +10,14 @@ Issue_id: {
   ref:'Issue'
 },
   message: String,
+User_view:{
+  type:Boolean,
+  default:false
+},
+Admin_view:{
+  type:Boolean,
+  default:false
+},
   timestamp: {type: Date, default: Date.now}
 });
 

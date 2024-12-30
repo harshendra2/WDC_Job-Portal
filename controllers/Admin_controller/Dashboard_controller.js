@@ -89,47 +89,6 @@ exports.getCountofCandidate = async (req, res) => {
       })
       TotalOfferReleased=Accepted+Rejected+Processing;
 
-      const Job = await companyjob.aggregate([
-        {
-            $group: {
-                _id: '$company_id',
-                jobCount: { $sum: 1 },
-                activeJobCount: {
-                    $sum: { $cond: [ {
-                      $and: [
-                          { $eq: ['$status',true] },
-                          {
-                              $gt: [
-                                  '$job_Expire_Date',
-                                  new Date()
-                              ]
-                          }
-                      ]
-                  }, 1, 0] }
-                },
-                inactiveJobCount: {
-                    $sum: {
-                        $cond: [
-                            {
-                                $and: [
-                                    { $eq: ['$status', false] },
-                                    {
-                                        $lt: [
-                                            '$job_Expire_Date',
-                                            new Date()
-                                        ]
-                                    }
-                                ]
-                            },
-                            1,
-                            0
-                        ]
-                    }
-                }
-            }
-        }
-    ]);
-
     const supports=await Support.find({});
     let TotalSupportRaised=0;
     let TotalIssueSolved=0;
@@ -169,8 +128,6 @@ exports.getCountofCandidate = async (req, res) => {
           Rejected, // remove
           Processing,// remove
           TotalOfferReleased, // remove
-          //
-          Job,
           SupportData,
       });
 
@@ -187,50 +144,19 @@ exports.GetAllSubscriptionplane = async (req, res) => {
     let candidateData = [];
     let PainAndUnpaidUser;
     let credibilityEstablish
+    let job
+    let jobStatus={
+      jobCount:0,
+      activeJobCount:0,
+      inactiveJobCount:0
+    }
   
-    // if (calendar === 'All' || calendar === null) {
-    //   const yearStart = new Date(0)
-    // let temp=await GetALLfilterData(yearStart,new Date());
-    // data=temp?.data;
-    // candidateData=temp?.candidateData;
-    // PainAndUnpaidUser=temp?.PainAndUnpaidUser;
-    // credibilityEstablish=temp?.credibilityEstablish
-    // } else if (calendar === 'Today') {
-      const todayStart = moment().startOf('day').toDate();
-      const todayEnd = moment().endOf('day').toDate();
       let temp=await GetALLfilterData(start,end);
       data=temp?.data;
       candidateData=temp?.candidateData;
       PainAndUnpaidUser=temp?.PainAndUnpaidUser;
       credibilityEstablish=temp?.credibilityEstablish;
-    // } else if (calendar === 'Thisweek') {
-    //   const weekStart = moment().startOf('isoWeek').toDate();
-    //   const weekEnd = moment().endOf('isoWeek').toDate();
-    //   let temp=await GetALLfilterData(weekStart,weekEnd);
-    //   data=temp?.data;
-    //   candidateData=temp?.candidateData;
-    //   PainAndUnpaidUser=temp?.PainAndUnpaidUser;
-    //   credibilityEstablish=temp?.credibilityEstablish
-    // } else if (calendar === 'Thismonth') {
-    //   const monthStart = moment().startOf('month').toDate();
-    //   const monthEnd = moment().endOf('month').toDate();
-    //   let temp=await GetALLfilterData(monthStart,monthEnd);
-    //   data=temp?.data;
-    //   candidateData=temp?.candidateData;
-    //   PainAndUnpaidUser=temp?.PainAndUnpaidUser;
-    //   credibilityEstablish=temp?.credibilityEstablish
-    // } else if (calendar === 'Thisyear') {
-    //   const yearStart = moment().startOf('year').toDate();
-    //   const yearEnd = moment().endOf('year').toDate();
-
-    //   let temp=await GetALLfilterData(yearStart,yearEnd);
-    //   data=temp?.data;
-    //   candidateData=temp?.candidateData;
-    //   PainAndUnpaidUser=temp?.PainAndUnpaidUser;
-    //   credibilityEstablish=temp?.credibilityEstablish
-    // } else {
-    //   return res.status(400).json({ error: 'Invalid calendar filter' });
-    // }
+      job=temp?.job;
 
     const CandidateSub = await CandidateSubs.find();
     const subscriptionCount = {};
@@ -285,6 +211,12 @@ exports.GetAllSubscriptionplane = async (req, res) => {
       CandidateSubscriptionCount[planName] = { count: 0, totalPrice: 0 };
     });
 
+    job.forEach((item)=>{
+      jobStatus['jobCount']+=item?.jobCount
+      jobStatus['activeJobCount']+=item?.activeJobCount
+      jobStatus['inactiveJobCount']+=item?.inactiveJobCount
+    })
+
     candidateData.forEach((item) => {
       if (item?.type === 'Subscription') {
         const planName = item?.Plane_name;
@@ -310,7 +242,8 @@ exports.GetAllSubscriptionplane = async (req, res) => {
       //Paid and Unpaid User
       PainAndUnpaidUser,
       //credibility establishment
-      credibilityEstablish
+      credibilityEstablish,
+      jobStatus
     });
   } catch (error) {
     console.log(error);
@@ -321,6 +254,43 @@ exports.GetAllSubscriptionplane = async (req, res) => {
 async function GetALLfilterData(start,end){
   let data = await companyTransaction.find({ purchesed_data: { $gte:start, $lt:end } });
      let candidateData = await CandidateTransaction.find({ purchesed_data: { $gte:start, $lt:end } });
+     
+     const job = await companyjob.aggregate([
+     {$match:{createdDate:{$gte:new Date(start),$lte:new Date(end)}}},
+      {
+          $group: {
+              _id: '$company_id',
+              jobCount: { $sum: 1 },
+              activeJobCount: {
+                  $sum: {
+                      $cond: [
+                          { $and: [
+                              { $eq: ['$status', true] },
+                              // { $gte: ['$job_Expire_Date',new Date(start)] },
+                              // { $lte: ['$job_Expire_Date',new Date(end)] }
+                          ] },
+                          1,
+                          0
+                      ]
+                  }
+              },
+              inactiveJobCount: {
+                  $sum: {
+                      $cond: [
+                          { $and: [
+                              { $eq: ['$status', false] },
+                              // { $gte: ['$job_Expire_Date',start] },
+                              // { $lte: ['$job_Expire_Date',end] }
+                          ] },
+                          1,
+                          0
+                      ]
+                  }
+              }
+          }
+      }
+  ]);
+  
      
      //Get Paid and Unpain User
      
@@ -480,5 +450,5 @@ let credibilityEstablish={ totalOffersCount,
   totalDownloadCount,
   totalEmailDownloadCount}
 
-     return {data,candidateData,PainAndUnpaidUser,credibilityEstablish};
+     return {data,candidateData,PainAndUnpaidUser,credibilityEstablish,job};
 }

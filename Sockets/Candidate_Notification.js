@@ -25,7 +25,7 @@ const candidateNotification = (io) => {
         //Candidate Shortlisted Notifcation 
         socket.on('getshortlistnotification',async(userId)=>{
             try {
-                const Notification = await getAllShortlistnotification(userId)
+                const Notification = await getAllShortlistnotification(userId);
                 socket.emit('shortlistenotification', Notification)
             } catch (err) {
                 console.log(err)

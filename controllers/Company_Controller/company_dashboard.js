@@ -96,42 +96,11 @@ exports.AllSubscriptionCount=async(req,res)=>{
     let data;
     let count;
     let cv_view_count;
-    // if(Time=='Today'){
-      const todayStart = moment().startOf('day').toDate();
-      const todayEnd = moment().endOf('day').toDate();
+  
       let temp =await CompanyStatusCount(start,end,cmpId);
       data=temp?.data;
       count=temp?.count
       cv_view_count=temp?.cvCount
-      // }else if(Time=='Thisweek'){
-      //   const weekStart = moment().startOf('isoWeek').toDate();
-      //   const weekEnd = moment().endOf('isoWeek').toDate();
-      //   let temp=await CompanyStatusCount(weekStart,weekEnd,cmpId);
-      //   data=temp?.data;
-      //   count=temp?.count
-      //   cv_view_count=temp?.cvCount
-      
-      // }else if(Time=='Thismonth'){
-      //   const monthStart = moment().startOf('month').toDate();
-      //   const monthEnd = moment().endOf('month').toDate();
-      //   let temp =await CompanyStatusCount(monthStart,monthEnd,cmpId);
-      //   data=temp?.data;
-      //   count=temp?.count
-      //   cv_view_count=temp?.cvCount
-      // }else if(Time=='Thisyear'){
-      //   const yearStart = moment().startOf('year').toDate();
-      //   const yearEnd = moment().endOf('year').toDate();
-      //   let temp =await CompanyStatusCount(yearStart,yearEnd,cmpId);
-      //   data=temp?.data;
-      //   count=temp?.count
-      //   cv_view_count=temp?.cvCount
-      // }else if(Time=='All'){
-      //   const yearStart = new Date(0)
-      //   let temp =await CompanyStatusCount(yearStart,new Date(),cmpId);
-      //   data=temp?.data;
-      //   count=temp?.count
-      //   cv_view_count=temp?.cvCount
-      // }
 
       return res.status(200).send({data,count,cv_view_count})
 
@@ -147,7 +116,7 @@ async function CompanyStatusCount(start, end, CmpID) {
     { 
       $match: {
         company_id: ObjectId,
-        createdDate: { $gte: start, $lte: end }  // Filter by createdDate
+        createdDate: { $gte: new Date(start), $lte:new Date(end) }
       } 
     },
     {
@@ -166,7 +135,6 @@ async function CompanyStatusCount(start, end, CmpID) {
       }
     },
     {
-      // This ensures we always get a result with 0s if there are no matches
       $project: {
         totalJobs: { $ifNull: ["$totalJobs", 0] },
         totalPromotedJobs: { $ifNull: ["$totalPromotedJobs", 0] },
@@ -174,7 +142,6 @@ async function CompanyStatusCount(start, end, CmpID) {
       }
     }
   ]);
-
   const count = await CompanyJob.aggregate([
     {$match:{company_id:ObjectId}},
     {
@@ -186,8 +153,8 @@ async function CompanyStatusCount(start, end, CmpID) {
               as: "candidate",
               cond: {
                 $and: [
-                  { $gte: ["$$candidate.applied_date", start] },
-                  { $lte: ["$$candidate.applied_date", end] }
+                  { $gte: ["$$candidate.applied_date",new Date(start)] },
+                  { $lte: ["$$candidate.applied_date",new Date(end)] }
                 ]
               }
             }
@@ -200,8 +167,8 @@ async function CompanyStatusCount(start, end, CmpID) {
               as: "shortlisted",
               cond: {
                 $and: [
-                  { $gte: ["$$shortlisted.sortlisted_date", start] },
-                  { $lte: ["$$shortlisted.sortlisted_date", end] }
+                  { $gte: ["$$shortlisted.sortlisted_date",new Date(start)] },
+                  { $lte: ["$$shortlisted.sortlisted_date",new Date(end)] }
                 ]
               }
             }
@@ -215,8 +182,8 @@ async function CompanyStatusCount(start, end, CmpID) {
               cond: {
                 $and: [
                   { $ne: ["$$shortlisted.short_Candidate.offer_letter", null] },
-                  { $gte: ["$$shortlisted.short_Candidate.offer_date", start] },
-                  { $lte: ["$$shortlisted.short_Candidate.offer_date", end] }
+                  { $gte: ["$$shortlisted.short_Candidate.offer_date",new Date(start)] },
+                  { $lte: ["$$shortlisted.short_Candidate.offer_date",new Date(end)] }
                 ]
               }
             }
@@ -230,8 +197,8 @@ async function CompanyStatusCount(start, end, CmpID) {
               cond: {
                 $and: [
                   { $ne: ["$$shortlisted.short_Candidate.hired_date", null] },
-                  { $gte: ["$$shortlisted.short_Candidate.hired_date", start] },
-                  { $lte: ["$$shortlisted.short_Candidate.hired_date", end] }
+                  { $gte: ["$$shortlisted.short_Candidate.hired_date",new Date(start)] },
+                  { $lte: ["$$shortlisted.short_Candidate.hired_date",new Date(end)] }
                 ]
               }
             }
@@ -263,8 +230,8 @@ async function CompanyStatusCount(start, end, CmpID) {
                     as: "view",
                     cond: {
                         $and: [
-                            { $gte: ["$$view.Date", start] },
-                            { $lte: ["$$view.Date", end] }
+                            { $gte: ["$$view.Date",new Date(start)] },
+                            { $lte: ["$$view.Date",new Date(end)] }
                         ]
                     }
                 }
@@ -275,8 +242,8 @@ async function CompanyStatusCount(start, end, CmpID) {
                     as: "download",
                     cond: {
                         $and: [
-                            { $gte: ["$$download.Date", start] },
-                            { $lte: ["$$download.Date", end] }
+                            { $gte: ["$$download.Date",new Date(start)] },
+                            { $lte: ["$$download.Date",new Date(end)] }
                         ]
                     }
                 }
@@ -287,8 +254,8 @@ async function CompanyStatusCount(start, end, CmpID) {
                   as: "download",
                   cond: {
                       $and: [
-                          { $gte: ["$$download.Date", start] },
-                          { $lte: ["$$download.Date", end] }
+                          { $gte: ["$$download.Date",new Date(start)] },
+                          { $lte: ["$$download.Date",new Date(end)] }
                       ]
                   }
               }

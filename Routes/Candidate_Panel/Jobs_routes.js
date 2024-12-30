@@ -3,7 +3,7 @@ const router=new express.Router();
 const controller=require('../../controllers/Candidate_Controller/Jobs_controller');
 
 router.post('/candidate/job_search/:userId',controller.KeywordJobSearch);
-router.get('/candidate/getunappliedjob/:id',controller.getUnappliedJob);
+router.get('/candidate/getunappliedjob/:id/:page/:limit',controller.getUnappliedJob);
 router.get('/candidate/getjobdetails/:id',controller.getJobDetails);
 router.get('/candidate/company_details/:companyId',controller.GetCompanyDetails);
 router.get('/candidate/basic_details/:companyId',controller.GetCompanyBasicDetails);
