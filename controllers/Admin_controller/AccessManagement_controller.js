@@ -53,7 +53,7 @@ exports.GetAllAdmin=async(req,res)=>{
 }
 
 exports.CreateNewRole=async(req,res)=>{
-    const {role_name,confirm_name,dashboard,onboard_company,onboard_candidate,subscription_plan,access_management,support,credibility,transaction,user_verification,job_module}=req.body;
+    const {role_name,confirm_name,dashboard,onboard_company,onboard_candidate,subscription_plan,access_management,support,credibility,transaction,user_verification,job_module,terms_condition}=req.body;
   const { error } = CreateNewRole.validate({role_name,confirm_name,onboard_company,onboard_candidate,subscription_plan,access_management,support});
   if (error) {
     return res.status(400).json({ error: error.details[0].message });
@@ -75,7 +75,8 @@ exports.CreateNewRole=async(req,res)=>{
                 credibility,
                 transaction,
                 user_verification,
-                job_module
+                job_module,
+                terms_condition
               }
           });
       
@@ -100,9 +101,20 @@ exports.GetAllRole=async(req,res)=>{
   }
 }
 
+exports.GetSingleRole=async(req,res)=>{
+  const {id}=req.params;
+  try{
+    const data = await responsibilities.findById(
+      id);
+      return res.status(200).send(data);
+  }catch(error){
+    return res.status(500).json({error:"Internal server error"});
+  }
+}
+
 exports.EditRole = async (req, res) => {
   const {id } = req.params;
-  const {dashboard,onboard_company,onboard_candidate,subscription_plan,access_management,support,credibility,transaction,user_verification,job_module} = req.body;
+  const {dashboard,onboard_company,onboard_candidate,subscription_plan,access_management,support,credibility,transaction,user_verification,job_module,terms_condition} = req.body;
 
   const { error } = EditExistingRole.validate({onboard_company,onboard_candidate,subscription_plan,access_management,support});
 
@@ -129,7 +141,8 @@ exports.EditRole = async (req, res) => {
           'responsibility.credibility': credibility,
           'responsibility.transaction': transaction,
           'responsibility.user_verification':user_verification,
-          'responsibility.job_module':job_module
+          'responsibility.job_module':job_module,
+          'responsibility.terms_condition':terms_condition
         }
       },
       { new: true }

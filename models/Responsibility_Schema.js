@@ -47,6 +47,10 @@ const ResponsibilitySchema = new mongoose.Schema({
           type: Boolean,
           default: false
         },
+        terms_condition:{
+          type:Boolean,
+          default:false
+        }
 
       },
 });

@@ -5,6 +5,7 @@ const { upload } = require("../../middleware/multer");
 
 router.post('/candidate/add_issue/:userId',upload.single('file'),controller.AddNewIssue);
 router.get('/candidate/get_issue/:userId',controller.getAllIssuesClaim);
+router.get('/candidate/get_mail_issue/:userId',controller.GetAllMailIssue); 
 
 router.post('/candidate/send/mail/:userId',upload.single('file'),controller.SendMailSupport);
 

@@ -45,7 +45,6 @@ const OnboardCandidatePersonalDetails=Joi.object({
   PAN: Joi.string().pattern(PAN_REGEX).messages({
     'string.pattern.base': 'PAN number is invalid'
   }),
-  spouse_profession:Joi.string(),
   location:Joi.string().min(3),
   country:Joi.string().min(3)
 })
@@ -791,7 +790,7 @@ exports.EditPersonalDetails = async (req, res) => {
 
   // Validate the input
   const { error } = OnboardCandidatePersonalDetails.validate({
-    gender, age, aadhar_number, PAN, spouse_profession,location, country
+    gender, age, aadhar_number, PAN,location, country
   });
   if (error) {
     return res.status(400).json({ error: error.details[0].message });

@@ -18,6 +18,7 @@ exports.getAllAppliedCandidate = async (req, res) => {
         const pages = parseInt(page) || 1; 
 const limits = parseInt(limit) ||50;
 const skip = (pages - 1) * limits;
+const TotalCandidate=await candidate.countDocuments();
         
 const data = await candidate.aggregate([
     {
@@ -142,7 +143,7 @@ const data = await candidate.aggregate([
                 };
             });
 
-            return res.status(200).json(updatedData);
+            return res.status(200).send({data:updatedData,TotalCandidate});
         } else {
             return res
                 .status(404)

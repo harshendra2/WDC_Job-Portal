@@ -216,7 +216,7 @@ exports.KeywordJobSearch = async (req, res) => {
         'company_details.Logged_In_count':0,
         'company_details.Candidate_Feed_Back':0
       }}
-    ]).sort({ promote_job: -1, createdDate: 1 });
+    ]).sort({ promote_job: -1, createdDate: 1});
 
     const baseUrl = `${req.protocol}://${req.get("host")}`;
     const isGoogleDriveLink = (url) => {

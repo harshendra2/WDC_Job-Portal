@@ -6,123 +6,187 @@ const company=require("../../models/Onboard_Company_Schema");
 const Candidate=require('../../models/Onboard_Candidate_Schema');
 
 
-exports.getAppliedJob = async (req, res) => {
-    const { userId,page,limit} = req.params;
-    try {
+exports.getAppliedJob = async (req, res) => { 
+  const { userId, page = 1, limit = 10, filter } = req.params;
+
+  try {
       const skip = (page - 1) * parseInt(limit);
-        if (!userId) {
-            return res.status(400).json({ error: "Please provide user Id" });
-        }
+      if (!userId) {
+          return res.status(400).json({ error: "Please provide user ID" });
+      }
       const id = new mongoose.Types.ObjectId(userId);
 
-        const jobs = await CompanyJob.aggregate([
-            { $unwind: "$applied_candidates" },
-            { $match: { "applied_candidates.candidate_id": id } },
-            {
-                $lookup: {
+      let matchFilter = {};
+      switch (filter) {
+          case "ApplicationSend":
+              matchFilter = {
+                  $and: [
+                      { "Shortlisted": { $size: 0 } },
+                      { "applied_candidates.longlist": false },
+                      { "applied_candidates.candidate_id": id }
+                  ]
+              };
+              break;
+          case "ApplicationShortlist":
+              matchFilter = {
+                  $and: [
+                      { "Shortlisted.shorted_status": false },
+                      { "Shortlisted.reject_status": false },
+                      { "applied_candidates.Shortlist_status": true },
+                      { "applied_candidates.candidate_id": id },
+                      { "Shortlisted.candidate_id": id }
+                  ]
+              };
+              break;
+          // case "JobOffer":
+          //     matchFilter = {
+          //         $and: [
+          //             { "Shortlisted.candidate_id": id },
+          //             { "Shortlisted.shorted_status": true },
+          //             { "Shortlisted.short_Candidate": { $exists: true } },
+          //             { "Shortlisted.short_Candidate.offer_accepted_status": "Processing" }
+          //         ]
+          //     };
+          //     break;
+          case "JobOfferReject":
+              matchFilter = {
+                  $and: [
+                      { "Shortlisted.candidate_id": id },
+                      { "Shortlisted.shorted_status": true },
+                      { "Shortlisted.reject_status": false },
+                      { "Shortlisted.short_Candidate.offer_accepted_status": "Rejected" }
+                  ]
+              };
+              break;
+              case "Hired":
+              matchFilter = {
+                  $and: [
+                      { "Shortlisted.candidate_id": id },
+                      { "Shortlisted.shorted_status": true },
+                      { "Shortlisted.reject_status": false },
+                      { "Shortlisted.short_Candidate.offer_accepted_status": "Accepted" }
+                  ]
+              };
+              break;
+              case "ApplicationProcessing":
+                matchFilter = {
+                    $and: [
+                        { "Shortlisted.candidate_id": id },
+                        { "Shortlisted.shorted_status": true },
+                        { "Shortlisted.short_Candidate.offer_accepted_status": "Processing" }
+                    ]
+                };
+                break;
+          case "All":
+          default:
+              matchFilter = {}; // No filter applied
+              break;
+      }
+
+      const jobs = await CompanyJob.aggregate([
+          { $unwind: "$applied_candidates" },
+          { $match: { "applied_candidates.candidate_id": id } },
+          { $match: matchFilter },
+          {
+              $lookup: {
                   from: "companies",
                   localField: "company_id",
                   foreignField: "_id",
                   as: "company_details",
-                },
-              },
-              {
-                $unwind: "$company_details" 
-            },
-            {
-                $project: {
-                    company_details: {
-                        _id: "$company_details._id",
-                        name: "$company_details.name",
-                        company_name: "$company_details.company_name",
-                        profile:"$company_details.profile",
-                        verified_batch:"$company_details.verified_batch"
-                    },
-                    applied_candidates: 1,
-                    job_title: 1,
-                    company_id: 1,
-                    industry: 1,
-                    salary: 1,
-                    experience: 1,
-                    location: 1,
-                    job_type: 1,
-                    work_type: 1,
-                    skills: 1,
-                    education: 1,
-                    status: 1,
-                    admin_verify: 1,
-                    createdDate: 1,
-                    No_openings: 1,
-                    applied_date: "$applied_candidates.applied_date",
-                    Shortlisted: {
-                        $filter: {
-                            input: "$Shortlisted",
-                            as: "shortlisted",
-                            cond: { $eq: ["$$shortlisted.candidate_id", id] }
-                        }
-                    }
-                }
-            },
-            {
-                $group: {
-                    _id: "$_id",
-                    company_details:{$first:"$company_details"},
-                    applied_candidates: { $push: "$applied_candidates" },
-                    job_title: { $first: "$job_title" },
-                    company_id:{$first:"$company_id"},
-                    industry: { $first: "$industry" },
-                    salary: { $first: "$salary" },
-                    experience: { $first: "$experience" },
-                    location: { $first: "$location" },
-                    job_type: { $first: "$job_type" },
-                    work_type: { $first: "$work_type" },
-                    skills: { $first: "$skills" },
-                    education: { $first: "$education" },
-                    status: { $first: "$status" },
-                    admin_verify: { $first: "$admin_verify" },
-                    createdDate: { $first: "$createdDate" },
-                    No_openings: { $first: "$No_openings" },
-                    Shortlisted: { $first: "$Shortlisted" },
-                    applied_date:{$first:"$applied_date"}
-                }
-            },
-            { $sort: { applied_date: -1,_id:1} },
-            {$skip:skip},
-            {$limit:parseInt(limit)}
-        ]);
-        if (jobs.length === 0) {
-            return res.status(200).send([]);
-        }
+              }
+          },
+          { $unwind: "$company_details" },
+          {
+              $project: {
+                  company_details: {
+                      _id: "$company_details._id",
+                      name: "$company_details.name",
+                      company_name: "$company_details.company_name",
+                      profile: "$company_details.profile",
+                      verified_batch: "$company_details.verified_batch"
+                  },
+                  applied_candidates: 1,
+                  job_title: 1,
+                  company_id: 1,
+                  industry: 1,
+                  salary: 1,
+                  experience: 1,
+                  location: 1,
+                  job_type: 1,
+                  work_type: 1,
+                  skills: 1,
+                  education: 1,
+                  status: 1,
+                  admin_verify: 1,
+                  createdDate: 1,
+                  No_openings: 1,
+                  applied_date: "$applied_candidates.applied_date",
+                  Shortlisted: {
+                      $filter: {
+                          input: "$Shortlisted",
+                          as: "shortlisted",
+                          cond: { $eq: ["$$shortlisted.candidate_id", id] }
+                      }
+                  }
+              }
+          },
+          {
+              $group: {
+                  _id: "$_id",
+                  company_details: { $first: "$company_details" },
+                  applied_candidates: { $push: "$applied_candidates" },
+                  job_title: { $first: "$job_title" },
+                  company_id: { $first: "$company_id" },
+                  industry: { $first: "$industry" },
+                  salary: { $first: "$salary" },
+                  experience: { $first: "$experience" },
+                  location: { $first: "$location" },
+                  job_type: { $first: "$job_type" },
+                  work_type: { $first: "$work_type" },
+                  skills: { $first: "$skills" },
+                  education: { $first: "$education" },
+                  status: { $first: "$status" },
+                  admin_verify: { $first: "$admin_verify" },
+                  createdDate: { $first: "$createdDate" },
+                  No_openings: { $first: "$No_openings" },
+                  Shortlisted: { $first: "$Shortlisted" },
+                  applied_date: { $first: "$applied_date" }
+              }
+          },
+          { $sort: { applied_date: -1, _id: 1 } },
+          { $skip: skip },
+          { $limit: parseInt(limit) }
+      ]);
 
-        const baseUrl = `${req.protocol}://${req.get("host")}`;
-        const isGoogleDriveLink = (url) => {
-          return (
-            url &&
-            (url.includes("drive.google.com") || url.includes("docs.google.com"))
-          );
-        };
-    
-        const unappliedJobs =jobs
-          .map((job) => {
-            const timeSincePosted = moment(job.createdDate).fromNow();
-            const profileUrl = job?.company_details?.profile
+      if (jobs.length === 0) {
+          return res.status(200).send([]);
+      }
+
+      const baseUrl = `${req.protocol}://${req.get("host")}`;
+      const isGoogleDriveLink = (url) => url?.includes("drive.google.com") || url?.includes("docs.google.com");
+
+      const unappliedJobs = jobs.map((job) => {
+          const timeSincePosted = moment(job.createdDate).fromNow();
+          const profileUrl = job?.company_details?.profile
               ? isGoogleDriveLink(job?.company_details?.profile)
-                ? job?.company_details?.profile
-                : `${baseUrl}/${job?.company_details?.profile.replace(/\\/g, "/")}`
+                  ? job?.company_details?.profile
+                  : `${baseUrl}/${job?.company_details?.profile.replace(/\\/g, "/")}`
               : null;
-    
-            return {
+
+          return {
               ...job,
               profileUrl,
               timeSincePosted,
-            };
-          });
-        return res.status(200).send({data:unappliedJobs,page});
-    } catch (error) {
-      console.log(error)
-        return res.status(500).json({ error: "Internal server error" });
-    }
+          };
+      });
+
+      return res.status(200).send({ data: unappliedJobs, page });
+  } catch (error) {
+      console.error(error);
+      return res.status(500).json({ error: "Internal server error" });
+  }
 };
+
 
 
 exports.getSeavedjob=async(req,res)=>{

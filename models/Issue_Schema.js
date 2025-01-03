@@ -1,6 +1,7 @@
 const mongoose = require('mongoose');
 
 const IssueSchema = new mongoose.Schema({
+  
   company_id: {
         type: mongoose.Schema.Types.ObjectId,
         ref:'company'
@@ -8,6 +9,12 @@ const IssueSchema = new mongoose.Schema({
   candidate_id:{
       type:mongoose.Schema.Types.ObjectId,
       ref:'candidate'
+  },
+  issueCategory: {
+    type: String
+  },
+  Ticket:{
+    type:String
   },
   Issue_type: {
     type: String

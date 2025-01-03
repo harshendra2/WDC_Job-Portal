@@ -68,7 +68,7 @@ const corsOptions = {
   },
 };
 
-app.use(cors(corsOptions));
+app.use(cors());
 app.use('/Images', express.static(path.join(__dirname, 'Images')));
 
 // const generateRestrictedAccessHTML = () => `

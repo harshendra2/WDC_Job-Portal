@@ -38,6 +38,7 @@ const IssueValidation=Joi.object({
       }
 
         const createdData =new IssueSchema({
+          issueCategory:'Portal Tickets',
             Issue_type,
             description,
             company_id:new mongoose.Types.ObjectId(id),
@@ -56,7 +57,7 @@ const IssueValidation=Joi.object({
 exports.getAllIssuesClaim=async(req,res)=>{
     const {companyId}=req.params;
     try{
-        const data=await IssueSchema.find({company_id:companyId}).sort({createdDate:-1})
+        const data=await IssueSchema.find({company_id:companyId,issueCategory:'Portal Tickets'}).sort({createdDate:-1})
         if(data){
             return res.status(200).send(data);
         }else{
@@ -68,56 +69,100 @@ exports.getAllIssuesClaim=async(req,res)=>{
     }
 }
 
+exports.getAllMailIssuesClaim=async(req,res)=>{
+  const {companyId}=req.params;
+  try{
+    const data=await IssueSchema.find({company_id:companyId,issueCategory:"Mail Tickets"}).sort({createdDate:-1})
+    if(data){
+        return res.status(200).send(data);
+    }else{
+        return res.status(400).json({message:"No Issues Claimed"});
+    }
+  }catch(error){
+    return res.status(500).json({error:"Internal server error"});
+  }
+}
+
+function generateToken(length = 7) {
+  const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+  let token = '';
+  for (let i = 0; i < length; i++) {
+    const randomIndex = Math.floor(Math.random() * characters.length);
+    token += characters[randomIndex];
+  }
+  return `TICKET-${token}`;
+}
 
 exports.SendMailSupport = async (req, res) => {
-  const { Message, Subject } =req.body;
+  const { Message, Subject } = req.body;
   const { cmpId } = req.params;
 
   try {
-      const companyData = await company.findById(cmpId);
-      if (!companyData) {
-          return res.status(404).json({ success: false, error: "Company not found." });
-      }
+    const hasValidSubscription = await CompanySubscription.exists({
+      company_id: cmpId,
+      expiresAt: { $gte: new Date() },
+      createdDate: { $lte: new Date() },
+      support: true,
+    });
 
-      const transporter = nodemailer.createTransport({
-          service: 'gmail',
-          auth: {
-              user: process.env.emailUser,
-              pass: process.env.emailPassword,
-          },
-      });
+    if (!hasValidSubscription) {
+      return res.status(400).json({ error: 'Please buy a subscription plan.' });
+    }
 
-      const mailOptions = {
-        from: process.env.EMAIL_USER,
-        to: companyData.email,
-        subject: `${Subject || 'No Subject Provided'}`,
-        html: `
+
+    const companyData = await company.findById(cmpId);
+    if (!companyData) {
+      return res.status(404).json({ success: false, error: 'Company not found.' });
+    }
+
+    const transporter = nodemailer.createTransport({
+      service: 'gmail',
+      auth: {
+        user: process.env.emailUser,
+        pass: process.env.emailPassword,
+      },
+    });
+
+    const token = generateToken();
+
+    const mailOptions = {
+      from: process.env.EMAIL_USER,
+      to: companyData.email,
+      subject:`${Subject || 'No Subject Provided'} - (${token})`,
+      html: `
         <p>Dear Support Team,</p>
-
         <p>You have received a new issue report from <strong>${companyData.company_name}</strong>.</p>
-        
         <p><strong>Message:</strong></p>
         <blockquote style="border-left: 4px solid #ddd; padding-left: 10px; color: #555; font-style: italic;">
-            ${Message || 'No additional details were provided.'}
+          ${Message || 'No additional details were provided.'}
         </blockquote>
-        
         <p>Please find the attached screenshot for reference:</p>
         <img 
-            src="http://65.20.91.47:4000/${req.file.path}" 
-            alt="Screenshot" 
-            style="max-width: 100%; height: auto; border: 1px solid #ddd; padding: 5px; margin-top: 15px;"
+          src="http://65.20.91.47:4000/${req.file?.path || ''}" 
+          alt="Screenshot" 
+          style="max-width: 100%; height: auto; border: 1px solid #ddd; padding: 5px; margin-top: 15px;"
         >
-
         <p style="margin-top: 20px;">Best regards,</p>
         <p><em>Your Support Team</em></p>
-    `,
+      `,
     };
-      // Send email
-      await transporter.sendMail(mailOptions);
 
-      return res.status(200).json({ success: true, message: 'Email sent successfully!' });
+    await transporter.sendMail(mailOptions);
+
+    const issue = new IssueSchema({
+      issueCategory: 'Mail Tickets',
+      issueType: `${Subject || 'No Subject'} - (${token})`,
+      description: Message,
+      Ticket: token,
+      company_id: new mongoose.Types.ObjectId(cmpId),
+      file: req.file?.path || '',
+    });
+
+    await issue.save();
+
+    return res.status(200).json({ success: true, message: 'Email sent and issue logged successfully!' });
   } catch (error) {
-      return res.status(500).json({ success: false, error: "Internal server error" });
+    return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 };
 

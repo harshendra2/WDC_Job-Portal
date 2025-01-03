@@ -86,7 +86,9 @@ return res.status(200).send({applied_candidates_count,shortlisted_candidates_cou
     }
 }
 
-async function AppliedJobStatus(start,end,UserID){
+async function AppliedJobStatus(starts,ends,UserID){
+  let start=new Date(starts);
+  let end=new Date(ends)
 
   const candidate = await Candidate.findById(UserID, {
     profile_view_company:{

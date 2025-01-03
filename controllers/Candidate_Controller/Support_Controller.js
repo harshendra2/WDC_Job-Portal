@@ -25,7 +25,9 @@ const IssueValidation=Joi.object({
         if (!req.file) {
             return res.status(400).json({ error: "Please upload a file" });
           }
+
         const createdData =new IssueSchema({
+            issueCategory:'Portal Tickets',
             Issue_type,
             description,
             candidate_id:new mongoose.Types.ObjectId(userId),
@@ -51,7 +53,7 @@ exports.getAllIssuesClaim=async(req,res)=>{
             customer_support:true,
         });
 
-        const data=await IssueSchema.find({candidate_id:userId}).sort({createdDate:-1})
+        const data=await IssueSchema.find({candidate_id:userId,issueCategory:'Portal Tickets'}).sort({createdDate:-1})
         if(data){
             return res.status(200).send({data:data,possibleSubscriptions:possibleSubscriptions});
         }else{
@@ -59,10 +61,41 @@ exports.getAllIssuesClaim=async(req,res)=>{
         }
 
     }catch(error){
-        console.log(error)
         return res.status(500).json({error:"Internal Server Error"});
     }
 }
+
+exports.GetAllMailIssue=async(req,res)=>{
+    const {userId}=req.params;
+    try{
+        const possibleSubscriptions = await CurrentUserSub.findOne({
+            candidate_id: userId,
+            expiresAt: { $gte: new Date() },
+            createdDate: { $lte: new Date() }, 
+            customer_support:true,
+        });
+
+        const data=await IssueSchema.find({candidate_id:userId,issueCategory:"Mail Tickets"}).sort({createdDate:-1})
+        if(data){
+            return res.status(200).send({data:data,possibleSubscriptions:possibleSubscriptions});
+        }else{
+           return res.status(200).send({data:data,possibleSubscriptions:possibleSubscriptions});
+        }
+    }catch(error){
+        return res.status(500).json({error:"Internal server error"});
+    }
+}
+
+function generateToken(length = 7) {
+    const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+    let token = '';
+    for (let i = 0; i < length; i++) {
+      const randomIndex = Math.floor(Math.random() * characters.length);
+      token += characters[randomIndex];
+    }
+    return `TICKET-${token}`;
+  }
+  
 
 exports.SendMailSupport=async(req,res)=>{
    const { Message, Subject } =req.body;
@@ -73,7 +106,8 @@ exports.SendMailSupport=async(req,res)=>{
          if (!CandidateData) {
              return res.status(404).json({ success: false, error: "Candidate not found." });
          }
-   
+         const token = generateToken();
+
          const transporter = nodemailer.createTransport({
              service: 'gmail',
              auth: {
@@ -85,7 +119,8 @@ exports.SendMailSupport=async(req,res)=>{
          const mailOptions = {
            from: process.env.EMAIL_USER,
            to:CandidateData?.basic_details?.email,
-           subject: `${Subject || 'No Subject Provided'}`,
+           subject: `${Subject || 'No Subject Provided'} - (${token})`,
+
            html: `
            <p>Dear Support Team,</p>
    
@@ -109,6 +144,18 @@ exports.SendMailSupport=async(req,res)=>{
        };
          // Send email
          await transporter.sendMail(mailOptions);
+
+         const issue = new IssueSchema({
+            issueCategory: 'Mail Tickets',
+            issueType: `${Subject || 'No Subject'} - (${token})`,
+            description: Message,
+            Ticket: token,
+            candidate_id: new mongoose.Types.ObjectId(userId),
+            file: req.file?.path || '',
+          });
+      
+          await issue.save();
+      
    
          return res.status(200).json({ success: true, message: 'Email sent successfully!' });
      } catch (error) {

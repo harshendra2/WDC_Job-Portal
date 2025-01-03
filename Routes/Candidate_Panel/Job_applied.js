@@ -2,7 +2,7 @@ const express=require('express');
 const router=new express.Router();
 const controller=require('../../controllers/Candidate_Controller/Applied_Job_controller');
 
-router.get('/candidate/appliedjob/:userId/:page/:limit',controller.getAppliedJob);
+router.get('/candidate/appliedjob/:userId/:page/:limit/:filter',controller.getAppliedJob);
 router.get('/candidate/savedjob/:userId/:page/:limit',controller.getSeavedjob);
 //Job status flow map
 router.get('/candidate/job_details/flow/:jobId',controller.GetjobDetails);
